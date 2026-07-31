@@ -1,0 +1,311 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sen bir profesyonel E-Posta Asistanısın. Aşağıda detayları verilen e-postayı incele ve analiz et.\n\nGelen E-Posta Detayları:\n- Gönderen: {{ $json.From }}\n- Konu: {{ $json.Subject }}\n- İçerik: {{ $json.snippet }}\n\nGörevlerin:\n1. E-postayı şu kategorilerden birine ayır: [Satış, Şikayet, Teknik Destek, Güvenlik ve Bildirim, Spam]\n2. E-postanın 1-2 cümlelik kısa bir özetini çıkar.\n3. Gönderene yazılması gereken uygun bir yanıt taslağı veya alınması gereken aksiyonu belirt.\n\nYanıtını KESİNLİKLE sadece şu JSON formatında ver, ekstra hiçbir açıklama yazma:\n{\n  \"kategori\": \"Güvenlik veya Satış veya Şikayet\",\n  \"ozet\": \"E-postanın kısa özeti\",\n  \"yanit\": \"Önerilen yanıt metni\"\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        352,
+        -16
+      ],
+      "id": "73a11d29-c838-4de0-a01d-06c753a3803a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        352,
+        192
+      ],
+      "id": "46bd8e29-989b-478a-8103-bb8b173373ad",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "R9wnobq2DHPYQEaQ",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        -16
+      ],
+      "id": "0980de54-1b6e-4095-bb91-36f56d23e398",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mMraz4aok1Z6cBsJ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1lgG_DLaCcsp4J6WGLAOQnnfKJ4IkMyLcuAJUNTlCKQ4",
+          "mode": "list",
+          "cachedResultName": "E-Posta Otomasyonu ve Sınıflandırma Kayıtları",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lgG_DLaCcsp4J6WGLAOQnnfKJ4IkMyLcuAJUNTlCKQ4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 28914460,
+          "mode": "list",
+          "cachedResultName": "E-Posta Otomasyonu ve Sınıflandırma Kayıtları",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1lgG_DLaCcsp4J6WGLAOQnnfKJ4IkMyLcuAJUNTlCKQ4/edit#gid=28914460"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Tarih": "={{ $('Gmail Trigger').item.json.internalDate }}",
+            "Gönderen": "={{ $('Gmail Trigger').item.json.From }}",
+            "Konu": "={{ $('Gmail Trigger').item.json.Subject }}",
+            "Ajan Özeti": "={{ JSON.parse($json.output).ozet }}",
+            "Katagori": "={{ JSON.parse($json.output).kategori }}",
+            "Önerilen yanıt": "={{ JSON.parse($json.output).yanit }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Tarih",
+              "displayName": "Tarih",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Gönderen",
+              "displayName": "Gönderen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Konu",
+              "displayName": "Konu",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Katagori",
+              "displayName": "Katagori",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ajan Özeti",
+              "displayName": "Ajan Özeti",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Önerilen yanıt",
+              "displayName": "Önerilen yanıt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        704,
+        -16
+      ],
+      "id": "d0692db4-da87-4d42-b75e-13761c901c4c",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "od9CWGOZEOu5QNX7",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c87d5fb6-e2a4-4805-a31e-3620b669a545",
+              "leftValue": "={{ $json.Katagori }}",
+              "rightValue": "Şikayet",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "307b6aae-5daf-4413-923b-9aa2174b7082",
+              "leftValue": "={{ $json.Katagori }}",
+              "rightValue": "Güvenlik ve Bildirim",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        912,
+        -16
+      ],
+      "id": "b63faa8d-6999-41a0-8686-8a6c2c78877e",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#team-",
+          "mode": "name"
+        },
+        "text": "=🚨 Dikkat gerektiren mail: {{ $json.Katagori }} Gönderen: {{ $json.Gönderen }} Konu: {{ $json.Konu }} Özet: {{ $json[\"Ajan Özeti\"] }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        1120,
+        -112
+      ],
+      "id": "18bf3404-3d95-4c94-9048-19ebf25a9a92",
+      "name": "Send a message",
+      "webhookId": "fde82a80-738e-4cae-8e98-c7f1a2447af2",
+      "credentials": {
+        "slackApi": {
+          "id": "eNg3qQrycmtVNeUE",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "2458dbc6-c322-41e1-8413-f4f3568549c6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "22fcf54e9d080645a2964c4a7b17d60cee5b859092c3741f20f5e08e321ad865"
+  },
+  "nodeGroups": [],
+  "id": "4EDmnDULUCMjcDvR",
+  "tags": []
+}
