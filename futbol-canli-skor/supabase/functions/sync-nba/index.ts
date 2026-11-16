@@ -1,15 +1,16 @@
-// pg_cron ile çağrılır (bkz. 0003_nba.sql):
+// pg_cron ile çağrılır (bkz. 0004_quota.sql):
 //   mode=live     → maç saatlerinde (TSİ 02:00-09:30) canlı NBA skorları + yeni bitenler
-//   mode=schedule → günde 2 kez dün/bugün/yarın fikstürü
+//   mode=schedule → günde 1 kez dün/bugün/yarın fikstürü
 // Her iki modda da biten ve istatistiği olmayan maçlar için kutu skoru çekilip
 // ön-hesaplama motoru (nbaMetrics.ts) çalıştırılır; teaser şablonla yazılır (0 token).
+// Kota API-Football ile ortaktır: isteğe bağlı çekimler kota bekçisine (hasNbaQuota) tabidir.
 import { buildNbaTeaser, pickTopPlayers, type NbaMatchRow } from '../_shared/nbaAnalysis.ts';
-import { mapGame, mapPlayers, mapTeamBoxes, nbaGet, toGameId } from '../_shared/nbaApi.ts';
+import { hasNbaQuota, lastNbaQuota, mapGame, mapPlayers, mapTeamBoxes, nbaGet, toGameId } from '../_shared/nbaApi.ts';
 import { computeNbaMetrics } from '../_shared/nbaMetrics.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 
 const KEY = Deno.env.get('API_FOOTBALL_KEY')!; // api-sports anahtarı NBA için de geçerli
-/** Tek çalıştırmada kutu skoru çekilecek en fazla maç (maç başına 2 istek; günlük 100 kota) */
+/** Tek çalıştırmada kutu skoru çekilecek en fazla maç (maç başına 2 istek) */
 const MAX_ENRICH = Number(Deno.env.get('NBA_MAX_ENRICH') ?? 3);
 
 const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
@@ -19,7 +20,7 @@ Deno.serve(async (req) => {
   const { mode = 'live' } = await req.json().catch(() => ({}));
 
   const task = (mode === 'schedule' ? syncSchedule() : syncLive())
-    .then(async (r) => ({ ...r, enriched: await enrichFinished() }))
+    .then(async (r) => ({ ...r, enriched: await enrichFinished(), quota: lastNbaQuota() }))
     .then((r) => console.log(`[sync-nba] ${mode} ok`, JSON.stringify(r)))
     .catch((e) => console.error(`[sync-nba] ${mode} HATA`, e instanceof Error ? e.message : e));
 
@@ -37,8 +38,10 @@ async function upsert(rows: Record<string, unknown>[]) {
   if (error) throw error;
 }
 
+const utcDate = (iso: string | Date) => new Date(iso).toISOString().slice(0, 10);
+
 async function syncSchedule() {
-  const day = (offset: number) => new Date(Date.now() + offset * 86400_000).toISOString().slice(0, 10);
+  const day = (offset: number) => utcDate(new Date(Date.now() + offset * 86400_000));
   let count = 0;
   const skipped: string[] = [];
   for (const date of [day(-1), day(0), day(1)]) {
@@ -60,24 +63,28 @@ async function syncLive() {
     games = await nbaGet('/games?live=all', KEY);
   } catch (e) {
     console.warn('[sync-nba] live=all kullanılamadı, tarih sorgusuna geçiliyor:', e instanceof Error ? e.message : e);
-    games = (await nbaGet(`/games?date=${new Date().toISOString().slice(0, 10)}`, KEY)).filter((g) => g.status?.short === 2);
+    games = (await nbaGet(`/games?date=${utcDate(new Date())}`, KEY)).filter((g) => g.status?.short === 2);
   }
   const live = games.map(mapGame);
   await upsert(live);
 
-  // 2) DB'de canlı görünen ama listeden düşen maçlar → bitmiş olabilir, tek tek güncelle
+  // 2) DB'de canlı görünen ama listeden düşen maçlar → bitmiş olabilir.
+  //    Maç başına 1 istek yerine, başlama tarihine göre gün başına 1 istekle güncellenir.
   const liveIds = new Set(live.map((r) => r.fixture_id));
   const { data: dbLive, error } = await admin
     .from('matches')
-    .select('fixture_id')
+    .select('fixture_id, kickoff_at')
     .eq('sport_type', 'nba')
     .in('status_short', ['LIVE', 'HT']);
   if (error) throw error;
-  const gone = (dbLive ?? []).map((r) => r.fixture_id as number).filter((id) => !liveIds.has(id));
-  for (const fid of gone.slice(0, 5)) {
-    await upsert((await nbaGet(`/games?id=${toGameId(fid)}`, KEY)).map(mapGame));
+  const gone = (dbLive ?? []).filter((r) => !liveIds.has(r.fixture_id as number));
+  const goneIds = new Set(gone.map((r) => r.fixture_id as number));
+  const dates = [...new Set(gone.map((r) => utcDate(r.kickoff_at as string)))];
+  for (const date of dates) {
+    const rows = (await nbaGet(`/games?date=${date}`, KEY)).map(mapGame).filter((r) => goneIds.has(r.fixture_id));
+    await upsert(rows);
   }
-  return { live: live.length, refreshed: Math.min(gone.length, 5) };
+  return { live: live.length, refreshed: gone.length, date_requests: dates.length };
 }
 
 /** Biten ama istatistiği olmayan maçlar: kutu skoru + ön-hesaplama + şablon teaser */
@@ -96,6 +103,11 @@ async function enrichFinished() {
 
   let done = 0;
   for (const m of data ?? []) {
+    // Her maç 2 istek ister; ortak kota rezervinin altına inilecekse dur
+    if (!hasNbaQuota(2)) {
+      console.warn('[sync-nba] kota rezervi korunuyor; kalan maç istatistikleri sonraki çalıştırmaya kaldı');
+      break;
+    }
     const gameId = toGameId(m.fixture_id);
     try {
       const boxes = mapTeamBoxes(await nbaGet(`/games/statistics?id=${gameId}`, KEY), m.home_team);

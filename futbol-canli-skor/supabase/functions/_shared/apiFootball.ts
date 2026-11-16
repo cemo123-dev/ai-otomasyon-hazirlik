@@ -42,15 +42,27 @@ const NON_SENIOR_MEN = /\b(women|womens|féminine|femenino|frauen|W|U1[5-9]|U2[0
 type Json = any;
 
 // Ücretsiz plan: dakikada en fazla 10 istek → istekler arası ~6,5 sn bekle (ücretli planda bekleme yok)
-const PAID = Deno.env.get('API_FOOTBALL_PAID') === '1';
+export const PAID = Deno.env.get('API_FOOTBALL_PAID') === '1';
 const MIN_GAP_MS = PAID ? 0 : 6500;
 let lastCallAt = 0;
+
+/**
+ * KOTA BEKÇİSİ — API-Football ve API-NBA aynı günlük kotayı paylaşır.
+ * Futbol işleri, gece NBA senkronu için en az QUOTA_RESERVE isteği bırakır;
+ * isteğe bağlı detay çekimleri bu eşiğin altında atlanır.
+ */
+const QUOTA_RESERVE = Number(Deno.env.get('FOOTBALL_QUOTA_RESERVE') ?? 45);
+let quotaRemaining: number | null = null;
+export const hasQuotaForOptional = () => PAID || quotaRemaining === null || quotaRemaining > QUOTA_RESERVE;
+export const lastQuotaRemaining = () => quotaRemaining;
 
 export async function apiGet(path: string, key: string): Promise<Json[]> {
   const wait = lastCallAt + MIN_GAP_MS - Date.now();
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   lastCallAt = Date.now();
   const res = await fetch(`${BASE}${path}`, { headers: { 'x-apisports-key': key } });
+  const rem = Number(res.headers.get('x-ratelimit-requests-remaining'));
+  if (Number.isFinite(rem) && res.headers.has('x-ratelimit-requests-remaining')) quotaRemaining = rem;
   if (!res.ok) throw new Error(`API-Football ${res.status} ${path}`);
   const body = await res.json();
   const errors = body.errors && (Array.isArray(body.errors) ? body.errors : Object.values(body.errors));
@@ -59,7 +71,7 @@ export async function apiGet(path: string, key: string): Promise<Json[]> {
 }
 
 /** Ücretsiz planda tek çalıştırmada tek tek çekilecek en fazla maç (günlük 100 istek kotası) */
-const MAX_SINGLE_FETCH = Number(Deno.env.get('API_FOOTBALL_MAX_SINGLE_FETCH') ?? 10);
+const MAX_SINGLE_FETCH = Number(Deno.env.get('API_FOOTBALL_MAX_SINGLE_FETCH') ?? 3);
 // Ücretli plana geçince Edge Function secret'ı API_FOOTBALL_PAID=1 yapın (toplu ids= çekimi açılır)
 let idsParamBlocked = !PAID;
 
@@ -82,6 +94,10 @@ export async function getFixturesByIds(ids: number[], key: string): Promise<Json
     }
   }
   for (const id of ids.slice(0, MAX_SINGLE_FETCH)) {
+    if (!hasQuotaForOptional()) {
+      console.warn(`[api-football] kota rezervi (${QUOTA_RESERVE}) korunuyor; kalan detaylar sonraki çalıştırmaya kaldı`);
+      break;
+    }
     try {
       out.push(...(await apiGet(`/fixtures?id=${id}`, key)));
     } catch (e) {

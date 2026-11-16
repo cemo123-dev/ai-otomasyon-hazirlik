@@ -20,11 +20,22 @@ let lastCallAt = 0;
 // deno-lint-ignore no-explicit-any
 type Json = any;
 
+/**
+ * KOTA BEKÇİSİ — API-NBA, API-Football ile aynı günlük kotayı paylaşır.
+ * İsteğe bağlı çekimler (kutu skoru) kalan kota NBA_QUOTA_RESERVE'in altına inecekse atlanır.
+ */
+const QUOTA_RESERVE = Number(Deno.env.get('NBA_QUOTA_RESERVE') ?? 5);
+let quotaRemaining: number | null = null;
+export const hasNbaQuota = (needed = 1) => PAID || quotaRemaining === null || quotaRemaining - needed >= QUOTA_RESERVE;
+export const lastNbaQuota = () => quotaRemaining;
+
 export async function nbaGet(path: string, key: string): Promise<Json[]> {
   const wait = lastCallAt + MIN_GAP_MS - Date.now();
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   lastCallAt = Date.now();
   const res = await fetch(`${BASE}${path}`, { headers: { 'x-apisports-key': key } });
+  const rem = Number(res.headers.get('x-ratelimit-requests-remaining'));
+  if (res.headers.has('x-ratelimit-requests-remaining') && Number.isFinite(rem)) quotaRemaining = rem;
   if (!res.ok) throw new Error(`API-NBA ${res.status} ${path}`);
   const body = await res.json();
   const errors = body.errors && (Array.isArray(body.errors) ? body.errors : Object.values(body.errors));

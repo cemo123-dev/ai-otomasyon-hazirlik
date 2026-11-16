@@ -1,7 +1,7 @@
 // pg_cron ile çağrılır (bkz. 0002_pipeline.sql):
 //   mode=live     → canlı maçların skor/dakika/olay/istatistikleri + yeni bitenler
 //   mode=schedule → dün/bugün/yarın fikstürü + biten maçların istatistikleri
-import { apiGet, getFixturesByIds, isTracked, mapCore, mapDetails } from '../_shared/apiFootball.ts';
+import { apiGet, getFixturesByIds, isTracked, lastQuotaRemaining, mapCore, mapDetails, PAID } from '../_shared/apiFootball.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 import { buildTeaser } from '../_shared/teaser.ts';
 import { FINISHED, LIVE, type MatchRow } from '../_shared/types.ts';
@@ -80,16 +80,29 @@ async function syncSchedule() {
 }
 
 async function syncLive() {
-  // 1) Şu an canlı olan takip edilen maçlar (1 istek)
-  const liveIds = (await apiGet('/fixtures?live=all', KEY)).filter(isTracked).map((f) => f.fixture.id as number);
+  // 1) Şu an canlı olan takip edilen maçlar (1 istek): skor, dakika, durum
+  const liveList = (await apiGet('/fixtures?live=all', KEY)).filter(isTracked);
+  const liveIds = new Set(liveList.map((f) => f.fixture.id as number));
+  const coreRows = liveList.map(mapCore);
+  if (coreRows.length) {
+    const { error: coreErr } = await admin.from('matches').upsert(coreRows, { onConflict: 'fixture_id' });
+    if (coreErr) throw coreErr;
+  }
 
-  // 2) DB'de hâlâ canlı görünen ama listeden düşenler = yeni bitenler (veya ertelenenler)
-  const { data: dbLive, error } = await admin.from('matches').select('fixture_id').in('status_short', LIVE);
+  // 2) DB'de hâlâ canlı görünen ama listeden düşen FUTBOL maçları = yeni bitenler
+  //    (sport_type filtresi şart: aksi halde canlı NBA maçları futbol API'sine sorulur)
+  const { data: dbLive, error } = await admin
+    .from('matches')
+    .select('fixture_id')
+    .eq('sport_type', 'football')
+    .in('status_short', LIVE);
   if (error) throw error;
-  const ids = [...new Set([...liveIds, ...(dbLive ?? []).map((r) => r.fixture_id as number)])];
-  if (!ids.length) return { live: 0, finished: 0 };
+  const gone = (dbLive ?? []).map((r) => r.fixture_id as number).filter((id) => !liveIds.has(id));
 
-  // 3) Detaylar: her 20 maç için 1 istek
+  // 3) Detaylar (olay, istatistik, kadro). Ücretsiz planda kotayı korumak için yalnızca
+  //    yeni biten maçlar; ücretli planda canlı maçlar da (20 maç = 1 istek).
+  const ids = PAID ? [...new Set([...liveIds, ...gone])] : gone;
+  if (!ids.length) return { live: liveIds.size, finished: 0, quota: lastQuotaRemaining() };
   const fixtures = await getFixturesByIds(ids, KEY);
   let finished = 0;
   const rows: Partial<MatchRow>[] = fixtures.map((f) => {
@@ -101,8 +114,9 @@ async function syncLive() {
     return row;
   });
 
-  // Değişmeyen satırları yazmamak Realtime trafiğini azaltır, ama basitlik için upsert.
-  const { error: upErr } = await admin.from('matches').upsert(rows, { onConflict: 'fixture_id' });
-  if (upErr) throw upErr;
-  return { live: liveIds.length, finished };
+  if (rows.length) {
+    const { error: upErr } = await admin.from('matches').upsert(rows, { onConflict: 'fixture_id' });
+    if (upErr) throw upErr;
+  }
+  return { live: liveIds.size, finished, quota: lastQuotaRemaining() };
 }
