@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { dataSource } from '@/lib/data';
-import { isFinished, type Match, type TacticalPayload } from '@/lib/types';
+import { isFinished, type AnyTacticalPayload, type Match } from '@/lib/types';
 import { usePremium } from './usePremium';
 
 export type AnalysisState =
@@ -9,7 +9,7 @@ export type AnalysisState =
   | { kind: 'not_finished' }
   | { kind: 'paywall' }
   | { kind: 'generating' }
-  | { kind: 'completed'; payload: TacticalPayload }
+  | { kind: 'completed'; payload: AnyTacticalPayload }
   | { kind: 'error'; message: string };
 
 /** Realtime olayı kaçarsa diye üretim sırasında yedek kontrol aralığı */

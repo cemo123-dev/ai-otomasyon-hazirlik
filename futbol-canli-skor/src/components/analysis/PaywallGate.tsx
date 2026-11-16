@@ -2,10 +2,33 @@ import { BlurTargetView, BlurView } from 'expo-blur';
 import { router } from 'expo-router';
 import { useRef, type ComponentRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { Match, TacticalPayload } from '@/lib/types';
+import type { Match, NbaTacticalPayload, TacticalPayload } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
+import { NbaAnalysisReport } from '../nba/NbaAnalysisCards';
 import { Badge, Card } from '../ui';
 import { AnalysisReport } from './AnalysisCards';
+
+const zeroEff = { ts_pct: 0, fg_pct: 0, tp_pct: 0, fga: 0, tpa: 0, points: 0 };
+const zeroPm = { starters_pm_avg: 0, bench_pm_avg: 0, bench_points: 0, commentary: 'İlk 5 ve yedeklerin etkisi.' };
+
+/** NBA kart yapısını gösteren yer tutucu (gerçek analiz değil) */
+const NBA_PLACEHOLDER: NbaTacticalPayload = {
+  sport: 'nba',
+  headline_title: 'Ana maç hükmü burada yer alır',
+  executive_tactical_verdict: 'Maçın kaderini belirleyen verimlilik farkı ve kırılma periyodu bu kartta özetlenir.',
+  efficiency_audit: { verdict_type: 'balanced', verdict_label: 'Verimlilik denetimi', home: zeroEff, away: zeroEff, volume_trap_team: null, commentary: 'TS% ve şut profili yorumu.' },
+  quarter_runs: [
+    { quarter: 1, label: 'Çeyrek', home_pts: 0, away_pts: 0, swing: 0, score_after: '', title: 'Çeyrek kırılması', description: 'Momentumun değiştiği periyot.', momentum: 'neutral' },
+    { quarter: 2, label: 'Çeyrek', home_pts: 0, away_pts: 0, swing: 0, score_after: '', title: 'Çeyrek kırılması', description: 'Momentumun değiştiği periyot.', momentum: 'neutral' },
+  ],
+  late_game: { close_game: false, q4_home: null, q4_away: null, final_margin: 0, commentary: 'Son çeyrek yorumu.' },
+  bench_impact: { home: zeroPm, away: zeroPm },
+  possession_battle: {
+    off_reb: { home: 0, away: 0 }, turnovers: { home: 0, away: 0 }, extra_possessions_home: 0,
+    points_in_paint: null, points_off_turnovers: null, second_chance_points: null,
+  },
+  player_performance_spotlight: { player: 'Maçın yıldızı', team: 'home', position: '—', rating: 0, headline: 'Oyuncu performans özeti.', key_stats: [] },
+};
 
 /**
  * Bulanık arka plan için GERÇEK analiz kullanılmaz (RLS zaten vermez);
@@ -59,7 +82,11 @@ export function PaywallGate({ match }: { match: Match }) {
       {/* Derin analiz: bulanık */}
       <View style={styles.lockedWrap}>
         <BlurTargetView ref={target} style={styles.lockedContent} pointerEvents="none">
-          <AnalysisReport p={PLACEHOLDER} match={match} />
+          {match.sport_type === 'nba' ? (
+            <NbaAnalysisReport p={NBA_PLACEHOLDER} match={match} />
+          ) : (
+            <AnalysisReport p={PLACEHOLDER} match={match} />
+          )}
         </BlurTargetView>
         <BlurView
           blurTarget={target}

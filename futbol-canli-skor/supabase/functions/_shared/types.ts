@@ -38,6 +38,7 @@ export type TopPlayer = {
 };
 
 export type MatchRow = {
+  sport_type?: 'football' | 'nba';
   fixture_id: number;
   league_id: number | null;
   league_name: string;

@@ -32,7 +32,10 @@ const scenarioStats: MatchStats = {
   },
 };
 
-export const initialMatches: Match[] = [
+/** Futbol önizleme maçları; sport_type vb. alanlar mockSource'ta varsayılanla doldurulur */
+export type FootballMock = Omit<Match, 'sport_type' | 'period_scores' | 'status_detail'>;
+
+export const initialMatches: FootballMock[] = [
   {
     fixture_id: SCENARIO_FIXTURE_ID,
     league_name: 'Süper Lig',

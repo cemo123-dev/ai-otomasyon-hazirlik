@@ -22,7 +22,7 @@ const VERDICT_TR: Record<ShotQualityVerdict, string> = {
 };
 
 /** Kart 1: Ana Taktik Hüküm */
-export function VerdictCard({ p }: { p: TacticalPayload }) {
+export function VerdictCard({ p }: { p: Pick<TacticalPayload, 'headline_title' | 'executive_tactical_verdict'> }) {
   return (
     <Card accent={colors.pro} style={{ backgroundColor: colors.surfaceAlt }}>
       <Badge label="✦ PRO TAKTİK HÜKÜM" color={colors.pro} />

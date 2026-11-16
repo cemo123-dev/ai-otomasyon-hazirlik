@@ -3,6 +3,7 @@ import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { isFinished, isLive, type Match } from '@/lib/types';
 import { colors, space } from '@/theme';
+import { QuarterTable } from './nba/QuarterTable';
 import { Badge, LiveMinute } from './ui';
 
 const kickoffTime = (iso: string) =>
@@ -13,15 +14,16 @@ function MatchRowBase({ match: m }: { match: Match }) {
   const done = isFinished(m.status_short);
   const homeWin = done && (m.home_score ?? 0) > (m.away_score ?? 0);
   const awayWin = done && (m.away_score ?? 0) > (m.home_score ?? 0);
+  const nba = m.sport_type === 'nba';
 
   return (
     <Pressable
       onPress={() => router.push({ pathname: '/match/[id]', params: { id: String(m.fixture_id) } })}
       style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surfaceAlt }]}
     >
-        <View style={styles.status}>
+        <View style={[styles.status, nba && styles.statusNba]}>
           {live ? (
-            <LiveMinute minute={m.elapsed_minute} status={m.status_short} />
+            <LiveMinute minute={m.elapsed_minute} status={m.status_short} label={nba ? m.status_detail : undefined} />
           ) : done ? (
             <Text style={styles.statusText}>MS</Text>
           ) : (
@@ -32,6 +34,7 @@ function MatchRowBase({ match: m }: { match: Match }) {
         <View style={styles.teams}>
           <Text style={[styles.team, awayWin && styles.loser]} numberOfLines={1}>{m.home_team}</Text>
           <Text style={[styles.team, homeWin && styles.loser]} numberOfLines={1}>{m.away_team}</Text>
+          {nba && (live || done) ? <QuarterTable match={m} compact /> : null}
           {done && m.analysis_status === 'completed' ? (
             <View style={{ marginTop: 4 }}>
               <Badge label="✦ AI Analiz Hazır" color={colors.pro} />
@@ -63,6 +66,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   status: { width: 48, alignItems: 'flex-start' },
+  statusNba: { width: 76 },
   statusText: { color: colors.textMuted, fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] },
   teams: { flex: 1, gap: 4 },
   team: { color: colors.text, fontSize: 15, fontWeight: '600' },

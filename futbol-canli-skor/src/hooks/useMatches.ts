@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { dataSource } from '@/lib/data';
-import { isFinished, isLive, type Match } from '@/lib/types';
+import { isFinished, isLive, type Match, type Sport } from '@/lib/types';
 
 export type MatchFilter = 'all' | 'live' | 'finished';
 
@@ -14,7 +14,7 @@ export type LeagueGroup = {
 
 const stateRank = (m: Match) => (isLive(m.status_short) ? 0 : isFinished(m.status_short) ? 1 : 2);
 
-export function useMatches(filter: MatchFilter) {
+export function useMatches(sport: Sport, filter: MatchFilter) {
   const [matches, setMatches] = useState<Map<number, Match>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,26 +22,29 @@ export function useMatches(filter: MatchFilter) {
   const load = useCallback(async () => {
     try {
       setError(null);
-      const list = await dataSource.listMatches();
+      const list = await dataSource.listMatches(sport);
       setMatches(new Map(list.map((m) => [m.fixture_id, m])));
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Maçlar yüklenemedi');
+      setError((e as { message?: string } | null)?.message ?? 'Maçlar yüklenemedi');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [sport]);
 
   useEffect(() => {
+    // Spor değişince eski listeyi göstermemek için temizle
+    setMatches(new Map());
+    setLoading(true);
     load();
-    // Realtime: skor / dakika / analiz durumu değişiklikleri tek tek uygulanır
-    return dataSource.subscribeMatches((m) =>
+    // Realtime: yalnızca seçili sporun skor / dakika / analiz durumu değişiklikleri
+    return dataSource.subscribeMatches(sport, (m) =>
       setMatches((prev) => {
         const next = new Map(prev);
         next.set(m.fixture_id, { ...prev.get(m.fixture_id), ...m });
         return next;
       }),
     );
-  }, [load]);
+  }, [sport, load]);
 
   const groups = useMemo<LeagueGroup[]>(() => {
     const byLeague = new Map<string, LeagueGroup>();

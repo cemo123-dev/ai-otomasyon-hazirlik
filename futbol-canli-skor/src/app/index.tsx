@@ -3,11 +3,18 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MatchRow } from '@/components/MatchRow';
+import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { Badge } from '@/components/ui';
 import { usePremium } from '@/hooks/usePremium';
 import { useMatches, type MatchFilter } from '@/hooks/useMatches';
 import { PREVIEW_MODE } from '@/lib/supabase';
+import type { Sport } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
+
+const SPORTS: { key: Sport; label: string }[] = [
+  { key: 'football', label: '⚽ Futbol' },
+  { key: 'nba', label: '🏀 NBA' },
+];
 
 const FILTERS: { key: MatchFilter; label: string }[] = [
   { key: 'all', label: 'Tümü' },
@@ -16,8 +23,9 @@ const FILTERS: { key: MatchFilter; label: string }[] = [
 ];
 
 export default function MatchesScreen() {
+  const [sport, setSport] = useState<Sport>('football');
   const [filter, setFilter] = useState<MatchFilter>('all');
-  const { groups, liveCount, loading, error, reload } = useMatches(filter);
+  const { groups, liveCount, loading, error, reload } = useMatches(sport, filter);
   const { isPremium } = usePremium();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -45,6 +53,10 @@ export default function MatchesScreen() {
         >
           <Text style={[styles.proText, isPremium && { color: colors.bg }]}>{isPremium ? '✦ PRO' : 'Pro’ya geç'}</Text>
         </Pressable>
+      </View>
+
+      <View style={styles.sport}>
+        <SegmentedTabs items={SPORTS} value={sport} onChange={setSport} />
       </View>
 
       <View style={styles.filters}>
@@ -106,6 +118,7 @@ const styles = StyleSheet.create({
   date: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
   proBtn: { borderWidth: 1, borderColor: colors.pro, borderRadius: 999, paddingHorizontal: space(3), paddingVertical: space(1.5) },
   proText: { color: colors.pro, fontWeight: '800', fontSize: 12 },
+  sport: { paddingHorizontal: space(4), paddingBottom: space(3) },
   filters: { flexDirection: 'row', gap: space(2), paddingHorizontal: space(4), paddingBottom: space(3) },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: 999, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   chipActive: { backgroundColor: colors.text, borderColor: colors.text },

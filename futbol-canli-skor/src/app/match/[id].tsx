@@ -6,11 +6,14 @@ import { GeneratingLoader } from '@/components/analysis/GeneratingLoader';
 import { PaywallGate } from '@/components/analysis/PaywallGate';
 import { StatsBars } from '@/components/match/StatsBars';
 import { Timeline } from '@/components/match/Timeline';
+import { NbaAnalysisReport } from '@/components/nba/NbaAnalysisCards';
+import { NbaStatsBars } from '@/components/nba/NbaStatsBars';
+import { QuarterTable } from '@/components/nba/QuarterTable';
 import { SegmentedTabs } from '@/components/SegmentedTabs';
-import { Card, LiveMinute } from '@/components/ui';
+import { Badge, Card, CardTitle, LiveMinute } from '@/components/ui';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { useMatch } from '@/hooks/useMatch';
-import { isFinished, isLive, type Match } from '@/lib/types';
+import { getNbaStats, isFinished, isLive, isNbaPayload, type Match } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
 
 type TabKey = 'summary' | 'stats' | 'ai';
@@ -29,6 +32,7 @@ export default function MatchDetailScreen() {
 
   if (loading) return <ActivityIndicator color={colors.live} style={{ flex: 1, backgroundColor: colors.bg }} />;
   if (!match) return <Text style={styles.empty}>Maç bulunamadı.</Text>;
+  const nba = match.sport_type === 'nba';
 
   return (
     <>
@@ -37,8 +41,8 @@ export default function MatchDetailScreen() {
         <ScoreHeader m={match} />
         <SegmentedTabs items={TABS} value={tab} onChange={setTab} />
 
-        {tab === 'summary' ? <Timeline match={match} /> : null}
-        {tab === 'stats' ? <StatsBars match={match} /> : null}
+        {tab === 'summary' ? nba ? <NbaSummary match={match} /> : <Timeline match={match} /> : null}
+        {tab === 'stats' ? nba ? <NbaStatsBars match={match} /> : <StatsBars match={match} /> : null}
         {tab === 'ai' ? (
           state.kind === 'idle' || state.kind === 'loading' ? (
             <ActivityIndicator color={colors.pro} style={{ marginTop: space(8) }} />
@@ -54,7 +58,11 @@ export default function MatchDetailScreen() {
           ) : state.kind === 'generating' ? (
             <GeneratingLoader />
           ) : state.kind === 'completed' ? (
-            <AnalysisReport p={state.payload} match={match} />
+            isNbaPayload(state.payload) ? (
+              <NbaAnalysisReport p={state.payload} match={match} />
+            ) : (
+              <AnalysisReport p={state.payload} match={match} />
+            )
           ) : (
             <Card>
               <Text style={styles.cardTitle}>{state.message}</Text>
@@ -80,7 +88,7 @@ function ScoreHeader({ m }: { m: Match }) {
           {m.home_score ?? '–'} <Text style={styles.dash}>:</Text> {m.away_score ?? '–'}
         </Text>
         {live ? (
-          <LiveMinute minute={m.elapsed_minute} status={m.status_short} />
+          <LiveMinute minute={m.elapsed_minute} status={m.status_short} label={m.sport_type === 'nba' ? m.status_detail : undefined} />
         ) : (
           <Text style={styles.muted}>
             {done
@@ -94,7 +102,37 @@ function ScoreHeader({ m }: { m: Match }) {
   );
 }
 
+/** NBA Özet sekmesi: çeyrek tablosu + ücretsiz teaser + kırılma anı */
+function NbaSummary({ match }: { match: Match }) {
+  const mt = getNbaStats(match)?.metrics;
+  return (
+    <View style={{ gap: space(3) }}>
+      <Card>
+        <CardTitle kicker="Çeyrek Skorları" title={isLive(match.status_short) ? (match.status_detail ?? 'Canlı') : 'Periyot periyot'} />
+        {match.period_scores ? (
+          <QuarterTable match={match} />
+        ) : (
+          <Text style={styles.muted}>Çeyrek skorları maç başlayınca görünecek.</Text>
+        )}
+      </Card>
+      {match.summary_teaser ? (
+        <Card>
+          <CardTitle kicker="Maç Özeti" title="Kısa bakış" />
+          <Text style={styles.teaser}>{match.summary_teaser}</Text>
+        </Card>
+      ) : null}
+      {mt?.decisive ? (
+        <Card>
+          <Badge label="KIRILMA ANI" color={colors.warning} />
+          <Text style={styles.teaser}>{mt.decisive.text}</Text>
+        </Card>
+      ) : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  teaser: { color: colors.text, fontSize: 14, lineHeight: 21 },
   content: { padding: space(4), gap: space(4), paddingBottom: space(16), width: '100%', maxWidth: 720, alignSelf: 'center' },
   empty: { color: colors.textMuted, textAlign: 'center', marginTop: space(10) },
   scoreCard: {

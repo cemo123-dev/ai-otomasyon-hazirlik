@@ -1,11 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ensureSession } from '../supabase';
-import type { AnalysisRequestResult, Match, TacticalPayload } from '../types';
+import type { AnalysisRequestResult, AnyTacticalPayload, Match } from '../types';
 import type { DataSource } from './types';
 
 const MATCH_COLUMNS =
-  'fixture_id, league_name, league_country, league_priority, kickoff_at, home_team, away_team, ' +
-  'home_score, away_score, status_short, elapsed_minute, summary_teaser, analysis_status, events, stats';
+  'fixture_id, sport_type, league_name, league_country, league_priority, kickoff_at, home_team, away_team, ' +
+  'home_score, away_score, status_short, elapsed_minute, status_detail, period_scores, summary_teaser, ' +
+  'analysis_status, events, stats';
 
 let channelSeq = 0;
 
@@ -28,13 +29,14 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
   };
 
   return {
-    async listMatches() {
+    async listMatches(sport) {
       // Bugün ± 1 gün penceresi: canlı + biten + başlayacak
       const from = new Date(Date.now() - 36 * 3600_000).toISOString();
       const to = new Date(Date.now() + 36 * 3600_000).toISOString();
       const { data, error } = await sb
         .from('matches')
         .select(MATCH_COLUMNS)
+        .eq('sport_type', sport)
         .gte('kickoff_at', from)
         .lte('kickoff_at', to)
         .order('league_priority')
@@ -53,7 +55,8 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
       return data as unknown as Match | null;
     },
 
-    subscribeMatches: (onChange) => listen(undefined, onChange),
+    // Realtime filtre: yalnızca seçili sporun satırları gelir
+    subscribeMatches: (sport, onChange) => listen(`sport_type=eq.${sport}`, onChange),
     subscribeMatch: (fixtureId, onChange) => listen(`fixture_id=eq.${fixtureId}`, onChange),
 
     async requestAnalysis(fixtureId) {
@@ -72,7 +75,7 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
         .eq('fixture_id', fixtureId)
         .maybeSingle();
       if (error) throw error;
-      return (data?.tactical_payload as TacticalPayload | undefined) ?? null;
+      return (data?.tactical_payload as AnyTacticalPayload | undefined) ?? null;
     },
 
     async getPremium() {

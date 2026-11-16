@@ -33,7 +33,8 @@ export function Badge({ label, color = colors.accent, filled }: { label: string;
 }
 
 /** Canlı maçlar için yanıp sönen yeşil nokta + dakika */
-export function LiveMinute({ minute, status }: { minute: number | null; status: string }) {
+/** label verilirse dakika yerine gösterilir (NBA: "Q3 04:12", "Devre Arası") */
+export function LiveMinute({ minute, status, label: custom }: { minute: number | null; status: string; label?: string | null }) {
   const opacity = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -46,7 +47,7 @@ export function LiveMinute({ minute, status }: { minute: number | null; status: 
     return () => loop.stop();
   }, [opacity]);
 
-  const label = status === 'HT' ? 'İY' : `${minute ?? 0}'`;
+  const label = custom ?? (status === 'HT' ? 'İY' : `${minute ?? 0}'`);
   return (
     <View style={styles.liveWrap}>
       <Animated.View style={[styles.liveDot, { opacity }]} />
