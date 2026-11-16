@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,11 +39,12 @@ export default function MatchesScreen() {
           </Text>
         </View>
         {PREVIEW_MODE ? <Badge label="ÖNİZLEME" color={colors.warning} /> : null}
-        <Link href="/paywall" asChild>
-          <Pressable style={[styles.proBtn, isPremium && { backgroundColor: colors.pro }]}>
-            <Text style={[styles.proText, isPremium && { color: colors.bg }]}>{isPremium ? '✦ PRO' : 'Pro’ya geç'}</Text>
-          </Pressable>
-        </Link>
+        <Pressable
+          onPress={() => router.push('/paywall')}
+          style={[styles.proBtn, isPremium && { backgroundColor: colors.pro }]}
+        >
+          <Text style={[styles.proText, isPremium && { color: colors.bg }]}>{isPremium ? '✦ PRO' : 'Pro’ya geç'}</Text>
+        </Pressable>
       </View>
 
       <View style={styles.filters}>

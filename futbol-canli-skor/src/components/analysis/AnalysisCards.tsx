@@ -14,6 +14,13 @@ const VERDICT_COLOR: Record<ShotQualityVerdict, string> = {
   chance_wastage: colors.danger,
 };
 
+const VERDICT_TR: Record<ShotQualityVerdict, string> = {
+  sterile_dominance: 'STERİL BASKI',
+  clinical_transition: 'KLİNİK GEÇİŞ',
+  balanced_exchange: 'DENGELİ',
+  chance_wastage: 'FIRSAT İSRAFI',
+};
+
 /** Kart 1: Ana Taktik Hüküm */
 export function VerdictCard({ p }: { p: TacticalPayload }) {
   return (
@@ -31,7 +38,7 @@ export function XgAuditCard({ p, match }: { p: TacticalPayload; match: Match }) 
   const vc = VERDICT_COLOR[a.verdict_type];
   return (
     <Card>
-      <CardTitle kicker="xG & Şut Kalitesi Denetimi" title={a.verdict_label} right={<Badge label={a.verdict_type.split('_').join(' ').toUpperCase()} color={vc} />} />
+      <CardTitle kicker="xG & Şut Kalitesi Denetimi" title={a.verdict_label} right={<Badge label={VERDICT_TR[a.verdict_type]} color={vc} />} />
       <View style={styles.auditGrid}>
         <AuditColumn team={match.home_team} color={colors.home} s={a.home} />
         <View style={styles.vDivider} />
@@ -134,8 +141,8 @@ export function ManagerAndSpotlightCard({ p, match }: { p: TacticalPayload; matc
         </View>
         <Text style={styles.bodySmall}>{sp.headline}</Text>
         <View style={styles.statGrid}>
-          {sp.key_stats.map((k) => (
-            <View key={k.label} style={styles.statCell}>
+          {sp.key_stats.map((k, i) => (
+            <View key={`${i}-${k.label}`} style={styles.statCell}>
               <Text style={styles.statValue}>{k.value}</Text>
               <Text style={styles.statLabel}>{k.label}</Text>
             </View>

@@ -1,4 +1,4 @@
-import { Link } from 'expo-router';
+import { router } from 'expo-router';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { isFinished, isLive, type Match } from '@/lib/types';
@@ -15,8 +15,10 @@ function MatchRowBase({ match: m }: { match: Match }) {
   const awayWin = done && (m.away_score ?? 0) > (m.home_score ?? 0);
 
   return (
-    <Link href={{ pathname: '/match/[id]', params: { id: String(m.fixture_id) } }} asChild>
-      <Pressable style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surfaceAlt }]}>
+    <Pressable
+      onPress={() => router.push({ pathname: '/match/[id]', params: { id: String(m.fixture_id) } })}
+      style={({ pressed }) => [styles.row, pressed && { backgroundColor: colors.surfaceAlt }]}
+    >
         <View style={styles.status}>
           {live ? (
             <LiveMinute minute={m.elapsed_minute} status={m.status_short} />
@@ -45,8 +47,7 @@ function MatchRowBase({ match: m }: { match: Match }) {
           <Text style={[styles.score, live && { color: colors.live }, awayWin && styles.loser]}>{m.home_score ?? '–'}</Text>
           <Text style={[styles.score, live && { color: colors.live }, homeWin && styles.loser]}>{m.away_score ?? '–'}</Text>
         </View>
-      </Pressable>
-    </Link>
+    </Pressable>
   );
 }
 
