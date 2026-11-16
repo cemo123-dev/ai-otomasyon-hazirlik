@@ -49,11 +49,15 @@ export function useAnalysis(match: Match | null, active: boolean) {
           return setState({ kind: 'paywall' });
         case 'not_finished':
           return setState({ kind: 'not_finished' });
+        case 'unauthenticated':
+          return setState({ kind: 'error', message: 'Oturum açılamadı. Bağlantını kontrol edip tekrar dene.' });
         default:
           return setState({ kind: 'error', message: 'Analiz şu an alınamıyor' });
       }
     } catch (e) {
-      if (my === reqId.current) setState({ kind: 'error', message: e instanceof Error ? e.message : 'Hata' });
+      // Supabase hataları (PostgrestError) Error sınıfından türemez; message alanını doğrudan oku
+      const msg = (e as { message?: string } | null)?.message;
+      if (my === reqId.current) setState({ kind: 'error', message: msg ? `Analiz alınamadı: ${msg}` : 'Analiz alınamadı' });
     }
   }, [fixtureId, loadPayload]);
 

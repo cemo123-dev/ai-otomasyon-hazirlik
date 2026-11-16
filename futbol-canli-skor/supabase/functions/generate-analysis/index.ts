@@ -10,7 +10,7 @@ const MAX_OUTPUT_TOKENS = Number(Deno.env.get('GEMINI_MAX_OUTPUT_TOKENS') ?? 900
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ error: 'method' }, 405);
-  if (!authorized(req)) return json({ error: 'unauthorized' }, 401);
+  if (!(await authorized(req))) return json({ error: 'unauthorized' }, 401);
 
   const { fixture_id } = await req.json().catch(() => ({}));
   if (!Number.isInteger(fixture_id)) return json({ error: 'fixture_id' }, 400);

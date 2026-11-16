@@ -3,23 +3,53 @@ import type { MatchEvent, MatchRow, MatchStats, TeamStats, TopPlayer } from './t
 // API-Football v3 (api-sports.io). Yalnızca sunucu tarafında çağrılır.
 const BASE = 'https://v3.football.api-sports.io';
 
-/** Takip edilen ligler: API-Football league id → sıralama önceliği + Türkçe ülke adı */
-export const LEAGUES: Record<number, { priority: number; country: string }> = {
-  203: { priority: 1, country: 'Türkiye' }, // Süper Lig
-  2: { priority: 2, country: 'Avrupa' }, // UEFA Şampiyonlar Ligi
-  39: { priority: 3, country: 'İngiltere' }, // Premier League
-  140: { priority: 4, country: 'İspanya' }, // LaLiga
-  135: { priority: 5, country: 'İtalya' }, // Serie A
-  78: { priority: 6, country: 'Almanya' }, // Bundesliga
-  61: { priority: 7, country: 'Fransa' }, // Ligue 1
-  3: { priority: 8, country: 'Avrupa' }, // UEFA Avrupa Ligi
-  848: { priority: 9, country: 'Avrupa' }, // UEFA Konferans Ligi
+/**
+ * BEYAZ LİSTE — yalnızca erkek A takım müsabakaları.
+ * API-Football'da kadın, U21/U19 ve alt ligler ayrı league id'lere sahip olduğu için
+ * burada olmayan hiçbir maç uygulamaya girmez.
+ * (ID'ler API-Football /leagues uç noktasıyla doğrulanmalıdır.)
+ */
+type LeagueInfo = { priority: number; country: string; name: string; turkeyOnly?: boolean };
+
+export const LEAGUES: Record<number, LeagueInfo> = {
+  // Türkiye
+  203: { priority: 1, country: 'Türkiye', name: 'Süper Lig' },
+  // Milli takımlar
+  1: { priority: 2, country: 'Milli Takımlar', name: 'Dünya Kupası' },
+  4: { priority: 3, country: 'Milli Takımlar', name: 'Avrupa Şampiyonası' },
+  32: { priority: 4, country: 'Milli Takımlar', name: 'Dünya Kupası Avrupa Elemeleri' },
+  960: { priority: 5, country: 'Milli Takımlar', name: 'Avrupa Şampiyonası Elemeleri' },
+  5: { priority: 6, country: 'Milli Takımlar', name: 'UEFA Uluslar Ligi' },
+  10: { priority: 7, country: 'Milli Takımlar', name: 'Hazırlık Maçı', turkeyOnly: true },
+  // UEFA kulüp turnuvaları
+  2: { priority: 8, country: 'Avrupa', name: 'UEFA Şampiyonlar Ligi' },
+  3: { priority: 9, country: 'Avrupa', name: 'UEFA Avrupa Ligi' },
+  848: { priority: 10, country: 'Avrupa', name: 'UEFA Konferans Ligi' },
+  531: { priority: 11, country: 'Avrupa', name: 'UEFA Süper Kupa' },
+  // En çok izlenen yabancı 1. ligler
+  39: { priority: 12, country: 'İngiltere', name: 'Premier League' },
+  140: { priority: 13, country: 'İspanya', name: 'LaLiga' },
+  135: { priority: 14, country: 'İtalya', name: 'Serie A' },
+  78: { priority: 15, country: 'Almanya', name: 'Bundesliga' },
+  61: { priority: 16, country: 'Fransa', name: 'Ligue 1' },
 };
+
+const TURKEY = new Set(['turkey', 'türkiye', 'turkiye']);
+// Beyaz listeye ek güvence: adında kadın/altyapı işareti olan takım veya lig girmez
+const NON_SENIOR_MEN = /\b(women|womens|féminine|femenino|frauen|W|U1[5-9]|U2[0-3]|youth|reserves?)\b/i;
 
 // deno-lint-ignore no-explicit-any
 type Json = any;
 
+// Ücretsiz plan: dakikada en fazla 10 istek → istekler arası ~6,5 sn bekle (ücretli planda bekleme yok)
+const PAID = Deno.env.get('API_FOOTBALL_PAID') === '1';
+const MIN_GAP_MS = PAID ? 0 : 6500;
+let lastCallAt = 0;
+
 export async function apiGet(path: string, key: string): Promise<Json[]> {
+  const wait = lastCallAt + MIN_GAP_MS - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastCallAt = Date.now();
   const res = await fetch(`${BASE}${path}`, { headers: { 'x-apisports-key': key } });
   if (!res.ok) throw new Error(`API-Football ${res.status} ${path}`);
   const body = await res.json();
@@ -28,16 +58,66 @@ export async function apiGet(path: string, key: string): Promise<Json[]> {
   return body.response ?? [];
 }
 
-/** fixtures?ids= en fazla 20 id kabul eder; olay, istatistik, kadro ve oyuncu verisi döndürür */
+/** Ücretsiz planda tek çalıştırmada tek tek çekilecek en fazla maç (günlük 100 istek kotası) */
+const MAX_SINGLE_FETCH = Number(Deno.env.get('API_FOOTBALL_MAX_SINGLE_FETCH') ?? 10);
+// Ücretli plana geçince Edge Function secret'ı API_FOOTBALL_PAID=1 yapın (toplu ids= çekimi açılır)
+let idsParamBlocked = !PAID;
+
+/**
+ * Olay, istatistik, kadro ve oyuncu verisiyle maç detayı.
+ * Ücretli plan: fixtures?ids= (20 maç = 1 istek).
+ * Ücretsiz plan "ids" parametresini kapattığı için fixtures?id= ile tek tek çekilir.
+ */
 export async function getFixturesByIds(ids: number[], key: string): Promise<Json[]> {
   const out: Json[] = [];
-  for (let i = 0; i < ids.length; i += 20) {
-    out.push(...(await apiGet(`/fixtures?ids=${ids.slice(i, i + 20).join('-')}`, key)));
+  if (!idsParamBlocked) {
+    try {
+      for (let i = 0; i < ids.length; i += 20) {
+        out.push(...(await apiGet(`/fixtures?ids=${ids.slice(i, i + 20).join('-')}`, key)));
+      }
+      return out;
+    } catch (e) {
+      if (!(e instanceof Error && /ids parameter/i.test(e.message))) throw e;
+      idsParamBlocked = true; // aynı instance'ta tekrar denenmez
+    }
+  }
+  for (const id of ids.slice(0, MAX_SINGLE_FETCH)) {
+    try {
+      out.push(...(await apiGet(`/fixtures?id=${id}`, key)));
+    } catch (e) {
+      // Bir maçın detayı alınamazsa diğerleri yine yazılsın; bir sonraki çalıştırmada tekrar denenir
+      console.warn(`[api-football] fixture ${id} atlandı:`, e instanceof Error ? e.message : e);
+    }
   }
   return out;
 }
 
-export const isTracked = (f: Json) => f?.league?.id in LEAGUES;
+export function isTracked(f: Json): boolean {
+  const lg = LEAGUES[f?.league?.id];
+  if (!lg) return false;
+  const home: string = f.teams?.home?.name ?? '';
+  const away: string = f.teams?.away?.name ?? '';
+  if ([f.league?.name ?? '', home, away].some((s) => NON_SENIOR_MEN.test(s))) return false;
+  // Hazırlık maçları: dünyadaki tüm milli maçlar yerine yalnızca Türkiye'ninkiler
+  if (lg.turkeyOnly) return [home, away].some((t) => TURKEY.has(t.toLocaleLowerCase('tr')));
+  return true;
+}
+
+/**
+ * Milli takım turnuvalarında maçları alt gruplara ayırır. API'nin "round" alanı:
+ *   Uluslar Ligi → "League A - 6"   ⇒ "UEFA Uluslar Ligi · Lig A"
+ *   Elemeler     → "Group C - 5"    ⇒ "Dünya Kupası Avrupa Elemeleri · Grup C"
+ * (Uluslar Ligi'nde grup numarası round'da yok; ücretsiz plan puan durumunu da vermiyor.)
+ */
+function withStage(lg: LeagueInfo | undefined, apiName: string, round: string | null | undefined): string {
+  const name = lg?.name ?? apiName;
+  if (lg?.country !== 'Milli Takımlar' || !round) return name;
+  const league = round.match(/\bLeague ([A-D])\b/i);
+  if (league) return `${name} · Lig ${league[1].toUpperCase()}`;
+  const group = round.match(/\bGroup ([A-L])\b/i);
+  if (group) return `${name} · Grup ${group[1].toUpperCase()}`;
+  return name;
+}
 
 /** Her fixture yanıtında bulunan temel alanlar (skor, durum, dakika) */
 export function mapCore(f: Json): Partial<MatchRow> {
@@ -45,7 +125,7 @@ export function mapCore(f: Json): Partial<MatchRow> {
   return {
     fixture_id: f.fixture.id,
     league_id: f.league.id,
-    league_name: f.league.name,
+    league_name: withStage(lg, f.league.name, f.league.round),
     league_country: lg?.country ?? f.league.country ?? null,
     league_priority: lg?.priority ?? 99,
     kickoff_at: f.fixture.date,

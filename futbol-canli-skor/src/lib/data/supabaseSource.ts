@@ -57,7 +57,8 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
     subscribeMatch: (fixtureId, onChange) => listen(`fixture_id=eq.${fixtureId}`, onChange),
 
     async requestAnalysis(fixtureId) {
-      await ensureSession();
+      // Oturum yoksa RPC "permission denied" verir; bunun yerine anlaşılır bir durum döndür
+      if (!(await ensureSession())) return 'unauthenticated';
       const { data, error } = await sb.rpc('request_match_analysis', { p_fixture_id: fixtureId });
       if (error) throw error;
       return data as AnalysisRequestResult;

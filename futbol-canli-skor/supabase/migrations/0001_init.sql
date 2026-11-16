@@ -14,7 +14,7 @@ alter table public.profiles enable row level security;
 
 create policy "profiles: kendi kaydını okur"
   on public.profiles for select to authenticated
-  using (id = auth.uid());
+  using (id = (select auth.uid()));
 -- Bilinçli olarak UPDATE politikası YOK: is_premium'u istemci değiştiremez.
 
 create or replace function public.handle_new_user()
@@ -88,16 +88,17 @@ alter table public.match_analyses enable row level security;
 
 create policy "match_analyses: yalnızca aktif aboneler okur"
   on public.match_analyses for select to authenticated
-  using (public.is_premium_user());
+  using ((select public.is_premium_user()));
 
 -- ─────────────────────────────────────────────────────────── analysis_jobs (kuyruk)
--- Bir INSERT, Database Webhook ile "generate-analysis" Edge Function'ını tetikler.
+-- Bir INSERT, tetikleyici (0002_pipeline.sql) ile "generate-analysis" Edge Function'ını tetikler.
 create table if not exists public.analysis_jobs (
   id bigserial primary key,
   fixture_id bigint not null references public.matches (fixture_id) on delete cascade,
   created_at timestamptz not null default now()
 );
 
+create index if not exists analysis_jobs_fixture_idx on public.analysis_jobs (fixture_id);
 alter table public.analysis_jobs enable row level security; -- politika yok: yalnızca service_role
 
 -- ─────────────────────────────────────────────────────────── RPC: request_match_analysis
@@ -185,6 +186,7 @@ end $$;
 revoke execute on function public.request_match_analysis(bigint) from public, anon;
 revoke execute on function public.simulate_subscription(text) from public, anon;
 revoke execute on function public.is_premium_user() from public, anon;
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
 grant execute on function public.request_match_analysis(bigint) to authenticated;
 grant execute on function public.simulate_subscription(text) to authenticated;
 grant execute on function public.is_premium_user() to authenticated;

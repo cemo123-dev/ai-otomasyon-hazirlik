@@ -1,6 +1,6 @@
 // pg_cron ile çağrılır (bkz. 0002_pipeline.sql):
-//   mode=live     → her dakika: canlı maçların skor/dakika/olay/istatistikleri + yeni bitenler
-//   mode=schedule → 30 dakikada bir: bugün ve yarının fikstürü
+//   mode=live     → canlı maçların skor/dakika/olay/istatistikleri + yeni bitenler
+//   mode=schedule → dün/bugün/yarın fikstürü + biten maçların istatistikleri
 import { apiGet, getFixturesByIds, isTracked, mapCore, mapDetails } from '../_shared/apiFootball.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 import { buildTeaser } from '../_shared/teaser.ts';
@@ -9,30 +9,74 @@ import { FINISHED, LIVE, type MatchRow } from '../_shared/types.ts';
 const KEY = Deno.env.get('API_FOOTBALL_KEY')!;
 const TZ = 'Europe/Istanbul';
 
+// Supabase Edge Runtime: yanıt döndükten sonra işin bitmesini bekler
+const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
+
 Deno.serve(async (req) => {
-  if (!authorized(req)) return json({ error: 'unauthorized' }, 401);
+  if (!(await authorized(req))) return json({ error: 'unauthorized' }, 401);
   const { mode = 'live' } = await req.json().catch(() => ({}));
-  try {
-    const result = mode === 'schedule' ? await syncSchedule() : await syncLive();
-    return json({ ok: true, ...result });
-  } catch (e) {
-    console.error('[sync-matches]', e);
-    return json({ ok: false, error: e instanceof Error ? e.message : String(e) }, 500);
+
+  // Ücretsiz planda istekler arası bekleme yüzünden iş ~1-2 dk sürebilir;
+  // pg_net 60 sn'de zaman aşımına uğramasın diye hemen 202 dönülür, iş arka planda biter.
+  const task = (mode === 'schedule' ? syncSchedule() : syncLive())
+    .then((r) => console.log(`[sync-matches] ${mode} ok`, JSON.stringify(r)))
+    .catch((e) => console.error(`[sync-matches] ${mode} HATA`, e instanceof Error ? e.message : e));
+
+  if (edgeRuntime) {
+    edgeRuntime.waitUntil(task);
+    return json({ ok: true, accepted: true, mode }, 202);
   }
+  await task;
+  return json({ ok: true, mode });
 });
 
 async function syncSchedule() {
   const day = (offset: number) => new Date(Date.now() + offset * 86400_000).toLocaleDateString('en-CA', { timeZone: TZ });
   let count = 0;
-  for (const date of [day(0), day(1)]) {
-    const rows = (await apiGet(`/fixtures?date=${date}&timezone=${TZ}`, KEY)).filter(isTracked).map(mapCore);
+  const skipped: string[] = [];
+  const finishedIds: number[] = [];
+
+  // Dün + bugün + yarın. Ücretsiz plan yalnızca dar bir tarih aralığına izin verir;
+  // reddedilen tarih atlanır, diğerleri işlenir.
+  for (const date of [day(-1), day(0), day(1)]) {
+    let fixtures;
+    try {
+      fixtures = (await apiGet(`/fixtures?date=${date}&timezone=${TZ}`, KEY)).filter(isTracked);
+    } catch (e) {
+      skipped.push(`${date}: ${e instanceof Error ? e.message : e}`);
+      continue;
+    }
+    const rows = fixtures.map(mapCore);
     if (rows.length) {
       const { error } = await admin.from('matches').upsert(rows, { onConflict: 'fixture_id' });
       if (error) throw error;
     }
     count += rows.length;
+    finishedIds.push(...rows.filter((r) => FINISHED.includes(r.status_short!)).map((r) => r.fixture_id!));
   }
-  return { scheduled: count };
+
+  // Biten ama istatistiği olmayan maçlar: detay + şablon teaser (AI analizi istatistik ister)
+  let enriched = 0;
+  if (finishedIds.length) {
+    const { data: missing, error } = await admin
+      .from('matches')
+      .select('fixture_id')
+      .in('fixture_id', finishedIds)
+      .is('stats', null);
+    if (error) throw error;
+    const ids = (missing ?? []).map((r) => r.fixture_id as number);
+    if (ids.length) {
+      const details = (await getFixturesByIds(ids, KEY)).map((f) => {
+        const row: Partial<MatchRow> = { ...mapCore(f), ...mapDetails(f) };
+        row.summary_teaser = buildTeaser(row as MatchRow);
+        return row;
+      });
+      const { error: upErr } = await admin.from('matches').upsert(details, { onConflict: 'fixture_id' });
+      if (upErr) throw upErr;
+      enriched = details.length;
+    }
+  }
+  return { scheduled: count, enriched, skipped };
 }
 
 async function syncLive() {

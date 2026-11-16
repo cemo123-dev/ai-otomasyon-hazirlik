@@ -56,7 +56,10 @@ export function useMatches(filter: MatchFilter) {
       }
       g.data.push(m);
     }
-    const out = [...byLeague.values()].sort((a, b) => a.priority - b.priority);
+    // Aynı turnuvanın alt grupları (… · Lig A, … · Lig B) alfabetik sırayla art arda gelir
+    const out = [...byLeague.values()].sort(
+      (a, b) => a.priority - b.priority || a.league_name.localeCompare(b.league_name, 'tr'),
+    );
     for (const g of out) {
       g.data.sort((a, b) => stateRank(a) - stateRank(b) || a.kickoff_at.localeCompare(b.kickoff_at));
     }

@@ -62,6 +62,16 @@ export default function MatchesScreen() {
         })}
       </View>
 
+      {PREVIEW_MODE ? (
+        <View style={styles.previewBanner}>
+          <Text style={styles.previewTitle}>⚠ Örnek veri: bu maçlar gerçek değil</Text>
+          <Text style={styles.previewText}>
+            Takımlar, skorlar ve dakikalar arayüzü denemek için uydurulmuştur. Gerçek canlı maçlar Supabase ve
+            API-Football bağlantısı kurulunca gelir.
+          </Text>
+        </View>
+      ) : null}
+
       {loading ? (
         <ActivityIndicator color={colors.live} style={{ marginTop: space(10) }} />
       ) : error ? (
@@ -119,4 +129,16 @@ const styles = StyleSheet.create({
   leagueCountry: { color: colors.textMuted, fontSize: 12 },
   sep: { height: 1, backgroundColor: colors.border },
   empty: { color: colors.textMuted, textAlign: 'center', marginTop: space(10) },
+  previewBanner: {
+    marginHorizontal: space(4),
+    marginBottom: space(3),
+    padding: space(3),
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.warning,
+    backgroundColor: 'rgba(255,197,61,0.08)',
+    gap: 2,
+  },
+  previewTitle: { color: colors.warning, fontWeight: '800', fontSize: 13 },
+  previewText: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
 });

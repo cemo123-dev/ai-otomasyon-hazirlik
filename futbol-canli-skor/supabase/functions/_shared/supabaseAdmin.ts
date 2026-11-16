@@ -4,14 +4,20 @@ export const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('S
   auth: { persistSession: false },
 });
 
-/** pg_net (cron / tetikleyici) çağrılarını doğrular. Fonksiyonlar --no-verify-jwt ile deploy edilir. */
-export function authorized(req: Request): boolean {
-  const expected = Deno.env.get('INTERNAL_SECRET');
+/**
+ * pg_net (cron / tetikleyici) çağrılarını doğrular. Fonksiyonlar verify_jwt=false ile deploy edilir.
+ * Anahtar Vault'ta rastgele üretilir (0002_pipeline.sql); karşılaştırma veritabanında yapılır,
+ * böylece aynı değeri ayrıca Edge Function secret'ı olarak girmek gerekmez.
+ */
+export async function authorized(req: Request): Promise<boolean> {
   const got = req.headers.get('x-internal-secret');
-  if (!expected || !got || got.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < got.length; i++) diff |= got.charCodeAt(i) ^ expected.charCodeAt(i);
-  return diff === 0;
+  if (!got || got.length > 200) return false;
+  const { data, error } = await admin.rpc('check_internal_secret', { p_secret: got });
+  if (error) {
+    console.error('[auth] check_internal_secret:', error.message);
+    return false;
+  }
+  return data === true;
 }
 
 export const json = (body: unknown, status = 200) =>
