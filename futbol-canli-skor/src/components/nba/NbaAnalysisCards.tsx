@@ -152,6 +152,67 @@ export function BenchImpactCard({ p, match }: { p: NbaTacticalPayload; match: Ma
   );
 }
 
+/** Kart 5: Oyuncu Etkisi (Game Score hücum/savunma) & Faul Problemi */
+export function PlayerImpactCard({ p, match }: { p: NbaTacticalPayload; match: Match }) {
+  const pi = p.player_impact;
+  if (!pi) return null;
+  const teamName = (t: Side) => (t === 'home' ? match.home_team : match.away_team);
+  const list = (title: string, icon: string, xs: typeof pi.offense) => (
+    <View style={{ gap: space(2) }}>
+      <Text style={styles.sectionTitle}>
+        {icon} {title}
+      </Text>
+      {xs.map((x, i) => (
+        <View key={`${title}-${i}`} style={styles.impactRow}>
+          <View style={[styles.rank, { borderColor: teamColor(x.team) }]}>
+            <Text style={[styles.rankText, { color: teamColor(x.team) }]}>{i + 1}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.impactName} numberOfLines={1}>
+              {x.name} <Text style={[styles.meta, { color: teamColor(x.team) }]}>· {teamName(x.team)}</Text>
+            </Text>
+            <Text style={styles.meta}>{x.line}</Text>
+          </View>
+          <Text style={styles.impactScore}>{x.score.toFixed(1)}</Text>
+        </View>
+      ))}
+    </View>
+  );
+
+  return (
+    <Card>
+      <CardTitle kicker="Oyuncu Etkisi" title="Hücum, savunma ve faul problemi" />
+      {list('Hücumda en etkili', '🔥', pi.offense)}
+      {list('Savunmada en etkili', '🛡', pi.defense)}
+      {pi.commentary ? <Text style={styles.body}>{pi.commentary}</Text> : null}
+
+      <View style={styles.foulBox}>
+        <Text style={styles.sectionTitle}>⚠ Faul problemi</Text>
+        {pi.foul_trouble.length ? (
+          <>
+            {pi.foul_trouble.map((f, i) => (
+              <View key={`f-${i}`} style={styles.foulRow}>
+                <Badge label={f.fouled_out ? 'OYUNDAN ATILDI' : `${f.fouls} FAUL`} color={f.fouled_out ? colors.danger : colors.warning} />
+                <Text style={styles.impactName} numberOfLines={1}>
+                  {f.name}
+                  {f.starter ? ' (ilk 5)' : ''}
+                </Text>
+                <Text style={styles.meta}>
+                  {f.minutes} dk · {f.points} sy · {f.plus_minus > 0 ? `+${f.plus_minus}` : f.plus_minus} +/-
+                </Text>
+              </View>
+            ))}
+            {pi.foul_commentary ? <Text style={styles.bodySmall}>{pi.foul_commentary}</Text> : null}
+          </>
+        ) : (
+          <Text style={styles.meta}>Bu maçta 5 ve üzeri faul yapan oyuncu yok.</Text>
+        )}
+      </View>
+      <Text style={styles.note}>Puanlar Hollinger Game Score'un hücum ve savunma bileşenleridir.</Text>
+    </Card>
+  );
+}
+
 export function NbaAnalysisReport({ p, match }: { p: NbaTacticalPayload; match: Match }) {
   return (
     <View style={{ gap: space(3) }}>
@@ -159,6 +220,7 @@ export function NbaAnalysisReport({ p, match }: { p: NbaTacticalPayload; match: 
       <EfficiencyCard p={p} match={match} />
       <QuarterRunsCard p={p} match={match} />
       <BenchImpactCard p={p} match={match} />
+      <PlayerImpactCard p={p} match={match} />
     </View>
   );
 }
@@ -177,6 +239,15 @@ const styles = StyleSheet.create({
   run: { gap: 4, paddingTop: space(2), borderTopWidth: 1, borderTopColor: colors.border },
   runHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   runQ: { fontWeight: '900', fontSize: 14 },
+  sectionTitle: { color: colors.text, fontWeight: '800', fontSize: 14 },
+  impactRow: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
+  rank: { width: 26, height: 26, borderRadius: 13, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  rankText: { fontWeight: '900', fontSize: 12 },
+  impactName: { color: colors.text, fontWeight: '800', fontSize: 14, flexShrink: 1 },
+  impactScore: { color: colors.text, fontWeight: '900', fontSize: 18, fontVariant: ['tabular-nums'] },
+  foulBox: { gap: space(2), paddingTop: space(3), borderTopWidth: 1, borderTopColor: colors.border },
+  foulRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), flexWrap: 'wrap' },
+  note: { color: colors.textDim, fontSize: 11 },
   runTitle: { color: colors.text, fontWeight: '800', fontSize: 15 },
   swingTrack: { height: 6, backgroundColor: colors.surfaceAlt, borderRadius: radius.sm, overflow: 'hidden' },
   swingFill: { height: '100%', borderRadius: radius.sm },

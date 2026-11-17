@@ -46,6 +46,35 @@ export type NbaPlayerLine = {
   tpm: number;
   tpa: number;
   fta: number;
+  // Hücum/savunma değerlendirmesi ve faul problemi için (eski kayıtlarda olmayabilir)
+  ftm?: number;
+  off_reb?: number;
+  def_reb?: number;
+  steals?: number;
+  blocks?: number;
+  fouls?: number;
+  turnovers?: number;
+};
+
+/** Oyuncu etkisi: Hollinger Game Score'un hücum ve savunma bileşenleri */
+export type PlayerImpact = {
+  name: string;
+  team: 'home' | 'away';
+  starter: boolean;
+  minutes: number;
+  score: number;
+  line: string; // ekranda ve LLM girdisinde gösterilen kısa özet
+};
+
+export type FoulTrouble = {
+  name: string;
+  team: 'home' | 'away';
+  starter: boolean;
+  fouls: number;
+  fouled_out: boolean; // 6 faul = oyundan atıldı
+  minutes: number;
+  points: number;
+  plus_minus: number;
 };
 
 export type NbaMetricsInput = {
@@ -96,7 +125,58 @@ export type NbaMetrics = {
   };
   late_game: { q4_home: number | null; q4_away: number | null; final_margin: number; close_game: boolean };
   winner: Side | 'tie';
+  /** Oyuncu verisinde gerekli alanlar yoksa (eski kayıt) null */
+  player_impact: {
+    offense: PlayerImpact[]; // en etkili 3 hücum oyuncusu (iki takım)
+    defense: PlayerImpact[]; // en etkili 3 savunma oyuncusu
+    foul_trouble: FoulTrouble[]; // 5+ faul
+  } | null;
 };
+
+/** Game Score hücum bileşeni: PTS + 0.4·FGM − 0.7·FGA − 0.4·(FTA−FTM) + 0.7·ORB + 0.7·AST − TOV */
+export const offensiveScore = (p: NbaPlayerLine) =>
+  r1(p.points + 0.4 * p.fgm - 0.7 * p.fga - 0.4 * (p.fta - (p.ftm ?? 0)) + 0.7 * (p.off_reb ?? 0) + 0.7 * p.assists - (p.turnovers ?? 0));
+
+/** Game Score savunma bileşeni: 0.3·DRB + STL + 0.7·BLK − 0.4·PF */
+export const defensiveScore = (p: NbaPlayerLine) =>
+  r1(0.3 * (p.def_reb ?? 0) + (p.steals ?? 0) + 0.7 * (p.blocks ?? 0) - 0.4 * (p.fouls ?? 0));
+
+function playerImpact(players: NbaPlayerLine[]): NbaMetrics['player_impact'] {
+  const ps = players.filter((p) => p.minutes > 0);
+  // Eski kayıtlarda savunma alanları yok: değerlendirme yapılmaz
+  if (!ps.length || ps.every((p) => p.steals === undefined && p.fouls === undefined)) return null;
+  const base = (p: NbaPlayerLine) => ({ name: p.name, team: p.team, starter: p.starter, minutes: p.minutes });
+  const offense = ps
+    .map((p) => ({
+      ...base(p),
+      score: offensiveScore(p),
+      line: `${p.points} sy, ${p.assists} ast, ${p.turnovers ?? 0} TO, ${p.fgm}/${p.fga} FG`,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+  const defense = ps
+    .map((p) => ({
+      ...base(p),
+      score: defensiveScore(p),
+      line: `${p.steals ?? 0} çalma, ${p.blocks ?? 0} blok, ${p.def_reb ?? 0} sav. rib, ${p.fouls ?? 0} faul`,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+  const foul_trouble = ps
+    .filter((p) => (p.fouls ?? 0) >= 5)
+    .sort((a, b) => (b.fouls ?? 0) - (a.fouls ?? 0))
+    .map((p) => ({
+      name: p.name,
+      team: p.team,
+      starter: p.starter,
+      fouls: p.fouls ?? 0,
+      fouled_out: (p.fouls ?? 0) >= 6,
+      minutes: p.minutes,
+      points: p.points,
+      plus_minus: p.plus_minus,
+    }));
+  return { offense, defense, foul_trouble };
+}
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const pct = (made: number, att: number) => (att > 0 ? r1((made / att) * 100) : 0);
@@ -223,5 +303,6 @@ export function computeNbaMetrics(input: NbaMetricsInput, names: Record<Side, st
       close_game: finalMargin <= 5 || quarters.length > 4,
     },
     winner,
+    player_impact: playerImpact(input.players),
   };
 }

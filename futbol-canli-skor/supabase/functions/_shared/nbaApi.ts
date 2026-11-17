@@ -153,6 +153,13 @@ export function mapPlayers(rows: Json[], homeTeamName: string): NbaPlayerLine[] 
       tpm: num(p.tpm),
       tpa: num(p.tpa),
       fta: num(p.fta),
+      ftm: num(p.ftm),
+      off_reb: num(p.offReb),
+      def_reb: num(p.defReb),
+      steals: num(p.steals),
+      blocks: num(p.blocks),
+      fouls: num(p.pFouls),
+      turnovers: num(p.turnovers),
     };
   });
 }

@@ -179,7 +179,24 @@ export type NbaMetrics = {
   };
   late_game: { q4_home: number | null; q4_away: number | null; final_margin: number; close_game: boolean };
   winner: Side | 'tie';
+  player_impact?: NbaPlayerImpact | null;
 };
+
+/** Hollinger Game Score'un hücum/savunma bileşenine göre öne çıkan oyuncu */
+export type PlayerImpact = { name: string; team: Side; starter: boolean; minutes: number; score: number; line: string };
+
+export type FoulTrouble = {
+  name: string;
+  team: Side;
+  starter: boolean;
+  fouls: number;
+  fouled_out: boolean;
+  minutes: number;
+  points: number;
+  plus_minus: number;
+};
+
+export type NbaPlayerImpact = { offense: PlayerImpact[]; defense: PlayerImpact[]; foul_trouble: FoulTrouble[] };
 
 export type NbaStats = { home: NbaTeamBox; away: NbaTeamBox; metrics: NbaMetrics };
 
@@ -211,6 +228,8 @@ export type NbaTacticalPayload = {
   late_game: { close_game: boolean; q4_home: number | null; q4_away: number | null; final_margin: number; commentary: string };
   bench_impact: Record<Side, { starters_pm_avg: number; bench_pm_avg: number; bench_points: number; commentary: string }>;
   possession_battle: NbaMetrics['possession'];
+  /** Eski analizlerde yok: kart yalnızca varsa gösterilir */
+  player_impact?: (NbaPlayerImpact & { commentary: string; foul_commentary: string }) | null;
   player_performance_spotlight: TacticalPayload['player_performance_spotlight'];
 };
 

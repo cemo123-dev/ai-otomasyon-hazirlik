@@ -46,6 +46,8 @@ export type NbaTacticalPayload = {
     away: { starters_pm_avg: number; bench_pm_avg: number; bench_points: number; commentary: string };
   };
   possession_battle: NbaMetrics['possession'];
+  /** Eski analizlerde yok; istemci yoksa kartı göstermez */
+  player_impact?: (NonNullable<NbaMetrics['player_impact']> & { commentary: string; foul_commentary: string }) | null;
   player_performance_spotlight: {
     player: string;
     team: 'home' | 'away';
@@ -75,6 +77,49 @@ export function buildNbaTeaser(m: NbaMatchRow): string {
   return parts.join(' ');
 }
 
+/**
+ * İlk 5 ve yedek ünitesinin maça etkisini deterministik olarak sınıflandırır.
+ * Eşikler oyuncu başına ortalama +/- içindir (±3 altı "nötr" sayılır).
+ */
+export function readBench(mt: NbaMetrics, side: 'home' | 'away'): string {
+  const b = mt.bench[side];
+  const other = mt.bench[side === 'home' ? 'away' : 'home'];
+  const won = mt.winner === side;
+  const st = b.starters_pm_avg;
+  const bn = b.bench_pm_avg;
+  const NEU = 3;
+  const sign = (v: number) => (v > NEU ? '+' : v < -NEU ? '-' : '0');
+  const benchEdge = b.bench_points - other.bench_points;
+  const edge = benchEdge > 0 ? `yedek sayısında +${benchEdge} üstün` : benchEdge < 0 ? `yedek sayısında ${benchEdge} geride` : 'yedek sayısı eşit';
+
+  let unit: string;
+  switch (`${sign(st)}${sign(bn)}`) {
+    case '++':
+      unit = st >= bn ? 'iki ünite de artıda, farkı asıl ilk 5 açtı' : 'iki ünite de artıda, farkı asıl yedekler açtı';
+      break;
+    case '+0':
+    case '+-':
+      unit = bn < -NEU ? 'ilk 5 farkı açtı, yedekler sahadayken fark eridi' : 'fark ilk 5 sahadayken açıldı, yedekler dengeyi korudu';
+      break;
+    case '0+':
+    case '-+':
+      unit = st < -NEU ? 'ilk 5 geride kaldı, yedekler sahadayken takım toparlandı' : 'fark yedekler sahadayken açıldı';
+      break;
+    case '--':
+      unit = st <= bn ? 'iki ünite de ekside, maç ilk 5 sahadayken kaybedildi; yedekler zararı sınırladı' : 'iki ünite de ekside, asıl kayıp yedek dakikalarında';
+      break;
+    case '0-':
+      unit = 'ilk 5 dengede, kayıp yedek dakikalarında';
+      break;
+    case '-0':
+      unit = 'kayıp ilk 5 dakikalarında, yedekler dengede';
+      break;
+    default:
+      unit = 'iki ünite de dengede, belirgin fark yok';
+  }
+  return `${won ? 'kazanan' : mt.winner === 'tie' ? 'berabere' : 'kaybeden'}; ${unit}; ${edge}`;
+}
+
 // ─────────────────────────────────────────────── LLM girdisi (sıkıştırılmış satırlar)
 export function buildNbaCompactInput(m: NbaMatchRow): string {
   const s = m.stats!;
@@ -102,6 +147,25 @@ export function buildNbaCompactInput(m: NbaMatchRow): string {
   lines.push(
     `BENCH: ilk5 +/- ort E ${sgn(b.home.starters_pm_avg)} D ${sgn(b.away.starters_pm_avg)}; yedek +/- ort E ${sgn(b.home.bench_pm_avg)} D ${sgn(b.away.bench_pm_avg)}; yedek sayı ${b.home.bench_points}/${b.away.bench_points}`,
   );
+  // Yorumun ham maddesi kodda hesaplanır; LLM yalnızca bunu anlatıya çevirir
+  lines.push(`BENCH OKUMA: E ${readBench(mt, 'home')} | D ${readBench(mt, 'away')}`);
+
+  const pi = mt.player_impact;
+  if (pi) {
+    const fmt = (xs: { name: string; team: 'home' | 'away'; score: number; line: string }[]) =>
+      xs.map((x) => `${tag(x.team)} ${x.name} ${x.score} (${x.line})`).join('; ');
+    lines.push(`HÜCUM ETKİSİ(GameScore-hücum): ${fmt(pi.offense)}`);
+    lines.push(`SAVUNMA ETKİSİ(GameScore-savunma): ${fmt(pi.defense)}`);
+    lines.push(
+      `FAUL PROBLEMİ: ${
+        pi.foul_trouble.length
+          ? pi.foul_trouble
+              .map((f) => `${tag(f.team)} ${f.name}${f.starter ? '(ilk5)' : ''} ${f.fouls} faul${f.fouled_out ? ' OYUNDAN ATILDI' : ''} ${f.minutes}dk ${f.points}sy +/-${sgn(f.plus_minus)}`)
+              .join('; ') + ' (faulların dakikası bilinmiyor)'
+          : 'yok'
+      }`,
+    );
+  }
   const lg = mt.late_game;
   lines.push(
     `SON ÇEYREK: Q4 ${lg.q4_home ?? '?'}-${lg.q4_away ?? '?'} final fark ${lg.final_margin} yakın maç ${lg.close_game ? 'evet' : 'hayır'} (dakika bazlı clutch verisi YOK)`,
@@ -128,6 +192,8 @@ export type NbaLlmOut = {
   lg: string;
   bh: string;
   ba: string;
+  pi: string; // oyuncu etkisi (hücum + savunma) yorumu
+  fp: string; // faul problemi yorumu ('' = yok)
   y: { n: string; l: string };
 };
 
@@ -155,8 +221,22 @@ export const NBA_LLM_SCHEMA = {
       },
     },
     lg: { type: 'string', description: 'son çeyrek / maç sonu yorumu, 1-2 cümle' },
-    bh: { type: 'string', description: 'ev sahibi ilk 5 vs yedek etkisi, 1 cümle' },
-    ba: { type: 'string', description: 'deplasman ilk 5 vs yedek etkisi, 1 cümle' },
+    bh: {
+      type: 'string',
+      description: 'ev sahibi: BENCH OKUMA E bölümünü anlatıya çevir; hangi ünite farkı açtı/kapattı ve sonuca etkisi; en fazla 1 sayı, 1 cümle',
+    },
+    ba: {
+      type: 'string',
+      description: 'deplasman: BENCH OKUMA D bölümünü anlatıya çevir; hangi ünite farkı açtı/kapattı ve sonuca etkisi; en fazla 1 sayı, 1 cümle',
+    },
+    pi: {
+      type: 'string',
+      description: 'HÜCUM/SAVUNMA ETKİSİ satırlarındaki öne çıkan oyuncuların maça etkisi, 2 cümle; satırlar yoksa boş string',
+    },
+    fp: {
+      type: 'string',
+      description: 'FAUL PROBLEMİ satırındaki oyuncuların takımına etkisi, 1 cümle; satır "yok" ise veya yoksa boş string',
+    },
     y: {
       type: 'object',
       properties: {
@@ -166,7 +246,7 @@ export const NBA_LLM_SCHEMA = {
       required: ['n', 'l'],
     },
   },
-  required: ['h', 'v', 'et', 'el', 'ec', 'qr', 'lg', 'bh', 'ba', 'y'],
+  required: ['h', 'v', 'et', 'el', 'ec', 'qr', 'lg', 'bh', 'ba', 'pi', 'fp', 'y'],
 };
 
 export const NBA_SYSTEM_INSTRUCTION =
@@ -174,9 +254,15 @@ export const NBA_SYSTEM_INSTRUCTION =
   'oyuncu, olay veya dakika uydurma; sayı hesaplama, verilenleri aynen aktar. E=ev sahibi, D=deplasman, N=nötr. ' +
   'Öncelikler: 1) HACİM TUZAĞI satırı doluysa, çok şut/üçlük deneyip düşük TS% ile kaybeden takımın ' +
   '"verimsiz hacim tuzağına" düştüğünü açıkla (et=inefficient_volume). 2) KIRILMA satırındaki periyodu momentum ' +
-  'anlatısının merkezine koy. 3) BENCH satırına göre ilk 5 ile yedeklerin +/- farkını yorumla. ' +
+  'anlatısının merkezine koy. 3) Bench yorumlarında (bh, ba) BENCH OKUMA satırındaki hükmü temel al: ' +
+  '"+/- ortalaması şu oldu" diye sayı dökme; hangi ünitenin farkı açtığını, kapattığını veya kaybettirdiğini ' +
+  've bunun skora etkisini anlat, en fazla bir sayı kullan. ' +
   '4) Dakika bazlı clutch verisi YOKTUR: "son 5 dakika", "clutch şut" gibi iddialarda bulunma; yalnızca son çeyrek ' +
-  'skoru ve final farkını yorumla.';
+  'skoru ve final farkını yorumla. 5) Oyuncu etkisinde (pi) yalnızca HÜCUM/SAVUNMA ETKİSİ listelerindeki isimleri kullan; ' +
+  'savunmada çalma/blok/ribaund katkısını, hücumda verimi (şut/top kaybı) öne çıkar. 6) Faul probleminde (fp) ' +
+  'faulların ne zaman yapıldığı bilinmiyor: "erken faul", "ilk yarıda faul" gibi zaman iddiası kurma; faul sayısını ' +
+  'tekrar yazma (kartta gösteriliyor); oyuncunun süresi, +/- değeri ve oyundan atılıp atılmadığı üzerinden takıma ' +
+  'etkisini yorumla. pi ve fp içinde yalnızca satırlarda yazan sayıları aynen kullan.';
 
 // ─────────────────────────────────────────────── birleştirme (0 token)
 const side = (s: 'E' | 'D' | 'N') => (s === 'E' ? 'home' : s === 'D' ? 'away' : 'neutral');
@@ -240,6 +326,15 @@ export function assembleNbaPayload(m: NbaMatchRow, o: NbaLlmOut): NbaTacticalPay
       away: { starters_pm_avg: mt.bench.away.starters_pm_avg, bench_pm_avg: mt.bench.away.bench_pm_avg, bench_points: mt.bench.away.bench_points, commentary: o.ba },
     },
     possession_battle: mt.possession,
+    // Oyuncu listeleri ve faul sayıları koddan; LLM yalnızca yorum (pi, fp) verir.
+    // Yorumdaki her sayı veriyle doğrulanır; uyuşmazsa deterministik cümleye düşülür.
+    player_impact: mt.player_impact
+      ? {
+          ...mt.player_impact,
+          commentary: verifiedImpactText(o.pi ?? '', mt.player_impact),
+          foul_commentary: verifiedFoulText(o.fp ?? '', mt.player_impact.foul_trouble),
+        }
+      : null,
     player_performance_spotlight: {
       player: star?.name ?? o.y.n,
       team: star?.team ?? 'home',
@@ -258,6 +353,48 @@ export function assembleNbaPayload(m: NbaMatchRow, o: NbaLlmOut): NbaTacticalPay
         : [],
     },
   };
+}
+
+// ─────────────────────────────────────────────── LLM sayı doğrulaması (0 token)
+
+type Impact = NonNullable<NbaMetrics['player_impact']>;
+
+/** Metindeki sayılar (ondalık virgül/nokta dahil, işaret yok sayılır) */
+const numbersIn = (text: string) => (text.match(/\d+(?:[.,]\d+)?/g) ?? []).map((s) => Number(s.replace(',', '.')));
+const numbersOf = (text: string) => numbersIn(text);
+
+/** Metindeki tüm sayılar izinli kümede mi? (yorumda veri dışı sayı = halüsinasyon) */
+export function onlyKnownNumbers(text: string, allowed: Set<number>): boolean {
+  return numbersIn(text).every((n) => allowed.has(n));
+}
+
+const fmtPm = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+
+export function verifiedFoulText(text: string, fouls: Impact['foul_trouble']): string {
+  if (!fouls.length) return '';
+  const allowed = new Set<number>([5, 6]);
+  for (const f of fouls) [f.fouls, f.minutes, f.points, Math.abs(f.plus_minus)].forEach((n) => allowed.add(n));
+  if (text.trim() && onlyKnownNumbers(text, allowed)) return text;
+  if (text.trim()) console.warn('[nba-analysis] faul yorumu veriyle uyuşmadı, şablona düşüldü:', text);
+  return fouls
+    .map((f) => `${f.name}${f.starter ? ' (ilk 5)' : ''} ${f.fouled_out ? '6 faulla oyundan atıldı' : `${f.fouls} faulla oynadı`}; sahada kaldığı ${f.minutes} dakikada takımı ${fmtPm(f.plus_minus)} ile kapattı.`)
+    .join(' ');
+}
+
+export function verifiedImpactText(text: string, pi: Impact): string {
+  const allowed = new Set<number>();
+  for (const x of [...pi.offense, ...pi.defense]) {
+    allowed.add(x.score);
+    allowed.add(x.minutes);
+    numbersOf(x.line).forEach((n) => allowed.add(n));
+  }
+  if (text.trim() && onlyKnownNumbers(text, allowed)) return text;
+  if (text.trim()) console.warn('[nba-analysis] oyuncu etkisi yorumu veriyle uyuşmadı, şablona düşüldü:', text);
+  const o = pi.offense[0];
+  const d = pi.defense[0];
+  return [o ? `Hücumda ${o.name} öne çıktı (${o.line}).` : '', d ? `Savunmada ${d.name} en etkili isimdi (${d.line}).` : '']
+    .filter(Boolean)
+    .join(' ');
 }
 
 /** Spotlight adayları: en etkili 6 oyuncu (sayı + ribaund + asist) */

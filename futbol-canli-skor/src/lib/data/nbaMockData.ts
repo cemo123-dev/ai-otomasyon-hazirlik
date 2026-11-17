@@ -136,6 +136,26 @@ export const nbaScenarioPayload: NbaTacticalPayload = {
     away: { starters_pm_avg: 7.0, bench_pm_avg: 2.6, bench_points: 34, commentary: 'Vipers\'ın yedekleri 34 sayıyla katkı verdi ve ilk beşin yarattığı farkı korudu.' },
   },
   possession_battle: scenarioStats.metrics.possession,
+  player_impact: {
+    offense: [
+      { name: 'Marcus Vale', team: 'away', starter: true, minutes: 36, score: 26.4, line: '31 sy, 5 ast, 2 TO, 13/19 FG' },
+      { name: 'Theo Brandt', team: 'away', starter: true, minutes: 33, score: 15.1, line: '19 sy, 9 ast, 3 TO, 7/12 FG' },
+      { name: 'Jalen Ross', team: 'home', starter: true, minutes: 38, score: 9.8, line: '27 sy, 4 ast, 5 TO, 9/24 FG' },
+    ],
+    defense: [
+      { name: 'Ivo Kral', team: 'away', starter: true, minutes: 30, score: 6.2, line: '2 çalma, 4 blok, 9 sav. rib, 2 faul' },
+      { name: 'Theo Brandt', team: 'away', starter: true, minutes: 33, score: 4.1, line: '3 çalma, 0 blok, 5 sav. rib, 1 faul' },
+      { name: 'Dre Collins', team: 'home', starter: false, minutes: 22, score: 2.9, line: '2 çalma, 1 blok, 4 sav. rib, 2 faul' },
+    ],
+    foul_trouble: [
+      { name: 'Omar Haddad', team: 'home', starter: true, fouls: 6, fouled_out: true, minutes: 21, points: 6, plus_minus: -13 },
+      { name: 'Ivo Kral', team: 'away', starter: true, fouls: 5, fouled_out: false, minutes: 30, points: 12, plus_minus: 9 },
+    ],
+    commentary:
+      'Vipers\'ın hücum yükünü Marcus Vale verimli şutla taşıdı (13/19); Comets\'te Jalen Ross 27 sayıya 24 şutla ulaştı ve hacim tuzağının yüzü oldu. Savunmada Ivo Kral\'ın 4 bloğu boyalı alanı kapattı.',
+    foul_commentary:
+      'Comets\'in ilk beşinden Omar Haddad 6 faulla oyundan atıldı ve sahada kaldığı 21 dakikada takımı -13\'te kaldı; Kral ise 5 faula rağmen sahada kalıp savunmayı sürdürdü.',
+  },
   player_performance_spotlight: {
     player: 'Marcus Vale',
     team: 'away',
