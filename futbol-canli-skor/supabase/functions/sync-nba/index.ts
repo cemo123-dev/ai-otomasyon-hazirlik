@@ -7,9 +7,12 @@
 import { buildNbaTeaser, pickTopPlayers, type NbaMatchRow } from '../_shared/nbaAnalysis.ts';
 import { hasNbaQuota, lastNbaQuota, mapGame, mapPlayers, mapTeamBoxes, nbaGet, toGameId } from '../_shared/nbaApi.ts';
 import { computeNbaMetrics } from '../_shared/nbaMetrics.ts';
+import { runNbaAlerts } from '../_shared/alertStore.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 
 const KEY = Deno.env.get('API_FOOTBALL_KEY')!; // api-sports anahtarı NBA için de geçerli
+/** Seri alarmı dakikalık skor görüntüsü ister: yalnız ücretli planda (dakikalık cron) */
+const PAID = Deno.env.get('API_FOOTBALL_PAID') === '1';
 /** Tek çalıştırmada kutu skoru çekilecek en fazla maç (maç başına 2 istek) */
 const MAX_ENRICH = Number(Deno.env.get('NBA_MAX_ENRICH') ?? 3);
 
@@ -84,7 +87,9 @@ async function syncLive() {
     const rows = (await nbaGet(`/games?date=${date}`, KEY)).map(mapGame).filter((r) => goneIds.has(r.fixture_id));
     await upsert(rows);
   }
-  return { live: live.length, refreshed: gone.length, date_requests: dates.length };
+  // Akıllı alarm: NBA seri alarmı (ek istek yok, canlı skorlar zaten çekildi)
+  const alerts = PAID ? await runNbaAlerts(live as Parameters<typeof runNbaAlerts>[0]) : 0;
+  return { live: live.length, refreshed: gone.length, date_requests: dates.length, alerts };
 }
 
 /** Biten ama istatistiği olmayan maçlar: kutu skoru + ön-hesaplama + şablon teaser */

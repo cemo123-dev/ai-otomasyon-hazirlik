@@ -48,6 +48,15 @@ export default function MatchesScreen() {
         </View>
         {PREVIEW_MODE ? <Badge label="ÖNİZLEME" color={colors.warning} /> : null}
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Bildirim ayarları"
+          hitSlop={8}
+          onPress={() => router.push('/settings')}
+          style={styles.settingsBtn}
+        >
+          <Text style={styles.settingsIcon}>⚙️</Text>
+        </Pressable>
+        <Pressable
           onPress={() => router.push('/paywall')}
           style={[styles.proBtn, isPremium && { backgroundColor: colors.pro }]}
         >
@@ -116,6 +125,8 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingHorizontal: space(4), paddingTop: space(2), paddingBottom: space(3) },
   brand: { color: colors.text, fontSize: 28, fontWeight: '900', letterSpacing: -0.5 },
   date: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
+  settingsBtn: { padding: space(1) },
+  settingsIcon: { fontSize: 18 },
   proBtn: { borderWidth: 1, borderColor: colors.pro, borderRadius: 999, paddingHorizontal: space(3), paddingVertical: space(1.5) },
   proText: { color: colors.pro, fontWeight: '800', fontSize: 12 },
   sport: { paddingHorizontal: space(4), paddingBottom: space(3) },

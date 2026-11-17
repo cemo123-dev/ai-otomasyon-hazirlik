@@ -4,7 +4,10 @@ import type {
   HalftimePayload,
   HalftimeRequestResult,
   Match,
+  MatchAlert,
+  NotificationPrefs,
   PreviewPayload,
+  RedCardAnalysis,
   PreviewRequestResult,
   Sport,
   SubscriptionPlan,
@@ -32,6 +35,13 @@ export interface DataSource {
   toggleFollow(fixtureId: number): Promise<boolean>;
   listFollowedIds(): Promise<number[]>;
   registerPushToken(token: string, platform: string): Promise<void>;
+  /** Akıllı alarm: maçın alarm geçmişi (yeniden eskiye) ve canlı akış */
+  listAlerts(fixtureId: number): Promise<MatchAlert[]>;
+  subscribeAlerts(fixtureId: number, onAlert: (a: MatchAlert) => void): () => void;
+  /** Kırmızı kart canlı taktik analizi (yalnız Pro, RLS) */
+  getAlertAnalysis(alertId: number): Promise<RedCardAnalysis | null>;
+  getNotificationPrefs(): Promise<NotificationPrefs>;
+  setNotificationPrefs(p: NotificationPrefs): Promise<void>;
   getPremium(): Promise<boolean>;
   /** YALNIZCA TEST: gerçek ödeme entegrasyonu (RevenueCat / IAP) gelene kadar */
   simulateSubscription(plan: SubscriptionPlan | null): Promise<boolean>;

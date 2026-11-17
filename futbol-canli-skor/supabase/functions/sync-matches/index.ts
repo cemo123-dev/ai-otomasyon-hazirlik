@@ -12,6 +12,7 @@ import {
   mapPlayerMatchRows,
   PAID,
 } from '../_shared/apiFootball.ts';
+import { runFootballAlerts } from '../_shared/alertStore.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 import { buildTeaser } from '../_shared/teaser.ts';
 import { FINISHED, LIVE, type MatchRow } from '../_shared/types.ts';
@@ -147,7 +148,10 @@ async function syncLive() {
   }
   // Yalnızca biten maçların oyuncu verisi form hafızasına yazılır (canlı veri eksik olabilir)
   await storePlayerRows(fixtures.filter((f) => FINISHED.includes(f.fixture?.status?.short)));
-  return { live: liveIds.size, finished, halftime_queued: halftimeQueued, quota: lastQuotaRemaining() };
+
+  // 4) Akıllı alarm (yalnız ücretli plan: canlı istatistik + dakikalık senkron gerekir)
+  const alerts = PAID ? await runFootballAlerts(rows, LIVE) : 0;
+  return { live: liveIds.size, finished, halftime_queued: halftimeQueued, alerts, quota: lastQuotaRemaining() };
 }
 
 /**

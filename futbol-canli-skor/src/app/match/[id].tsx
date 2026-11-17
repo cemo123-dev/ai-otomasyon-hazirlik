@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnalysisReport } from '@/components/analysis/AnalysisCards';
 import { GeneratingLoader, HALFTIME_STEPS, PREVIEW_STEPS } from '@/components/analysis/GeneratingLoader';
+import { AlertsFeed } from '@/components/alerts/AlertsFeed';
 import { HalftimeLocked, HalftimeReport } from '@/components/halftime/HalftimeCards';
 import { PaywallGate } from '@/components/analysis/PaywallGate';
 import { StatsBars } from '@/components/match/StatsBars';
@@ -13,6 +14,7 @@ import { QuarterTable } from '@/components/nba/QuarterTable';
 import { PreviewLocked, PreviewReport, PreviewTooEarly } from '@/components/preview/PreviewCards';
 import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { Badge, Card, CardTitle, LiveMinute } from '@/components/ui';
+import { useAlerts } from '@/hooks/useAlerts';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { useFollows } from '@/hooks/useFollows';
 import { useHalftime, type HalftimeState } from '@/hooks/useHalftime';
@@ -43,6 +45,7 @@ export default function MatchDetailScreen() {
   const { state, retry } = useAnalysis(match, tab === 'ai' && !previewMode && !halftimeMode);
   const preview = usePreview(match, tab === 'ai' && previewMode);
   const halftime = useHalftime(match, tab === 'ai' && halftimeMode);
+  const alerts = useAlerts(fixtureId);
 
   if (loading) return <ActivityIndicator color={colors.live} style={{ flex: 1, backgroundColor: colors.bg }} />;
   if (!match) return <Text style={styles.empty}>Maç bulunamadı.</Text>;
@@ -56,6 +59,7 @@ export default function MatchDetailScreen() {
         {!nba && !isFinished(match.status_short) ? <FollowBar fixtureId={match.fixture_id} /> : null}
         <SegmentedTabs items={TABS} value={tab} onChange={setTab} />
 
+        {tab === 'summary' ? <AlertsFeed match={match} alerts={alerts} /> : null}
         {tab === 'summary' ? nba ? <NbaSummary match={match} /> : <Timeline match={match} /> : null}
         {tab === 'stats' ? nba ? <NbaStatsBars match={match} /> : <StatsBars match={match} /> : null}
         {tab === 'ai' && halftimeMode ? (
@@ -163,7 +167,7 @@ function HalftimeSection({ state, retry, match }: { state: HalftimeState; retry:
   }
 }
 
-/** Takip: devre arası AI bildirimi yalnız takip edilen maçlar için gönderilir */
+/** Takip: devre arası raporu ve akıllı alarmlar yalnız takip edilen maçlar için gönderilir */
 function FollowBar({ fixtureId }: { fixtureId: number }) {
   const { followed, toggle, pushNotice } = useFollows();
   const on = followed.has(fixtureId);
@@ -175,7 +179,7 @@ function FollowBar({ fixtureId }: { fixtureId: number }) {
         style={({ pressed }) => [styles.follow, on && styles.followOn, pressed && { opacity: 0.85 }]}
       >
         <Text style={[styles.followText, on && { color: colors.pro }]}>
-          {on ? '🔔 Takip ediliyor · devre arası raporu bildirilecek' : '🔕 Maçı takip et · devre arası AI bildirimi al'}
+          {on ? '🔔 Takip ediliyor · akıllı alarmlar açık' : '🔕 Maçı takip et · akıllı alarm ve devre arası raporu al'}
         </Text>
       </Pressable>
       {on && pushNotice ? <Text style={styles.notice}>{pushNotice}</Text> : null}

@@ -220,17 +220,19 @@ export const HALFTIME_SYSTEM_INSTRUCTION =
 
 // ─────────────────────────────────────────────── doğrulama ve payload
 
-const numbersIn = (text: string) => (text.match(/\d+(?:[.,]\d+)?/g) ?? []).map((s) => Number(s.replace(',', '.')));
-const okNumbers = (text: string, allowed: Set<number>) => numbersIn(text).every((x) => allowed.has(x));
+export const numbersIn = (text: string) => (text.match(/\d+(?:[.,]\d+)?/g) ?? []).map((s) => Number(s.replace(',', '.')));
+export const okNumbers = (text: string, allowed: Set<number>) => numbersIn(text).every((x) => allowed.has(x));
 
 /**
  * Reçete maddeleri için sıkı kural: küçük tam sayılar girdide tesadüfen bulunabildiğinden
  * (skor 3, faul 12 …) genel kontrol uydurmayı yakalayamaz (gerçek test vakası).
- *   hamle (m)  : hiç sayı içeremez
+ *   hamle (m)  : diziliş önerisi (4-4-1, 4-2-3-1) dışında sayı içeremez
  *   gerekçe (w): yalnız girdide geçen yüzde (%65) ve ondalıklı değer (0.18) içerebilir
  */
-function okPrescription(move: string, why: string, allowed: Set<number>): boolean {
-  if (/\d/.test(move)) return false;
+const FORMATION = /\b[1-6](?:-[1-6]){2,3}\b/g;
+
+export function okPrescription(move: string, why: string, allowed: Set<number>): boolean {
+  if (/\d/.test(move.replace(FORMATION, ''))) return false;
   const tokens = why.match(/%?\d+(?:[.,]\d+)?/g) ?? [];
   return tokens.every((t) => {
     const isPct = t.startsWith('%');

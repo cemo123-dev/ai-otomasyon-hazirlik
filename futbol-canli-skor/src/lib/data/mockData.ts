@@ -215,6 +215,7 @@ export const initialMatches: FootballMock[] = [
     events: [
       { minute: 34, team: 'home', type: 'goal', player: 'Mert Aydın', detail: 'Can Yılmaz' },
       { minute: 46, team: 'away', type: 'substitution', player: 'J. Fraser', detail: 'K. Burns' },
+      { minute: 49, team: 'away', type: 'red_card', player: 'McTominay' },
     ],
   },
   {

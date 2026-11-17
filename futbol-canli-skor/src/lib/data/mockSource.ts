@@ -1,4 +1,15 @@
-import { isFinished, type AnyTacticalPayload, type HalftimePayload, type Match, type MatchEvent, type PreviewPayload } from '../types';
+import {
+  DEFAULT_PREFS,
+  isFinished,
+  type AnyTacticalPayload,
+  type HalftimePayload,
+  type Match,
+  type MatchAlert,
+  type MatchEvent,
+  type NotificationPrefs,
+  type PreviewPayload,
+} from '../types';
+import { LIVE_PRESSURE_MINUTE, livePressureAlert, redCardAnalysisMock, seedAlerts, TURKEY_SCOTLAND_ID } from './alertsMockData';
 import { buildMockHalftime } from './halftimeMockData';
 import { PREVIEW_MOCK_ID, previewMockPayload } from './previewMockData';
 import {
@@ -47,6 +58,9 @@ export function createMockSource(): DataSource {
   const previews = new Map<number, PreviewPayload>();
   const halftimes = new Map<number, HalftimePayload>();
   const follows = new Set<number>();
+  const alerts: MatchAlert[] = seedAlerts.map((a) => ({ ...a }));
+  const alertListeners = new Set<(a: MatchAlert) => void>();
+  let prefs: NotificationPrefs = { ...DEFAULT_PREFS };
   const listeners = new Set<(m: Match) => void>();
   let premium = false;
   let timer: ReturnType<typeof setInterval> | null = null;
@@ -137,6 +151,12 @@ export function createMockSource(): DataSource {
         continue;
       }
       const patch: Partial<Match> = { elapsed_minute: minute };
+      // sync-matches'teki baskı alarmı tespitinin taklidi (Realtime ile maç ekranına düşer)
+      if (m.fixture_id === TURKEY_SCOTLAND_ID && minute === LIVE_PRESSURE_MINUTE && !alerts.some((a) => a.kind === 'pressure')) {
+        const a = livePressureAlert(Math.max(0, ...alerts.map((x) => x.id)) + 1);
+        alerts.unshift(a);
+        alertListeners.forEach((l) => l({ ...a }));
+      }
       if (Math.random() < 0.06) {
         const side: 'home' | 'away' = Math.random() < 0.5 ? 'home' : 'away';
         const ev: MatchEvent = { minute, team: side, type: 'goal', player: side === 'home' ? 'Ev Sahibi Forvet' : 'Deplasman Forvet' };
@@ -270,6 +290,35 @@ export function createMockSource(): DataSource {
 
     async registerPushToken() {
       // Önizlemede push yok
+    },
+
+    async listAlerts(id) {
+      return alerts.filter((a) => a.fixture_id === id).map((a) => ({ ...a }));
+    },
+
+    subscribeAlerts(id, onAlert) {
+      const l = (a: MatchAlert) => a.fixture_id === id && onAlert(a);
+      alertListeners.add(l);
+      // Alarm akışı maç simülasyonuyla ilerler
+      const unsub = subscribe((m) => m.fixture_id === id, () => {});
+      return () => {
+        alertListeners.delete(l);
+        unsub();
+      };
+    },
+
+    async getAlertAnalysis(alertId) {
+      if (!premium) return null; // RLS taklidi
+      const a = alerts.find((x) => x.id === alertId);
+      return a?.kind === 'red_card' && a.analysis_status === 'completed' ? redCardAnalysisMock : null;
+    },
+
+    async getNotificationPrefs() {
+      return { ...prefs };
+    },
+
+    async setNotificationPrefs(p) {
+      prefs = { ...p };
     },
 
     async getPremium() {

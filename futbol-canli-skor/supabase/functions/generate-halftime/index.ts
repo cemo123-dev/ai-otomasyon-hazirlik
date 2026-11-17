@@ -12,7 +12,7 @@ import {
   HALFTIME_SYSTEM_INSTRUCTION,
   type HalftimeLlmOut,
 } from '../_shared/halftime.ts';
-import { sendExpoPush } from '../_shared/push.ts';
+import { notifyFollowers } from '../_shared/notify.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 
 const KEY = Deno.env.get('API_FOOTBALL_KEY')!;
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     await admin.from('matches').update({ halftime_status: 'completed', halftime_teaser: payload.teaser }).eq('fixture_id', fixture_id);
 
     // 3) Maçı takip edenlere push (bildirim metni ücretsiz teaser ile aynı: 0 token)
-    const pushed = await notifyFollowers(fixture_id, payload.teaser);
+    const pushed = await notifyFollowers(fixture_id, 'halftime', HALFTIME_PUSH_TITLE, payload.teaser);
 
     console.log(`[generate-halftime] ${fixture_id} ok · in=${usage.input} out=${usage.output} · push=${pushed}`);
     return json({ ok: true, usage, pushed });
@@ -88,15 +88,3 @@ Deno.serve(async (req) => {
   }
 });
 
-async function notifyFollowers(fixtureId: number, body: string): Promise<number> {
-  const { data: follows } = await admin.from('match_follows').select('user_id').eq('fixture_id', fixtureId);
-  const userIds = [...new Set((follows ?? []).map((r) => r.user_id as string))];
-  if (!userIds.length) return 0;
-  const { data: tokens } = await admin.from('push_tokens').select('token').in('user_id', userIds);
-  if (!tokens?.length) return 0;
-  const { sent, invalidTokens } = await sendExpoPush(
-    tokens.map((t) => ({ to: t.token as string, title: HALFTIME_PUSH_TITLE, body, data: { fixture_id: fixtureId, kind: 'halftime' } })),
-  );
-  if (invalidTokens.length) await admin.from('push_tokens').delete().in('token', invalidTokens);
-  return sent;
-}

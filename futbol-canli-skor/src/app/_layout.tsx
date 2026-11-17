@@ -28,6 +28,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="match/[id]" options={{ title: '' }} />
           <Stack.Screen name="paywall" options={{ presentation: 'modal', title: 'Skor+ Pro' }} />
+          <Stack.Screen name="settings" options={{ title: 'Bildirim Ayarları' }} />
         </Stack>
         </FollowsProvider>
       </PremiumProvider>

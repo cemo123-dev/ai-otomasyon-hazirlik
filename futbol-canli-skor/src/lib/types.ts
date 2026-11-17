@@ -359,3 +359,39 @@ export type HalftimeRequestResult =
   | 'completed'
   | 'generating'
   | 'failed';
+
+// ═══════════════════════════════════════════════ AKILLI ALARM
+// Sunucudaki supabase/functions/_shared/alerts.ts ile aynı sözleşme (bkz. 0007_alerts.sql)
+
+export type AlertKind = 'pressure' | 'nba_run' | 'red_card';
+
+export type MatchAlert = {
+  id: number;
+  fixture_id: number;
+  kind: AlertKind;
+  side: 'home' | 'away' | null;
+  /** Futbol: dakika, NBA: çeyrek */
+  minute: number | null;
+  title: string;
+  body: string;
+  /** Kırmızı kartta canlı taktik analizin durumu */
+  analysis_status: AnalysisStatus;
+  created_at: string;
+};
+
+export type RedCardAnalysis = {
+  kind: 'red_card';
+  headline: string;
+  situation: string;
+  prescriptions: { side: 'home' | 'away'; move: string; why: string }[];
+  key: string;
+  red: { side: 'home' | 'away'; player: string; minute: number };
+  minute: number;
+  score: { home: number; away: number };
+  generated_at: string;
+};
+
+/** Bildirim türleri (notification_prefs). Satır yoksa hepsi açık. */
+export type NotificationPrefs = { halftime: boolean; pressure: boolean; nba_run: boolean; red_card: boolean };
+
+export const DEFAULT_PREFS: NotificationPrefs = { halftime: true, pressure: true, nba_run: true, red_card: true };

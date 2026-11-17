@@ -6,9 +6,13 @@ import type {
   HalftimePayload,
   HalftimeRequestResult,
   Match,
+  MatchAlert,
+  NotificationPrefs,
   PreviewPayload,
   PreviewRequestResult,
+  RedCardAnalysis,
 } from '../types';
+import { DEFAULT_PREFS } from '../types';
 import type { DataSource } from './types';
 
 // preview_status/lineups 0005_prematch.sql, halftime_* 0006_halftime.sql ile gelir
@@ -140,6 +144,59 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
     async registerPushToken(token, platform) {
       await ensureSession();
       const { error } = await sb.rpc('register_push_token', { p_token: token, p_platform: platform });
+      if (error) throw error;
+    },
+
+    async listAlerts(fixtureId) {
+      const { data, error } = await sb
+        .from('match_alerts')
+        .select('id, fixture_id, kind, side, minute, title, body, analysis_status, created_at')
+        .eq('fixture_id', fixtureId)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return (data ?? []) as MatchAlert[];
+    },
+
+    // Yeni alarm (INSERT) ve analiz durumu değişimi (UPDATE) canlı gelir
+    subscribeAlerts(fixtureId, onAlert) {
+      const channel = sb
+        .channel(`alerts:${fixtureId}:${++channelSeq}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'match_alerts', filter: `fixture_id=eq.${fixtureId}` },
+          (payload) => {
+            if (payload.eventType !== 'DELETE') onAlert(payload.new as MatchAlert);
+          },
+        )
+        .subscribe();
+      return () => {
+        sb.removeChannel(channel);
+      };
+    },
+
+    async getAlertAnalysis(alertId) {
+      // RLS: yalnızca aktif abonelikli kullanıcılar okuyabilir
+      const { data, error } = await sb.from('match_alert_analyses').select('payload').eq('alert_id', alertId).maybeSingle();
+      if (error) throw error;
+      return (data?.payload as RedCardAnalysis | undefined) ?? null;
+    },
+
+    async getNotificationPrefs() {
+      if (!(await ensureSession())) return DEFAULT_PREFS;
+      const { data, error } = await sb.from('notification_prefs').select('halftime, pressure, nba_run, red_card').maybeSingle();
+      if (error) throw error;
+      return (data as NotificationPrefs | null) ?? DEFAULT_PREFS;
+    },
+
+    async setNotificationPrefs(p) {
+      await ensureSession();
+      const { error } = await sb.rpc('set_notification_prefs', {
+        p_halftime: p.halftime,
+        p_pressure: p.pressure,
+        p_nba_run: p.nba_run,
+        p_red_card: p.red_card,
+      });
       if (error) throw error;
     },
 
