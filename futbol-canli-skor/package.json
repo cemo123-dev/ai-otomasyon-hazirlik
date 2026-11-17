@@ -37,7 +37,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "e2e": "node e2e/ht_ui.mjs && node e2e/alerts_ui.mjs && node e2e/nba_ui.mjs && node e2e/chat_ui.mjs && node e2e/teams_ui.mjs && node e2e/account_ui.mjs && node e2e/lineup_ui.mjs",
+    "e2e": "node e2e/ht_ui.mjs && node e2e/alerts_ui.mjs && node e2e/nba_ui.mjs && node e2e/chat_ui.mjs && node e2e/teams_ui.mjs && node e2e/account_ui.mjs && node e2e/lineup_ui.mjs && node e2e/preview_ui.mjs",
     "test:functions": "cd supabase/functions && npx -y deno test --allow-read tests/",
     "deploy:functions": "npx supabase functions deploy sync-matches sync-nba generate-analysis generate-preview generate-halftime process-alert ask-assistant --project-ref hcihjovckgojhtoemkpc --no-verify-jwt --use-api",
     "build:apk": "npx eas-cli@latest build --platform android --profile preview",

@@ -15,7 +15,7 @@ const BASIS: Record<PreviewPayload['data_basis'], string> = {
   api_last5: 'Form: iki takımın son 5 maçı (API)',
   db_history: 'Form: Skor+ veritabanındaki son maçlar',
   mixed: 'Form: API + Skor+ veritabanı',
-  lineups_only: 'Form verisi yok; yalnızca ilk 11 ve diziliş',
+  lineups_only: 'Yorum ilk 11 ve dizilişe dayanıyor',
 };
 
 // ─────────────────────────────────────────────── 1) Başlık
@@ -104,7 +104,7 @@ function PlayerBox({ name, pos, form, color, role }: { name: string; pos: string
     <View style={[styles.playerBox, { borderColor: color }]}>
       <Text style={[styles.role, { color }]}>{role}</Text>
       <Text style={styles.playerName} numberOfLines={1}>{name}</Text>
-      <Text style={styles.meta}>{pos} · {form ? `${form.matches} maç, ${form.minutes} dk` : 'veri yok'}</Text>
+      <Text style={styles.meta}>{form ? `${pos} · ${form.matches} maç, ${form.minutes} dk` : pos}</Text>
       {form ? (
         <View style={{ gap: 2, marginTop: 4 }}>
           <Text style={styles.statLine}>İkili mücadele <Text style={styles.statVal}>{pct(form.duel_pct)}</Text></Text>
@@ -118,18 +118,20 @@ function PlayerBox({ name, pos, form, color, role }: { name: string; pos: string
   );
 }
 
+/** İstatistik karşılaştırması yoksa rozet gösterilmez (boş "veri yetersiz" etiketi yerine) */
 const edgeLabel = (m: PreviewMatchup) =>
-  m.edge == null ? 'veri yetersiz' : m.edge > 0 ? `hücumcu +${m.edge}` : m.edge < 0 ? `savunmacı +${-m.edge}` : 'dengede';
+  m.edge == null ? null : m.edge > 0 ? `hücumcu +${m.edge}` : m.edge < 0 ? `savunmacı +${-m.edge}` : 'dengede';
 const edgeColor = (m: PreviewMatchup) => (m.edge == null ? colors.textMuted : m.edge > 0 ? colors.warning : m.edge < 0 ? colors.live : colors.accent);
 
 function KeyMatchupCard({ p, match }: { p: PreviewPayload; match: Match }) {
   const k = p.key_matchup_index != null ? p.matchups[p.key_matchup_index] : null;
+  const label = k ? edgeLabel(k) : null;
   return (
-    <Card accent={k ? colors.warning : undefined}>
+    <Card accent={colors.warning}>
       <CardTitle
-        kicker="Kilit Eşleşme"
-        title={k ? `${teamName(match, k.attacking_side)} · ${k.zone}` : 'Belirlenemedi'}
-        right={k ? <Badge label={edgeLabel(k).toUpperCase()} color={edgeColor(k)} /> : undefined}
+        kicker={k ? 'Kilit Eşleşme' : 'Kilit Bölge'}
+        title={k ? `${teamName(match, k.attacking_side)} · ${k.zone}` : 'Dizilişten okuma'}
+        right={label ? <Badge label={label.toUpperCase()} color={edgeColor(k!)} /> : undefined}
       />
       {k ? (
         <View style={styles.vs}>
@@ -146,6 +148,8 @@ function KeyMatchupCard({ p, match }: { p: PreviewPayload; match: Match }) {
 // ─────────────────────────────────────────────── 5) Tüm kanat eşleşmeleri
 function MatchupsCard({ p, match }: { p: PreviewPayload; match: Match }) {
   if (!p.matchups.length) return null;
+  const hasStats = p.matchups.some((m) => m.edge != null);
+  const duel = (v: number | null | undefined) => (v == null ? null : <Text style={styles.meta}> ({pct(v)})</Text>);
   return (
     <Card>
       <CardTitle kicker="Kanat Eşleşmeleri" title="Bek ↔ kanat düelloları" />
@@ -156,14 +160,17 @@ function MatchupsCard({ p, match }: { p: PreviewPayload; match: Match }) {
               {teamName(match, m.attacking_side)} · {m.zone}
             </Text>
             <Text style={styles.mNames} numberOfLines={1}>
-              {m.attacker.name} <Text style={styles.meta}>({pct(m.attacker.form?.duel_pct ?? null)})</Text> ↔ {m.defender.name}{' '}
-              <Text style={styles.meta}>({pct(m.defender.form?.duel_pct ?? null)})</Text>
+              {m.attacker.name}
+              {duel(m.attacker.form?.duel_pct)} ↔ {m.defender.name}
+              {duel(m.defender.form?.duel_pct)}
             </Text>
           </View>
-          <Badge label={edgeLabel(m)} color={edgeColor(m)} />
+          {edgeLabel(m) ? <Badge label={edgeLabel(m)!} color={edgeColor(m)} /> : null}
         </View>
       ))}
-      <Text style={styles.note}>Yüzdeler oyuncuların son maçlardaki ikili mücadele kazanma oranıdır. Kanat, hücum eden takımın gözünden.</Text>
+      <Text style={styles.note}>
+        {hasStats ? 'Yüzdeler oyuncuların son maçlardaki ikili mücadele kazanma oranıdır. ' : ''}Kanat, hücum eden takımın gözünden.
+      </Text>
     </Card>
   );
 }

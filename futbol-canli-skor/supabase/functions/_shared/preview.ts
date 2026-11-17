@@ -9,6 +9,7 @@
  * oyuncuların son maçlardaki ikili mücadele / çalım verisiyle yapılır.
  */
 import type { PlayerMatchRow } from './apiFootball.ts';
+import { trTeam } from './teamNames.ts';
 
 type Side = 'home' | 'away';
 // deno-lint-ignore no-explicit-any
@@ -300,15 +301,52 @@ export function computeAbsences(injuries: Json[], lineups: Record<Side, TeamLine
   return out.sort((a, b) => Number(b.regular_starter) - Number(a.regular_starter)).slice(0, 8);
 }
 
+// ─────────────────────────────────────────────── diziliş çıkarımları (veri olmasa da yorum)
+
+type Shape = { def: number; mid: number; fwd: number };
+
+/** "4-2-3-1" → savunma 4, orta saha 5, forvet 1. Geçersizse null. */
+export function formationShape(f: string | null | undefined): Shape | null {
+  const parts = String(f ?? '').split('-').map((x) => Number(x));
+  if (parts.length < 3 || parts.some((x) => !Number.isInteger(x) || x < 1 || x > 6)) return null;
+  if (parts.reduce((a, b) => a + b, 0) !== 10) return null;
+  return { def: parts[0], mid: parts.slice(1, -1).reduce((a, b) => a + b, 0), fwd: parts[parts.length - 1] };
+}
+
+/**
+ * Yalnız dizilişlerden KODLA taktik çıkarımlar (oyuncu formu olmasa da maç önü yorumu kurulabilsin).
+ * Satırlardaki sayılar dizilişlerden gelir; LLM bunları yoruma çevirir.
+ */
+export function formationInsights(home: string, away: string): string[] {
+  const h = formationShape(home);
+  const a = formationShape(away);
+  if (!h || !a) return [];
+  const out: string[] = [];
+  if (home === away) out.push(`ayna diziliş (${home}): bölgesel bire bir eşleşmeler ve bireysel düellolar belirleyici`);
+  if (h.mid !== a.mid) {
+    const side = h.mid > a.mid ? 'E' : 'D';
+    out.push(`orta saha ${h.mid}'e ${a.mid} (E/D): ${side} merkezde sayısal üstünlükle oyunu kurmaya çalışacak, diğer taraf kanatları arayacak`);
+  } else {
+    out.push(`orta saha ${h.mid}'e ${a.mid}: merkezde denge, ikinci toplar ve presin şiddeti önemli`);
+  }
+  for (const [side, me, opp] of [['E', h, a], ['D', a, h]] as const) {
+    if (me.fwd === 1) out.push(`${side} tek forvet: ${opp.def}'li savunmaya karşı kanat oyuncularının ceza sahasına destek koşuları şart`);
+    if (me.fwd >= 2 && opp.def === 3) out.push(`${side} ${me.fwd} forvetle rakibin 3'lü savunmasında stoperleri bire bir bırakabilir`);
+    if (me.def === 3 || me.def === 5) out.push(`${side} 3'lü stoper + kanat bekleri: kanat bekleri ileri çıktığında arkalarında boşluk oluşur, kontra riski`);
+  }
+  return out;
+}
+
 // ─────────────────────────────────────────────── LLM girdisi
 
 const tag = (s: Side) => (s === 'home' ? 'E' : 'D');
-const sideName = (f: PreviewFacts, s: Side) => (s === 'home' ? f.home_team : f.away_team);
+// AI metinlerinde Türkçe takım adı (Wales → Galler); eşleşme mantığı API adlarıyla çalışmaya devam eder
+const sideName = (f: PreviewFacts, s: Side) => trTeam(s === 'home' ? f.home_team : f.away_team);
 const fmt = (v: number | null, suffix = '') => (v == null ? '?' : `${v}${suffix}`);
 
 const playerLine = (p: { name: string; pos: string; form: PlayerForm | null }) => {
   const f = p.form;
-  if (!f) return `${p.name} (${p.pos}, veri yok)`;
+  if (!f) return `${p.name} (${p.pos})`;
   return `${p.name} (${p.pos}, ${f.matches} maç ${f.minutes}dk, ikili %${fmt(f.duel_pct)}, çalım %${fmt(f.dribble_pct)} ${f.dribbles_90}/90, top kapma+kesme ${f.tkl_int_90}/90, çalımla geçilme ${f.dribbled_past_90}/90, kilit pas ${f.key_passes_90}/90, puan ${fmt(f.rating)})`;
 };
 
@@ -319,19 +357,24 @@ export function buildPreviewInput(f: PreviewFacts): string {
     return `${tag(s)} son ${x.n} maç: xG lehte ${fmt(x.xg_for)} aleyhte ${fmt(x.xg_against)} şut ${fmt(x.shots)} top% ${fmt(x.possession)} sonuçlar ${x.results || '?'}${tr}`;
   };
   const lines = [
-    `${f.home_team}(E) vs ${f.away_team}(D) | ${f.league}`,
+    `${sideName(f, 'home')}(E) vs ${sideName(f, 'away')}(D) | ${f.league}`,
     `DİZİLİŞ: E ${f.lineups.home.formation} (TD ${f.lineups.home.coach ?? '?'}) | D ${f.lineups.away.formation} (TD ${f.lineups.away.coach ?? '?'})`,
-    `FORM: ${fl('home')} | ${fl('away')}`,
   ];
+  const insights = formationInsights(f.lineups.home.formation, f.lineups.away.formation);
+  if (insights.length) lines.push(`DİZİLİŞ ANALİZİ: ${insights.join('; ')}`);
+  // Form satırı yalnız gerçekten form varsa (yoksa AI'ı "veri yok" demeye itmesin)
+  if (f.form.home.n || f.form.away.n) lines.push(`FORM: ${fl('home')} | ${fl('away')}`);
   f.matchups.forEach((m, i) => {
     const d: Side = m.attacking_side === 'home' ? 'away' : 'home';
     lines.push(
       `EŞLEŞME #${i + 1} [${tag(m.attacking_side)} ${m.zone}]: ${tag(m.attacking_side)} ${playerLine(m.attacker)} ↔ ${tag(d)} ${playerLine(m.defender)} → ${
-        m.edge == null ? 'avantaj hesaplanamadı (veri yetersiz)' : `ikili mücadele farkı ${m.edge > 0 ? '+' : ''}${m.edge} puan (${m.edge > 0 ? 'hücumcu lehine' : m.edge < 0 ? 'savunmacı lehine' : 'dengede'})`
+        m.edge == null ? 'istatistik karşılaştırması yok; pozisyon ve dizilişten yorumla' : `ikili mücadele farkı ${m.edge > 0 ? '+' : ''}${m.edge} puan (${m.edge > 0 ? 'hücumcu lehine' : m.edge < 0 ? 'savunmacı lehine' : 'dengede'})`
       }`,
     );
   });
-  lines.push(`KİLİT EŞLEŞME: ${f.key_index == null ? 'belirlenemedi (veri yetersiz)' : `#${f.key_index + 1}`}`);
+  lines.push(
+    `KİLİT EŞLEŞME: ${f.key_index == null ? 'istatistikle seçilmedi; DİZİLİŞ ANALİZİ ve eşleşmelerden kilit bölgeyi yorumla' : `#${f.key_index + 1}`}`,
+  );
   lines.push(
     `EKSİKLER: ${
       f.absences.length
@@ -339,7 +382,6 @@ export function buildPreviewInput(f: PreviewFacts): string {
         : 'bildirilmedi'
     }`,
   );
-  lines.push(`VERİ KAYNAĞI: ${f.data_basis}`);
   return lines.join('\n');
 }
 
@@ -361,12 +403,17 @@ export const PREVIEW_SCHEMA = {
 };
 
 export const PREVIEW_SYSTEM_INSTRUCTION =
-  'Futbol maç öncesi taktik analistisin. Türkçe, kısa ve net yaz. YALNIZCA verilen satırlardaki verileri kullan; ' +
-  'yeni istatistik, yüzde, oyuncu veya olay uydurma; sayı hesaplama, satırdaki sayıları aynen aktar. E=ev sahibi, D=deplasman. ' +
-  'Kanat bazlı hücum yoğunluğu, pas haritası gibi veriler YOKTUR; bunlarla ilgili yüzde yazma. ' +
+  'Deneyimli bir futbol yorumcususun; maç öncesi taktik önizleme yazıyorsun. Türkçe, kısa, akıcı ve iddialı ama dürüst yaz. ' +
+  'Takım adlarını satırlarda yazdığı gibi kullan. E=ev sahibi, D=deplasman. ' +
+  'YALNIZCA verilen satırlardaki sayıları aynen kullan; yeni istatistik, yüzde, oyuncu veya olay uydurma, sayı hesaplama. ' +
+  'İstatistik olmayan yerde DİZİLİŞ ANALİZİ, oyuncu pozisyonları ve teknik direktörlerden mantıklı taktik yorum yap. ' +
+  'Okuyucuya eksik veriden söz etme: "veri yok", "veri yetersiz", "belirlenemedi", "bulunmuyor", "hesaplanamadı" gibi ifadeleri ASLA kullanma; ' +
+  'sahada neye bakacağını anlat. KİLİT EŞLEŞME istatistikle seçilmediyse dizilişten bir kilit bölge/düello seç ve nedenini söyle. ' +
   'Kanat isimlerini (sol/sağ kanat) EŞLEŞME satırında yazdığı gibi kullan. ' +
-  'KİLİT EŞLEŞME belirlenemediyse veya örneklem küçükse (maç sayısı az) bunu açıkça belirt. ' +
   'Kırılma senaryosunu kesin tahmin değil, "eğer ... olursa" diliyle kur; skor tahmini yapma.';
+
+/** Okuyucuya eksik veri anlatan kalıplar: AI bunları üretirse şablona düşülür */
+const DATA_EXCUSE = /veri\s*(yok|yetersiz|bulunm|eksik|sınırlı)|yetersiz\s*veri|belirlenemedi|belirlenemiyor|hesaplanamad|bulunmuyor|istatistik(ler)?\s*(yok|bulunm)/i;
 
 // ─────────────────────────────────────────────── doğrulama ve payload
 
@@ -396,28 +443,35 @@ export function assemblePreview(f: PreviewFacts, input: string, o: PreviewLlmOut
   const allowed = new Set(numbersIn(input));
   const key = f.key_index != null ? f.matchups[f.key_index] : null;
   const atkName = key ? sideName(f, key.attacking_side) : '';
+  const H = sideName(f, 'home');
+  const A = sideName(f, 'away');
+  const insights = formationInsights(f.lineups.home.formation, f.lineups.away.formation);
+  // İstatistik yoksa kilit bölge: ilk kanat düellosu (dizilişten)
+  const structural = !key && f.matchups.length ? f.matchups[0] : null;
 
   // Takım adlarına Türkçe ek getirilmez (ünlü uyumu isimden hesaplanamaz); nötr kalıp kullanılır
   const fallbackKm = key
     ? `Kilit eşleşme ${key.zone}: ${key.attacker.name} (${atkName}) ile ${key.defender.name} arasında ikili mücadele farkı ${key.edge! > 0 ? '+' : ''}${key.edge} puan.`
-    : 'Kanat eşleşmeleri için yeterli oyuncu verisi yok; kilit eşleşme belirlenemedi.';
+    : structural
+      ? `Kilit bölge ${structural.zone}: ${structural.attacker.name} (${sideName(f, structural.attacking_side)}) ile ${structural.defender.name} düellosu, dizilişler bu koridoru açık bırakıyor.`
+      : `Kilit bölge orta saha: ${H} ${f.lineups.home.formation}, ${A} ${f.lineups.away.formation} ile merkezde üstünlük arayacak.`;
   const fallbackKs = key
     ? `Maçın kilidi bu koridor olabilir: ${key.attacker.name} (${atkName}, ${key.zone}) eşleşmede üstünlük kurarsa oyunun dengesi değişebilir.`
-    : `${f.home_team} ${f.lineups.home.formation}, ${f.away_team} ${f.lineups.away.formation} dizilişiyle başlıyor; belirleyici eşleşme için veri sınırlı.`;
-  const fallbackV = `${f.home_team} ${f.lineups.home.formation}, ${f.away_team} ${f.lineups.away.formation} dizilişiyle sahada.`;
+    : `Eğer kanat oyuncuları bire bir düellolardan üstün çıkarsa oyunun dengesi o tarafa kayabilir; ${insights[0] ?? 'orta sahadaki mücadele temposu belirleyecek'}.`;
+  const fallbackV = `${H} ${f.lineups.home.formation}, ${A} ${f.lineups.away.formation} dizilişiyle sahada.${insights[0] ? ` Öne çıkan: ${insights[0]}.` : ''}`;
   const fallbackAb = f.absences.length
     ? `Eksikler: ${f.absences.map((a) => `${a.name}${a.regular_starter ? ' (düzenli ilk 11)' : ''}`).join(', ')}.`
     : '';
 
   const pick = (text: string, fallback: string, label: string) => {
-    if (text?.trim() && numbersAllowed(text, allowed)) return text;
+    if (text?.trim() && numbersAllowed(text, allowed) && !DATA_EXCUSE.test(text)) return text;
     if (text?.trim()) console.warn(`[preview] ${label} veriyle uyuşmadı, şablona düşüldü:`, text);
     return fallback;
   };
 
   return {
     kind: 'preview',
-    headline: o.h?.trim() && numbersAllowed(o.h, allowed) ? o.h : `${f.home_team} - ${f.away_team}: Taktik Eşleşme`,
+    headline: o.h?.trim() && numbersAllowed(o.h, allowed) && !DATA_EXCUSE.test(o.h) ? o.h : `${H} - ${A}: Taktik Eşleşme`,
     overview: pick(o.v, fallbackV, 'genel bakış'),
     lineups: {
       home: { formation: f.lineups.home.formation, coach: f.lineups.home.coach, xi: f.lineups.home.xi.map((p) => ({ name: p.name, pos: p.pos })) },
@@ -428,7 +482,7 @@ export function assemblePreview(f: PreviewFacts, input: string, o: PreviewLlmOut
     key_matchup_index: f.key_index,
     key_matchup_commentary: pick(o.km, fallbackKm, 'kilit eşleşme'),
     breaking_scenario: pick(o.ks, fallbackKs, 'kırılma senaryosu'),
-    watch_list: (o.wl ?? []).filter((w) => w?.trim() && numbersAllowed(w, allowed)).slice(0, 3),
+    watch_list: (o.wl ?? []).filter((w) => w?.trim() && numbersAllowed(w, allowed) && !DATA_EXCUSE.test(w)).slice(0, 3),
     absences: f.absences,
     absences_commentary: f.absences.length ? pick(o.ab, fallbackAb, 'eksikler') : '',
     data_basis: f.data_basis,

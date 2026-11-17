@@ -528,7 +528,29 @@ google-services.json           Firebase (Android FCM) yapılandırması
        120 px CDN önbelleğinde hazır; büyük boyutlar ilk istekte 429 dönebilir.
        Logosu eksik eski NBA maçları aynı takımın diğer maçlarından dolduruldu.
      - Testler: tests/nbaBox.test.ts (5), e2e/nba_ui.mjs box score adımları.
-     - Sıra: 0014 → npm run deploy:functions → npm run update:apk. (genel gözden geçirme)
+     - Sıra: 0014 → npm run deploy:functions → npm run update:apk.
+
+3.25 Maç önü AI: veri yokken yorumcu modu
+     - Sorun: ücretsiz planda oyuncu formu yokken rapor ve ekran "veri
+       yetersiz / belirlenemedi" ile doluyordu; AI takım adlarını İngilizce
+       yazıyordu (Wales).
+     - Kod artık dizilişten taktik çıkarım üretir (_shared/preview.ts
+       formationInsights): ayna diziliş, orta saha sayısı (ör. 5'e 4),
+       tek forvet / 2 forvete karşı 3'lü savunma, kanat bekleri. AI bunları
+       yorumcu diliyle yazar; istatistik yoksa dizilişten bir kilit bölge seçer.
+     - Talimat mazeret ifadelerini yasaklar; AI yine yazarsa ("veri yok",
+       "belirlenemedi", "bulunmuyor" …) o metin atılıp mazeretsiz şablona düşülür.
+     - AI girdisinde Türkçe takım adları (_shared/teamNames.ts, istemci
+       sözlüğünün sunucu kopyası — ikisi birlikte güncellenmeli).
+     - Ekran: "veri yetersiz" rozetleri kaldırıldı (istatistik yoksa rozet yok),
+       "Belirlenemedi" yerine "Kilit Bölge · Dizilişten okuma", alt not
+       "Yorum ilk 11 ve dizilişe dayanıyor".
+     - Testler: tests/preview.test.ts (4, gerçek Galler-Portekiz durumu),
+       e2e/preview_ui.mjs.
+     - Not: daha önce üretilmiş raporlar değişmez; yeni maçlarda geçerli.
+     - Sıra: npm run deploy:functions → npm run update:apk.
+
+8. YAPILACAKLAR VE İNCELEME NOTLARI (genel gözden geçirme)
 --------------------------------------------------------------------------
 A) [ÇÖZÜLDÜ — bkz. 3.17] Taktik Asistan çok "kuru" yanıt veriyordu
    Gerçek test (Yunanistan 1-0 Sırbistan): soruların çoğunda "Bu maçın

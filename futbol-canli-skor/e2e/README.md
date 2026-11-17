@@ -19,6 +19,7 @@ npm run e2e
 | alerts_ui.mjs | Bildirim ayarları, kırmızı kart / canlı baskı alarmı, Pro analiz |
 | nba_ui.mjs | NBA seri alarmı |
 | chat_ui.mjs | Taktik Asistan: çip, yazılı soru, 3 soru limiti |
+| preview_ui.mjs | Maç önü AI raporu, mazeret metni ("veri yetersiz") olmaması |
 | account_ui.mjs | Test aboneliği, gizlilik/KVKK metinleri, hesap silme |
 | teams_ui.mjs | Takım takibi, ★ Takip filtresi, ayarlarda takım listesi |
 | lineup_ui.mjs | Tarih şeridi (Dün/Bugün/Yarın + filtre), veri tazeliği etiketi, Kadro sekmesi (diziliş, yedekler, puanlar, boş durum, NBA'da yok) |
