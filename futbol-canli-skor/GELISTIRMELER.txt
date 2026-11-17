@@ -260,7 +260,8 @@ e2e/                           Playwright arayüz testleri (npm run e2e)
 supabase/migrations/           0001_init, 0002_pipeline, 0003_nba, 0004_quota,
                                0005_prematch, 0006_halftime, 0007_alerts,
                                0008_assistant, 0009_maintenance, 0010_teams,
-                               0011_config, 0012_release,
+                               0011_config, 0012_release, 0013_lineups_freshness,
+                               0014_nba_box,
                                0013_lineups_freshness
 supabase/functions/
   sync-matches/                Futbol senkronu
@@ -510,7 +511,24 @@ google-services.json           Firebase (Android FCM) yapılandırması
        yine güncellenir, yalnız kadro/puan 0013 çalıştırılana kadar yazılmaz.
        Uygulama 0013'ten önce güncellenirse maç ekranı eski kolonlarla açılır.
 
-8. YAPILACAKLAR VE İNCELEME NOTLARI (genel gözden geçirme)
+3.24 NBA box score + NBA logoları (0014_nba_box.sql)
+     - NBA maç ekranında "Box Score" sekmesi: takım seçimi, İlk 5 / Yedekler,
+       DK, SAY, RİB, AST, SAHA, ÜÇ, SA, TÇ, BLK, TK, F, +/-; takım toplamı;
+       en skorer oyuncu vurgulu; yatay kaydırmalı tablo, oyuncu sütunu sabit.
+     - Veri: sync-nba biten maç zenginleştirmesinde ZATEN çekilen
+       /players/statistics yanıtından (ek istek yok) matches.box_score.
+       Daha önce işlenmiş son 2 günün maçları maç başına 1 istekle, kota
+       bekçisine tabi geriye dönük doldurulur (çalışma başına en fazla 3).
+       box_score ayrı update ile yazılır; 0014 yoksa uyarıyla atlanır.
+     - Ücretsiz planda box score yalnız biten maçlarda (canlı box score
+       dakikalık istek ister → ücretli plan).
+     - Logolar: API-NBA logoları Wikimedia SVG; Android Image SVG çizemez →
+       Wikimedia'nın 120 px PNG küçük resmine çevrilir (sunucu: nbaBox.ts
+       normalizeNbaLogo; istemci: TeamLogo eski kayıtlar için de çevirir).
+       120 px CDN önbelleğinde hazır; büyük boyutlar ilk istekte 429 dönebilir.
+       Logosu eksik eski NBA maçları aynı takımın diğer maçlarından dolduruldu.
+     - Testler: tests/nbaBox.test.ts (5), e2e/nba_ui.mjs box score adımları.
+     - Sıra: 0014 → npm run deploy:functions → npm run update:apk. (genel gözden geçirme)
 --------------------------------------------------------------------------
 A) [ÇÖZÜLDÜ — bkz. 3.17] Taktik Asistan çok "kuru" yanıt veriyordu
    Gerçek test (Yunanistan 1-0 Sırbistan): soruların çoğunda "Bu maçın

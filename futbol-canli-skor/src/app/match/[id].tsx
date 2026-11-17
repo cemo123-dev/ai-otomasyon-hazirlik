@@ -11,6 +11,7 @@ import { LineupTab } from '@/components/match/LineupTab';
 import { StatsBars } from '@/components/match/StatsBars';
 import { Timeline } from '@/components/match/Timeline';
 import { NbaAnalysisReport } from '@/components/nba/NbaAnalysisCards';
+import { BoxScoreTab } from '@/components/nba/BoxScoreTab';
 import { NbaStatsBars } from '@/components/nba/NbaStatsBars';
 import { QuarterTable } from '@/components/nba/QuarterTable';
 import { PreviewLocked, PreviewReport, PreviewTooEarly } from '@/components/preview/PreviewCards';
@@ -27,7 +28,7 @@ import { clockTime } from '@/lib/days';
 import { getNbaStats, isFinished, isLive, isNbaPayload, type Match } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
 
-type TabKey = 'summary' | 'stats' | 'lineup' | 'ai';
+type TabKey = 'summary' | 'stats' | 'lineup' | 'box' | 'ai';
 const TABS = [
   { key: 'summary' as const, label: 'Özet' },
   { key: 'stats' as const, label: 'İstatistik' },
@@ -35,6 +36,8 @@ const TABS = [
 ];
 // "Kadro" yalnız futbolda (NBA sekmeleri değişmez)
 const FOOTBALL_TABS = [TABS[0], TABS[1], { key: 'lineup' as const, label: 'Kadro' }, TABS[2]];
+// NBA: oyuncu bazında box score
+const NBA_TABS = [TABS[0], TABS[1], { key: 'box' as const, label: 'Box Score' }, TABS[2]];
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -63,10 +66,11 @@ export default function MatchDetailScreen() {
       <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={styles.content}>
         <ScoreHeader m={match} />
         {!nba && !isFinished(match.status_short) ? <FollowBar fixtureId={match.fixture_id} /> : null}
-        <SegmentedTabs items={nba ? TABS : FOOTBALL_TABS} value={tab} onChange={setTab} />
+        <SegmentedTabs items={nba ? NBA_TABS : FOOTBALL_TABS} value={tab} onChange={setTab} />
 
         {tab === 'summary' ? <AlertsFeed match={match} alerts={alerts} /> : null}
         {tab === 'lineup' && !nba ? <LineupTab match={match} /> : null}
+        {tab === 'box' && nba ? <BoxScoreTab match={match} /> : null}
         {tab === 'summary' ? nba ? <NbaSummary match={match} /> : <Timeline match={match} /> : null}
         {tab === 'stats' ? nba ? <NbaStatsBars match={match} /> : <StatsBars match={match} /> : null}
         {tab === 'ai' && halftimeMode ? (

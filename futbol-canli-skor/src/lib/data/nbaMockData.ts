@@ -172,3 +172,32 @@ export const nbaScenarioPayload: NbaTacticalPayload = {
     ],
   },
 };
+
+// ─────────────────────────────────────────────── önizleme: box score (Lakeshore 104 - 115 Desert)
+type BoxRow = [string, string, boolean, number, number, number, number, number, number, number, number, number, number, number, number, number];
+// ad, poz, ilk5, dk, sayı, rib, ast, +/-, isabet, deneme, üçlük isabet, üçlük deneme, SA isabet, SA deneme, top çalma, top kaybı
+const H: BoxRow[] = [
+  ['M. Reyes', 'G', true, 36, 24, 4, 7, -6, 9, 21, 3, 9, 3, 4, 1, 3],
+  ['T. Okafor', 'F', true, 34, 18, 9, 2, -10, 7, 16, 1, 5, 3, 4, 1, 2],
+  ['J. Lindqvist', 'C', true, 30, 14, 11, 1, -8, 6, 10, 0, 0, 2, 4, 0, 1],
+  ['D. Carter', 'G', true, 32, 12, 3, 5, -12, 4, 13, 2, 8, 2, 2, 2, 3],
+  ['A. Brooks', 'F', true, 28, 10, 6, 2, -9, 4, 11, 2, 7, 0, 0, 0, 1],
+  ['K. Ndiaye', 'C', false, 18, 12, 5, 1, 3, 5, 8, 0, 1, 2, 3, 1, 1],
+  ['P. Santos', 'G', false, 22, 8, 2, 4, -4, 3, 9, 2, 6, 0, 0, 1, 2],
+  ['R. Hale', 'F', false, 16, 6, 3, 0, -9, 2, 6, 1, 4, 1, 2, 0, 0],
+];
+const A: BoxRow[] = [
+  ['L. Moreau', 'G', true, 35, 29, 5, 6, 14, 10, 18, 4, 7, 5, 6, 2, 2],
+  ['C. Whitfield', 'F', true, 33, 21, 8, 3, 10, 8, 14, 2, 4, 3, 3, 1, 1],
+  ['B. Adeyemi', 'C', true, 31, 16, 12, 2, 9, 7, 10, 0, 0, 2, 3, 0, 2],
+  ['S. Kowalski', 'G', true, 30, 13, 2, 8, 6, 5, 11, 3, 6, 0, 0, 2, 3],
+  ['E. Tanaka', 'F', true, 27, 9, 5, 1, 4, 3, 8, 1, 4, 2, 2, 1, 1],
+  ['G. Silva', 'G', false, 21, 14, 2, 3, 7, 5, 9, 3, 5, 1, 1, 1, 1],
+  ['H. Osei', 'C', false, 18, 8, 6, 0, 2, 3, 5, 0, 0, 2, 2, 0, 0],
+  ['V. Petrov', 'F', false, 15, 5, 2, 1, 3, 2, 4, 1, 2, 0, 0, 0, 1],
+];
+const toLine = (team: 'home' | 'away') => (r: BoxRow) => ({
+  name: r[0], team, position: r[1], starter: r[2], minutes: r[3], points: r[4], rebounds: r[5], assists: r[6],
+  plus_minus: r[7], fgm: r[8], fga: r[9], tpm: r[10], tpa: r[11], ftm: r[12], fta: r[13], steals: r[14], blocks: 0, fouls: 2, turnovers: r[15],
+});
+export const nbaScenarioBox = [...H.map(toLine('home')), ...A.map(toLine('away'))];

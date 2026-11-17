@@ -10,6 +10,16 @@ const initials = (name: string) =>
     .map((w) => w[0]!.toLocaleUpperCase('tr'))
     .join('');
 
+/**
+ * Wikimedia SVG adresini 120 px PNG küçük resmine çevirir (Android Image SVG çizemez).
+ * Sunucu yeni kayıtlarda zaten çeviriyor (supabase/functions/_shared/nbaBox.ts); bu, eski kayıtlar için.
+ */
+const WIKI_SVG = /^(https:\/\/upload\.wikimedia\.org\/wikipedia\/[a-z]+)\/([0-9a-f]\/[0-9a-f]{2})\/([^/?#]+\.svg)$/i;
+const toRaster = (u: string) => {
+  const m = u.match(WIKI_SVG);
+  return m ? `${m[1]}/thumb/${m[2]}/${m[3]}/120px-${m[3]}.png` : u;
+};
+
 /** Takım logosu; logo yoksa veya yüklenemezse baş harf rozeti */
 function TeamLogoBase({ uri, name, size = 20 }: { uri?: string | null; name: string; size?: number }) {
   const [failed, setFailed] = useState(false);
@@ -23,7 +33,7 @@ function TeamLogoBase({ uri, name, size = 20 }: { uri?: string | null; name: str
   }
   return (
     <Image
-      source={{ uri }}
+      source={{ uri: toRaster(uri) }}
       style={{ width: size, height: size }}
       resizeMode="contain"
       onError={() => setFailed(true)}

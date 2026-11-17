@@ -24,7 +24,7 @@ import {
   SCENARIO_FIXTURE_ID,
   scenarioPayload,
 } from './mockData';
-import { NBA_SCENARIO_ID, nbaMatches, nbaScenarioPayload } from './nbaMockData';
+import { NBA_SCENARIO_ID, nbaMatches, nbaScenarioBox, nbaScenarioPayload } from './nbaMockData';
 import type { DataSource } from './types';
 
 /**
@@ -55,7 +55,7 @@ const buildMatches = (): Match[] =>
       halftime_teaser: null,
       ...mockLineups[m.fixture_id],
     })),
-    ...nbaMatches,
+    ...nbaMatches.map((m) => (m.fixture_id === NBA_SCENARIO_ID ? { ...m, box_score: nbaScenarioBox } : m)),
   ]
     // Tarih şeridi: göreli saatli örnek maçlar her saatte "Bugün"de kalır
     .map((m) => ({ ...m, kickoff_at: clampToToday(m.kickoff_at) }))

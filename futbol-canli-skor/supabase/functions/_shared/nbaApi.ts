@@ -1,4 +1,5 @@
 import type { NbaPlayerLine, NbaTeamBox } from './nbaMetrics.ts';
+import { normalizeNbaLogo } from './nbaBox.ts';
 
 /**
  * API-NBA (api-sports.io, API-Football ile aynı anahtar).
@@ -85,8 +86,9 @@ export function mapGame(g: Json) {
     away_team: g.teams?.visitors?.name,
     home_team_id: g.teams?.home?.id ?? null,
     away_team_id: g.teams?.visitors?.id ?? null,
-    home_logo: g.teams?.home?.logo ?? null,
-    away_logo: g.teams?.visitors?.logo ?? null,
+    // Wikimedia SVG → PNG (Android Image SVG çizemez); bkz. nbaBox.ts
+    home_logo: normalizeNbaLogo(g.teams?.home?.logo),
+    away_logo: normalizeNbaLogo(g.teams?.visitors?.logo),
     home_score: st.status_short === 'NS' ? null : (g.scores?.home?.points ?? null),
     away_score: st.status_short === 'NS' ? null : (g.scores?.visitors?.points ?? null),
     status_short: st.status_short,

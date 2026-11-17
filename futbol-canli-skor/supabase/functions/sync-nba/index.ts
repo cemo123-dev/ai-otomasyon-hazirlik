@@ -6,7 +6,8 @@
 // Kota API-Football ile ortaktır: isteğe bağlı çekimler kota bekçisine (hasNbaQuota) tabidir.
 import { buildNbaTeaser, pickTopPlayers, type NbaMatchRow } from '../_shared/nbaAnalysis.ts';
 import { hasNbaQuota, lastNbaQuota, mapGame, mapPlayers, mapTeamBoxes, nbaGet, toGameId } from '../_shared/nbaApi.ts';
-import { computeNbaMetrics } from '../_shared/nbaMetrics.ts';
+import { isMissingBoxColumn, toBoxScore } from '../_shared/nbaBox.ts';
+import { computeNbaMetrics, type NbaPlayerLine } from '../_shared/nbaMetrics.ts';
 import { runNbaAlerts } from '../_shared/alertStore.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 import { followTeamFixtures, notifyKickoffs } from '../_shared/teamEvents.ts';
@@ -146,10 +147,59 @@ async function enrichFinished() {
         .update({ stats: row.stats, top_players: row.top_players, summary_teaser: buildNbaTeaser(row) })
         .eq('fixture_id', m.fixture_id);
       if (upErr) throw upErr;
+      await storeBoxScore(m.fixture_id, players);
       done++;
     } catch (e) {
       console.warn(`[sync-nba] ${m.fixture_id} istatistik atlandı:`, e instanceof Error ? e.message : e);
     }
   }
-  return done;
+  return done + (await backfillBoxScores(MAX_ENRICH - done));
+}
+
+/** Box score ayrı yazılır: 0014 yoksa yalnız uyarı (senkron durmaz). Dönüş: false = kolon yok */
+async function storeBoxScore(fixtureId: number, players: NbaPlayerLine[]): Promise<boolean> {
+  const box = toBoxScore(players);
+  if (!box) return true;
+  const { error } = await admin.from('matches').update({ box_score: box }).eq('fixture_id', fixtureId);
+  if (isMissingBoxColumn(error)) {
+    console.warn('[sync-nba] 0014_nba_box.sql kurulmamış; box score atlandı');
+    return false;
+  }
+  if (error) console.warn(`[sync-nba] ${fixtureId} box score yazılamadı:`, error.message);
+  return true;
+}
+
+/**
+ * Önceden işlenmiş (istatistiği olan) ama box score'u olmayan son 2 günün maçları:
+ * yalnız oyuncu istatistiği çekilir (maç başına 1 istek, kota bekçisine tabi).
+ */
+async function backfillBoxScores(limit: number): Promise<number> {
+  if (limit <= 0) return 0;
+  const since = new Date(Date.now() - 2 * 86400_000).toISOString();
+  const { data, error } = await admin
+    .from('matches')
+    .select('fixture_id, home_team')
+    .eq('sport_type', 'nba')
+    .eq('status_short', 'FT')
+    .not('stats', 'is', null)
+    .is('box_score', null)
+    .gte('kickoff_at', since)
+    .order('kickoff_at', { ascending: false })
+    .limit(limit);
+  if (error) {
+    if (!isMissingBoxColumn(error)) console.warn('[sync-nba] box score geri doldurma sorgusu:', error.message);
+    return 0;
+  }
+  let n = 0;
+  for (const m of data ?? []) {
+    if (!hasNbaQuota(1)) break;
+    try {
+      const players = mapPlayers(await nbaGet(`/players/statistics?game=${toGameId(m.fixture_id)}`, KEY), m.home_team);
+      if (!(await storeBoxScore(m.fixture_id, players))) break;
+      n++;
+    } catch (e) {
+      console.warn(`[sync-nba] ${m.fixture_id} box score geri doldurma atlandı:`, e instanceof Error ? e.message : e);
+    }
+  }
+  return n;
 }

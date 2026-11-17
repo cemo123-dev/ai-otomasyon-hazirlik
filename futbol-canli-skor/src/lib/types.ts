@@ -66,6 +66,8 @@ export type Match = {
   away_logo?: string | null;
   /** Tam kadro ve maç sonu oyuncu puanları (bkz. 0013_lineups_freshness.sql) — yalnız maç ekranında çekilir */
   lineup_detail?: LineupDetail | null;
+  /** NBA: biten maçta tüm oyuncuların istatistikleri (bkz. 0014_nba_box.sql) */
+  box_score?: NbaBoxLine[] | null;
   player_ratings?: PlayerRating[] | null;
   /** Veri kaynağının bu maç için son kontrol edildiği an ("Son güncelleme HH:MM") */
   updated_at?: string | null;
@@ -238,6 +240,29 @@ export type FoulTrouble = {
   minutes: number;
   points: number;
   plus_minus: number;
+};
+
+/** NBA box score satırı (sunucudaki NbaPlayerLine ile aynı) */
+export type NbaBoxLine = {
+  name: string;
+  team: 'home' | 'away';
+  starter: boolean;
+  position: string;
+  minutes: number;
+  points: number;
+  rebounds: number;
+  assists: number;
+  plus_minus: number;
+  fgm: number;
+  fga: number;
+  tpm: number;
+  tpa: number;
+  ftm?: number;
+  fta: number;
+  steals?: number;
+  blocks?: number;
+  fouls?: number;
+  turnovers?: number;
 };
 
 export type NbaPlayerImpact = { offense: PlayerImpact[]; defense: PlayerImpact[]; foul_trouble: FoulTrouble[] };

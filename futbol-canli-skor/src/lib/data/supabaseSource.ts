@@ -29,6 +29,8 @@ const MATCH_COLUMNS =
 
 // 0013_lineups_freshness.sql: kadro + oyuncu puanları yalnız maç ekranında (liste sorgusu hafif kalsın)
 const DETAIL_COLUMNS = `${MATCH_COLUMNS}, lineup_detail, player_ratings`;
+// 0014_nba_box.sql: NBA box score yalnız maç ekranında
+const FULL_COLUMNS = `${DETAIL_COLUMNS}, box_score`;
 
 /** Postgres "undefined_column": migration henüz çalıştırılmadıysa uygulama eski kolonlarla çalışmaya devam eder */
 const isMissingColumn = (e: { code?: string } | null) => e?.code === '42703';
@@ -73,8 +75,9 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
 
     async getMatch(fixtureId) {
       const query = (cols: string) => sb.from('matches').select(cols).eq('fixture_id', fixtureId).maybeSingle();
-      let { data, error } = await query(DETAIL_COLUMNS);
-      // 0013 henüz kurulmadıysa kadro sekmesi boş durum gösterir; maç ekranı yine açılır
+      let { data, error } = await query(FULL_COLUMNS);
+      // 0014 / 0013 henüz kurulmadıysa ilgili sekme boş durum gösterir; maç ekranı yine açılır
+      if (isMissingColumn(error)) ({ data, error } = await query(DETAIL_COLUMNS));
       if (isMissingColumn(error)) ({ data, error } = await query(MATCH_COLUMNS));
       if (error) throw error;
       return data ? localizeTeams(data as unknown as Match) : null;

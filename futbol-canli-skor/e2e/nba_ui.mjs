@@ -8,4 +8,12 @@ const errs = []; p.on('pageerror', e => errs.push(e.message));
 await p.goto(`${BASE}/match/9000009102`, { timeout: 180000 });
 await p.getByText('🔥 NBA Seri Alarmı').waitFor({ timeout: 60000 }); console.log('NBA seri alarmı: OK');
 await p.screenshot({ path: OUT + 'a4-nba.png' });
+// Box score: bitmiş senaryo maçı
+await p.goto(`${BASE}/match/9000009101`, { timeout: 180000 });
+await p.getByText('Box Score').click();
+await p.getByText('M. Reyes').waitFor({ timeout: 10000 });
+await p.getByText('Takım toplamı').waitFor({ timeout: 5000 }); console.log('box score (ev): OK');
+await p.getByText('Desert Vipers').last().click(); // son geçiş: takım seçimi sekmesi
+await p.getByText('L. Moreau').waitFor({ timeout: 5000 }); console.log('box score (deplasman): OK');
+await p.screenshot({ path: OUT + 'a5-boxscore.png' });
 console.log('hatalar:', errs.length ? errs : 'yok'); await b.close(); if (errs.length) process.exit(1);

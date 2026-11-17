@@ -1,0 +1,12 @@
+-- Skor+ : NBA box score (biten maçlarda tüm oyuncuların istatistikleri)
+-- Supabase SQL Editor'de çalıştırın. Tekrar çalıştırılabilir (idempotent).
+-- Sıra: bu dosya → npm run deploy:functions → npm run update:apk.
+-- Sıra bozulursa senkron DURMAZ: box_score ayrı update ile yazılır, kolon yoksa uyarıyla atlanır.
+--
+-- Kaynak: sync-nba'nın biten maç zenginleştirmesinde zaten çektiği /players/statistics?game=
+-- yanıtı (ek istek yok). Daha önce işlenmiş maçlar için yalnız oyuncu istatistiği (1 istek)
+-- kota bekçisine tabi olarak geriye dönük doldurulur.
+--   box_score: [{ name, team:'home'|'away', starter, position, minutes, points, rebounds, assists,
+--                 plus_minus, fgm, fga, tpm, tpa, ftm, fta, off_reb, def_reb, steals, blocks,
+--                 fouls, turnovers }]  (takım → ilk 5 → dakika sırasıyla)
+alter table public.matches add column if not exists box_score jsonb;
