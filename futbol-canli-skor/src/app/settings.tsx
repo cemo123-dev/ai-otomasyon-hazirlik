@@ -1,6 +1,5 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import * as Updates from 'expo-updates';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { TeamLogo } from '@/components/TeamLogo';
@@ -73,6 +72,21 @@ export default function SettingsScreen() {
       <AccountCard />
     </ScrollView>
   );
+}
+
+/**
+ * Sürüm/güncelleme bilgisi. expo-updates native modülü eski build'lerde (ör. önceki
+ * development build) yoksa import çöker; bu yüzden korumalı yüklenir.
+ */
+function updateInfo(): string {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- native modül olmayabilir
+    const U = require('expo-updates') as typeof import('expo-updates');
+    const when = U.isEmbeddedLaunch || !U.createdAt ? ' · APK içi kod' : ` · güncelleme ${U.createdAt.toLocaleDateString('tr-TR')}`;
+    return `${U.channel ? ` · ${U.channel}` : ''}${when}`;
+  } catch {
+    return '';
+  }
 }
 
 /** Onay: native'de Alert, web'de window.confirm */
@@ -150,8 +164,7 @@ function AccountCard() {
       {msg ? <Text style={styles.desc}>{msg}</Text> : null}
       <Text style={[styles.desc, styles.divider, { paddingTop: space(3) }]}>
         Sürüm {Constants.expoConfig?.version ?? '—'}
-        {Updates.channel ? ` · ${Updates.channel}` : ''}
-        {Updates.isEmbeddedLaunch || !Updates.createdAt ? ' · APK içi kod' : ` · güncelleme ${Updates.createdAt.toLocaleDateString('tr-TR')}`}
+        {updateInfo()}
       </Text>
     </Card>
   );
