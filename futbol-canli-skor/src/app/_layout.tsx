@@ -5,11 +5,17 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FollowsProvider } from '@/hooks/useFollows';
 import { PremiumProvider } from '@/hooks/usePremium';
 import { onNotificationOpen } from '@/lib/notifications';
+import { applyUpdateOnLaunch } from '@/lib/updates';
 import { colors } from '@/theme';
 
 export default function RootLayout() {
   // Devre arası bildirimine dokununca maç ekranı açılır
   useEffect(() => onNotificationOpen((id) => router.push(`/match/${id}`)), []);
+
+  // APK: yeni OTA güncellemesi varsa açılışta indirip hemen uygula
+  useEffect(() => {
+    applyUpdateOnLaunch();
+  }, []);
 
   return (
     <SafeAreaProvider>
