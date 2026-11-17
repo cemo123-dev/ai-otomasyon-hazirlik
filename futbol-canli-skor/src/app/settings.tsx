@@ -1,3 +1,4 @@
+import { requireOptionalNativeModule } from 'expo';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -76,9 +77,11 @@ export default function SettingsScreen() {
 
 /**
  * Sürüm/güncelleme bilgisi. expo-updates native modülü eski build'lerde (ör. önceki
- * development build) yoksa import çöker; bu yüzden korumalı yüklenir.
+ * development build) yoksa import hata fırlatır ve geliştirme modunda kırmızı hata ekranı
+ * açılır (try/catch yakalasa bile). Bu yüzden önce hata fırlatmayan kontrol yapılır.
  */
 function updateInfo(): string {
+  if (!requireOptionalNativeModule('ExpoUpdates')) return '';
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- native modül olmayabilir
     const U = require('expo-updates') as typeof import('expo-updates');

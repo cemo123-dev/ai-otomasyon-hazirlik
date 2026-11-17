@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui';
 import { usePremium } from '@/hooks/usePremium';
 import { useFollows } from '@/hooks/useFollows';
 import { useMatches, type MatchFilter } from '@/hooks/useMatches';
+import { DAY_OFFSETS, dayLabel, type DayOffset } from '@/lib/days';
 import { PREVIEW_MODE } from '@/lib/supabase';
 import type { Sport } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
@@ -27,9 +28,11 @@ const FILTERS: { key: MatchFilter; label: string }[] = [
 export default function MatchesScreen() {
   const [sport, setSport] = useState<Sport>('football');
   const [filter, setFilter] = useState<MatchFilter>('all');
+  // Tarih şeridi: Dün / Bugün / Yarın (ücretsiz API planı ±1 gün verir); varsayılan Bugün
+  const [day, setDay] = useState<DayOffset>(0);
   const { followed, teams } = useFollows();
   const followSets = useMemo(() => ({ fixtures: followed, teams: new Set(teams.keys()) }), [followed, teams]);
-  const { groups, liveCount, loading, error, reload } = useMatches(sport, filter, followSets);
+  const { groups, liveCount, loading, error, reload } = useMatches(sport, filter, followSets, day);
   const { isPremium } = usePremium();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -72,6 +75,26 @@ export default function MatchesScreen() {
         <SegmentedTabs items={SPORTS} value={sport} onChange={setSport} />
       </View>
 
+      <View style={styles.days} accessibilityRole="tablist">
+        {DAY_OFFSETS.map((d) => {
+          const active = d === day;
+          const { title, sub } = dayLabel(d);
+          return (
+            <Pressable
+              key={d}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: active }}
+              accessibilityLabel={`${title}, ${sub}`}
+              onPress={() => setDay(d)}
+              style={[styles.dayBtn, active && styles.dayBtnActive]}
+            >
+              <Text style={[styles.dayTitle, active && { color: colors.live }]}>{title}</Text>
+              <Text style={styles.daySub}>{sub}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <View style={styles.filters}>
         {FILTERS.map((f) => {
           const active = f.key === filter;
@@ -86,6 +109,12 @@ export default function MatchesScreen() {
           );
         })}
       </View>
+
+      {filter === 'live' ? (
+        <Text style={styles.freshNote}>
+          ⓘ Ücretsiz veri kaynağı nedeniyle canlı skorlar ~30 dk aralıkla güncellenir; her maçta son güncelleme saati yazar.
+        </Text>
+      ) : null}
 
       {PREVIEW_MODE ? (
         <View style={styles.previewBanner}>
@@ -120,7 +149,7 @@ export default function MatchesScreen() {
             <Text style={styles.empty}>
               {filter === 'followed'
                 ? 'Takip ettiğin maç yok. Maçlardaki 🔔 zil veya maç ekranındaki ☆ ile takım takip edebilirsin.'
-                : 'Bu filtrede maç yok.'}
+                : `${dayLabel(day).title} için bu filtrede maç yok.`}
             </Text>
           }
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.live} />}
@@ -140,6 +169,12 @@ const styles = StyleSheet.create({
   proBtn: { borderWidth: 1, borderColor: colors.pro, borderRadius: 999, paddingHorizontal: space(3), paddingVertical: space(1.5) },
   proText: { color: colors.pro, fontWeight: '800', fontSize: 12 },
   sport: { paddingHorizontal: space(4), paddingBottom: space(3) },
+  days: { flexDirection: 'row', gap: space(2), paddingHorizontal: space(4), paddingBottom: space(3) },
+  dayBtn: { flex: 1, alignItems: 'center', paddingVertical: space(1.5), borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  dayBtnActive: { borderColor: colors.live, backgroundColor: colors.liveGlow },
+  dayTitle: { color: colors.text, fontWeight: '800', fontSize: 13 },
+  daySub: { color: colors.textMuted, fontSize: 11, marginTop: 1 },
+  freshNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17, paddingHorizontal: space(4), paddingBottom: space(3) },
   filters: { flexDirection: 'row', gap: space(2), paddingHorizontal: space(4), paddingBottom: space(3) },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: space(3.5), paddingVertical: space(2), borderRadius: 999, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   chipActive: { backgroundColor: colors.text, borderColor: colors.text },

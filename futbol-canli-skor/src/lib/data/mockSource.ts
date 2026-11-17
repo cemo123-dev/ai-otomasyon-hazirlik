@@ -15,6 +15,7 @@ import {
 import { mockAnswer } from './assistantMockData';
 import { LIVE_PRESSURE_MINUTE, livePressureAlert, redCardAnalysisMock, seedAlerts, TURKEY_SCOTLAND_ID } from './alertsMockData';
 import { buildMockHalftime } from './halftimeMockData';
+import { clampToToday, dayStripMatches, mockLineups } from './lineupMockData';
 import { PREVIEW_MOCK_ID, previewMockPayload } from './previewMockData';
 import {
   buildFallbackPayload,
@@ -39,18 +40,27 @@ const NBA_TICK_SECONDS = 37;
 const teamId = (name: string) => [...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 1_000_000;
 const withTeamIds = (m: Match): Match => ({ ...m, home_team_id: teamId(m.home_team), away_team_id: teamId(m.away_team), home_logo: null, away_logo: null });
 
-const allMatches: Match[] = [
-  ...initialMatches.map((m) => ({
-    ...m,
-    sport_type: 'football' as const,
-    period_scores: null,
-    status_detail: null,
-    preview_status: 'none' as const,
-    halftime_status: 'none' as const,
-    halftime_teaser: null,
-  })),
-  ...nbaMatches,
-].map(withTeamIds);
+/** Veri tazeliği taklidi: ilk açılışta "birkaç dakika önce kontrol edildi" */
+const SYNCED_AGO_MS = 7 * 60_000;
+
+const buildMatches = (): Match[] =>
+  [
+    ...initialMatches.map((m) => ({
+      ...m,
+      sport_type: 'football' as const,
+      period_scores: null,
+      status_detail: null,
+      preview_status: 'none' as const,
+      halftime_status: 'none' as const,
+      halftime_teaser: null,
+      ...mockLineups[m.fixture_id],
+    })),
+    ...nbaMatches,
+  ]
+    // Tarih şeridi: göreli saatli örnek maçlar her saatte "Bugün"de kalır
+    .map((m) => ({ ...m, kickoff_at: clampToToday(m.kickoff_at) }))
+    .concat(dayStripMatches())
+    .map((m) => ({ ...withTeamIds(m), updated_at: new Date(Date.now() - SYNCED_AGO_MS).toISOString() }));
 
 /** "Q3 04:12" → { period: 3, seconds: 252 } */
 const parseClock = (detail: string | null) => {
@@ -61,7 +71,7 @@ const fmtClock = (period: number, seconds: number) =>
   `Q${period} ${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 
 export function createMockSource(): DataSource {
-  const matches = new Map<number, Match>(allMatches.map((m) => [m.fixture_id, structuredClone(m)]));
+  const matches = new Map<number, Match>(buildMatches().map((m) => [m.fixture_id, structuredClone(m)]));
   const analyses = new Map<number, AnyTacticalPayload>([[9004, lombardiaPayload]]);
   const previews = new Map<number, PreviewPayload>();
   const halftimes = new Map<number, HalftimePayload>();
@@ -82,7 +92,11 @@ export function createMockSource(): DataSource {
   const update = (id: number, patch: Partial<Match>) => {
     const cur = matches.get(id);
     if (!cur) return;
-    const next = { ...cur, ...patch };
+    // Skor/dakika değişimi = kaynak kontrol edildi (0013 tetikleyicisinin taklidi); AI durum alanları tazelik sayılmaz
+    const synced = ['home_score', 'away_score', 'status_short', 'elapsed_minute', 'status_detail', 'events', 'stats'].some(
+      (k) => k in patch,
+    );
+    const next = { ...cur, ...patch, ...(synced ? { updated_at: new Date().toISOString() } : {}) };
     matches.set(id, next);
     emit(next);
   };

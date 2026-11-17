@@ -253,12 +253,15 @@ src/components/halftime/       Devre arası rapor kartları
 src/lib/notifications.ts       Push izni, Expo token kaydı, bildirime dokunma
 src/lib/supabase.ts            Supabase istemcisi, önizleme modu
 src/lib/data/                  DataSource (Supabase + mock), örnek veriler
+src/lib/days.ts                Tarih şeridi: İstanbul günü, "Son güncelleme"
+src/components/match/          Olay akışı, istatistik çubukları, Kadro sekmesi
 supabase/functions/tests/      Deno birim testleri (npm run test:functions)
 e2e/                           Playwright arayüz testleri (npm run e2e)
 supabase/migrations/           0001_init, 0002_pipeline, 0003_nba, 0004_quota,
                                0005_prematch, 0006_halftime, 0007_alerts,
                                0008_assistant, 0009_maintenance, 0010_teams,
-                               0011_config, 0012_release
+                               0011_config, 0012_release,
+                               0013_lineups_freshness
 supabase/functions/
   sync-matches/                Futbol senkronu
   sync-nba/                    NBA senkronu
@@ -270,7 +273,7 @@ supabase/functions/
   _shared/                     apiFootball, nbaApi, nbaMetrics, nbaAnalysis,
                                analysis, preview, halftime, alerts,
                                alertStore, notify, dossier, push, gemini, teaser,
-                               supabaseAdmin
+                               supabaseAdmin, lineups
 eas.json                       EAS Build profilleri
 google-services.json           Firebase (Android FCM) yapılandırması
 
@@ -280,7 +283,8 @@ google-services.json           Firebase (Android FCM) yapılandırması
 1) Supabase SQL Editor'de sırayla: 0001_init.sql, 0002_pipeline.sql,
    0003_nba.sql, 0004_quota.sql, 0005_prematch.sql, 0006_halftime.sql,
    0007_alerts.sql, 0008_assistant.sql, 0009_maintenance.sql, 0010_teams.sql,
-   0011_config.sql, 0012_release.sql.
+   0011_config.sql, 0012_release.sql, 0013_lineups_freshness.sql.
+   (0013, Edge Function deploy'undan ÖNCE çalıştırılmalı.)
 2) Authentication → Allow anonymous sign-ins: AÇIK (Save changes).
 3) Edge Functions → Secrets: API_FOOTBALL_KEY, GEMINI_API_KEY.
    İsteğe bağlı: GEMINI_MODEL, API_FOOTBALL_PAID=1 (ücretli plan),
@@ -452,6 +456,60 @@ google-services.json           Firebase (Android FCM) yapılandırması
        kullanıcılar paywall'da "yakında" görür. Push bildirimleri çalışır
        (FCM aynı paket adına bağlı).
 
+3.23 Kadro + oyuncu puanları, tarih şeridi, veri tazeliği (0013_lineups_freshness.sql)
+     Kaynak: docs/rakip-arastirmasi.md "İlk turda yapılacaklar" A/B/C.
+     - Kadro (ek API isteği YOK): mevcut /fixtures?id(s)= detay yanıtı
+       _shared/lineups.ts (saf modül) ile eşlenir → matches.lineup_detail
+       (formation, coach, start_xi/substitutes: id, ad, numara, G/D/M/F,
+       grid "satır:sütun") ve matches.player_ratings (puan, dakika, gol,
+       asist; azalan; 0 dk ve puansız oyuncu yok). Alanlar kırpılır, liste
+       boyları sınırlanır (bozuk dış veri). sync-matches ve
+       generate-halftime yazar.
+     - Yazım yolu (inceleme düzeltmeleri): kadro/puan ana batch upsert'ünde
+       YOK; ana upsert'ten sonra yalnız değeri olan maça maç başına ayrı
+       update ile yazılır (storeLineupFields). Böylece batch'teki diğer
+       satırlar NULL ile ezilmez. Eşleme hatası yalnız bu iki alanı atlar
+       (try/catch); dizi olmayan startXI/substitutes güvenle boş sayılır;
+       ad kesimi kod noktası bazında (yalnız kalmış UTF-16 vekili yok);
+       ev sahibi kimliği yoksa kadro/puan yazılmaz (taraf belirlenemez).
+       0013 kurulmadan deploy edilirse (PGRST204 / 42703) kadro yazımı
+       uyarıyla atlanır, skor senkronu DURMAZ.
+     - Gün dönümü: uygulama gece yarısını açık geçirirse bir sonraki
+       İstanbul gece yarısına kurulan zamanlayıcı ve uygulama öne gelince
+       yapılan kontrol listeyi ve gün anahtarını tazeler.
+     - Neden yeni kolon: matches.lineups maç önü AI'nın (generate-preview)
+       kendi formatı; iki yazarın aynı kolonu ezmemesi için ayrı tutuldu.
+       Uygulama tam kadro yoksa ilk 11'i matches.lineups'tan gösterir.
+     - Maç ekranı (yalnız futbol): "Kadro" sekmesi — grid'e göre saha
+       dizilişi (RN View; native paket yok), yedekler, teknik direktör;
+       maç bitince (FT/AET/PEN) puan listesi + "Maçın oyuncusu". Veri
+       yoksa boş durum. NBA sekmeleri değişmedi.
+     - Tarih şeridi: ana ekranda Dün / Bugün / Yarın (varsayılan Bugün),
+       Europe/Istanbul gününe göre (src/lib/days.ts, sabit UTC+3).
+       Tümü/Canlı/Biten/Takip filtreleri seçili günle çalışır; gece
+       yarısını geçen canlı maç Bugün'de de görünür. Liste sorgusu artık
+       İstanbul'a göre dünün başı → yarının sonu (eskiden ±36 saat).
+       Ücretsiz API planı ±1 gün verdiği için +7 gün YOK (yeni istek yok).
+     - Veri tazeliği: canlı satırda ve maç başlığında "Son güncelleme
+       HH:MM" (matches.updated_at). mapCore ve sync-nba her yazımda
+       updated_at verir; tetikleyici yedek olarak yalnız veri alanları
+       değişince damgalar (AI/bildirim durum alanları sayılmaz). Canlı
+       filtrede "~30 dk aralıkla güncellenir" notu.
+     - Uygulama, 0013 kurulmamışsa maç ekranında eski kolonlarla açılır
+       (42703 → yedek sorgu); Kadro sekmesi boş durum gösterir.
+     - Önizleme: 9001'de tam kadro + puanlar, 9006'da (canlı) yalnız ev
+       sahibi kadrosu; Dün/Yarın için örnek futbol + NBA maçları; göreli
+       saatli örnek maçlar her saatte Bugün'de kalır (lineupMockData.ts).
+     - Testler: supabase/functions/tests/lineups.test.ts, lineups_edge.test.ts,
+       days.test.ts (src/lib/days.ts), e2e/lineup_ui.mjs.
+     - Kurulum sırası (bu sırayla):
+       1) Supabase SQL Editor: 0013_lineups_freshness.sql
+       2) npm run deploy:functions  (sync-matches, generate-halftime, sync-nba)
+       3) npm run update:apk        (OTA; native değişiklik yok)
+       Sıra bozulursa: fonksiyonlar 0013'ten önce deploy edilirse skorlar
+       yine güncellenir, yalnız kadro/puan 0013 çalıştırılana kadar yazılmaz.
+       Uygulama 0013'ten önce güncellenirse maç ekranı eski kolonlarla açılır.
+
 8. YAPILACAKLAR VE İNCELEME NOTLARI (genel gözden geçirme)
 --------------------------------------------------------------------------
 A) [ÇÖZÜLDÜ — bkz. 3.17] Taktik Asistan çok "kuru" yanıt veriyordu
@@ -509,6 +567,13 @@ C) TEKNİK BORÇ  [büyük kısmı tamamlandı — bkz. 3.18; kalan: Sentry, CLI
      kolonları zaten tutuluyor).
    - setup_dashboard.sql (0001+0002 kopyası) güncel değil; kaldırılmalı veya
      tüm migration'ları kapsayacak şekilde yeniden üretilmeli.
+   - [3.23 incelemesinden] supabase-js dizi upsert'ü kolonları tüm satırların
+     anahtar birleşimi olarak gönderir (eksik anahtar = NULL). sync-matches
+     detay upsert'ünde stats / events / top_players / home_coach /
+     away_coach / summary_teaser bir satırda olup diğerinde yoksa o satırda
+     NULL ile ezilir. Kadro/puan bu yüzden ayrı update ile yazılıyor
+     (lineups.ts → storeLineupFields); diğer alanlar için aynı ayrım ya da
+     satır başına sabit anahtar seti yapılmalı (bu turda davranış değişmedi).
 
 D) EKLENMESİ ÖNERİLEN ÖZELLİKLER  [Takip filtresi, takım takibi, maç başladı, Türkçe adlar
    ve logolar tamamlandı — bkz. 3.19; kalan: paylaşım kartı (yeni native build

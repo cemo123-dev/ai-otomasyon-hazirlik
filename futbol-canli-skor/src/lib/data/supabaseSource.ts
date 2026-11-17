@@ -16,6 +16,7 @@ import {
   DEFAULT_PREFS,
   type FollowedTeam,
 } from '../types';
+import { istanbulDayStartMs } from '../days';
 import { localizeTeams } from '../teamNames';
 import type { DataSource } from './types';
 
@@ -24,7 +25,13 @@ const MATCH_COLUMNS =
   'fixture_id, sport_type, league_name, league_country, league_priority, kickoff_at, home_team, away_team, ' +
   'home_score, away_score, status_short, elapsed_minute, status_detail, period_scores, summary_teaser, ' +
   'analysis_status, events, stats, preview_status, lineups, halftime_status, halftime_teaser, ' +
-  'home_team_id, away_team_id, home_logo, away_logo';
+  'home_team_id, away_team_id, home_logo, away_logo, updated_at';
+
+// 0013_lineups_freshness.sql: kadro + oyuncu puanları yalnız maç ekranında (liste sorgusu hafif kalsın)
+const DETAIL_COLUMNS = `${MATCH_COLUMNS}, lineup_detail, player_ratings`;
+
+/** Postgres "undefined_column": migration henüz çalıştırılmadıysa uygulama eski kolonlarla çalışmaya devam eder */
+const isMissingColumn = (e: { code?: string } | null) => e?.code === '42703';
 
 let channelSeq = 0;
 
@@ -48,15 +55,16 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
 
   return {
     async listMatches(sport) {
-      // Bugün ± 1 gün penceresi: canlı + biten + başlayacak
-      const from = new Date(Date.now() - 36 * 3600_000).toISOString();
-      const to = new Date(Date.now() + 36 * 3600_000).toISOString();
+      // Tarih şeridi (Dün / Bugün / Yarın) Europe/Istanbul gününe göre süzer (bkz. useMatches):
+      // dünün başından yarının sonuna kadar tek sorgu. Gece yarısını geçen canlı maç da içeride kalır.
+      const from = new Date(istanbulDayStartMs(-1)).toISOString();
+      const to = new Date(istanbulDayStartMs(2)).toISOString();
       const { data, error } = await sb
         .from('matches')
         .select(MATCH_COLUMNS)
         .eq('sport_type', sport)
         .gte('kickoff_at', from)
-        .lte('kickoff_at', to)
+        .lt('kickoff_at', to)
         .order('league_priority')
         .order('kickoff_at');
       if (error) throw error;
@@ -64,11 +72,10 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
     },
 
     async getMatch(fixtureId) {
-      const { data, error } = await sb
-        .from('matches')
-        .select(MATCH_COLUMNS)
-        .eq('fixture_id', fixtureId)
-        .maybeSingle();
+      const query = (cols: string) => sb.from('matches').select(cols).eq('fixture_id', fixtureId).maybeSingle();
+      let { data, error } = await query(DETAIL_COLUMNS);
+      // 0013 henüz kurulmadıysa kadro sekmesi boş durum gösterir; maç ekranı yine açılır
+      if (isMissingColumn(error)) ({ data, error } = await query(MATCH_COLUMNS));
       if (error) throw error;
       return data ? localizeTeams(data as unknown as Match) : null;
     },

@@ -155,6 +155,8 @@ export function mapCore(f: Json): Partial<MatchRow> {
     away_score: f.goals.away,
     status_short: f.fixture.status.short,
     elapsed_minute: f.fixture.status.elapsed,
+    // Veri tazeliği: kaynak şu an kontrol edildi (skor değişmese de). Uygulamada "Son güncelleme HH:MM".
+    updated_at: new Date().toISOString(),
   };
 }
 
@@ -173,6 +175,8 @@ export function mapDetails(f: Json): Partial<MatchRow> {
     }
   }
   if (Array.isArray(f.players) && f.players.length) out.top_players = mapTopPlayers(f.players, side);
+  // 0013 kadro + oyuncu puanları burada DEĞİL: dizi upsert'ünde eksik satırları NULL'la ezmemesi için
+  // ayrı yazılır (lineups.ts → storeLineupFields, aynı yanıttan; ek istek yok).
   return out;
 }
 

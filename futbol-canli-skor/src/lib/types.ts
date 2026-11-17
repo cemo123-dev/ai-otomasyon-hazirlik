@@ -64,6 +64,38 @@ export type Match = {
   away_team_id?: number | null;
   home_logo?: string | null;
   away_logo?: string | null;
+  /** Tam kadro ve maç sonu oyuncu puanları (bkz. 0013_lineups_freshness.sql) — yalnız maç ekranında çekilir */
+  lineup_detail?: LineupDetail | null;
+  player_ratings?: PlayerRating[] | null;
+  /** Veri kaynağının bu maç için son kontrol edildiği an ("Son güncelleme HH:MM") */
+  updated_at?: string | null;
+};
+
+/** Kadro oyuncusu. grid: "satır:sütun" (1 = kaleci hattı); pos: G / D / M / F */
+export type LineupPlayer = { id: number | null; name: string; number: number | null; pos: string | null; grid: string | null };
+
+export type TeamLineupDetail = {
+  team_id: number | null;
+  formation: string | null;
+  coach: string | null;
+  start_xi: LineupPlayer[];
+  substitutes: LineupPlayer[];
+};
+
+/** matches.lineup_detail — maç önü AI'nın matches.lineups formatından ayrı kolon */
+export type LineupDetail = { home: TeamLineupDetail | null; away: TeamLineupDetail | null };
+
+/** matches.player_ratings — puana göre azalan */
+export type PlayerRating = {
+  id: number | null;
+  name: string;
+  team: 'home' | 'away';
+  number: number | null;
+  pos: string | null;
+  rating: number;
+  minutes: number;
+  goals: number;
+  assists: number;
 };
 
 export type ShotQualityVerdict =

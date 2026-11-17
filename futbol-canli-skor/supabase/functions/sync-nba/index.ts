@@ -38,7 +38,11 @@ Deno.serve(async (req) => {
 
 async function upsert(rows: Record<string, unknown>[]) {
   if (!rows.length) return;
-  const { error } = await admin.from('matches').upsert(rows, { onConflict: 'fixture_id' });
+  // Veri tazeliği: kaynak şu an kontrol edildi (uygulamada "Son güncelleme HH:MM")
+  const now = new Date().toISOString();
+  const { error } = await admin
+    .from('matches')
+    .upsert(rows.map((r) => ({ ...r, updated_at: now })), { onConflict: 'fixture_id' });
   if (error) throw error;
 }
 

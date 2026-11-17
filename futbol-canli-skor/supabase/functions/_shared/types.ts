@@ -37,6 +37,33 @@ export type TopPlayer = {
   shots: number;
 };
 
+/** Kadro oyuncusu (0013: matches.lineup_detail). grid: "satır:sütun" (1 = kaleci hattı) */
+export type LineupPlayer = { id: number | null; name: string; number: number | null; pos: string | null; grid: string | null };
+
+export type TeamLineupDetail = {
+  team_id: number | null;
+  formation: string | null;
+  coach: string | null;
+  start_xi: LineupPlayer[];
+  substitutes: LineupPlayer[];
+};
+
+/** Tam kadro; maç önü AI'nın matches.lineups formatından AYRI kolon */
+export type LineupDetail = { home: TeamLineupDetail | null; away: TeamLineupDetail | null };
+
+/** Maç sonu oyuncu puanı (0013: matches.player_ratings, puana göre azalan) */
+export type PlayerRating = {
+  id: number | null;
+  name: string;
+  team: 'home' | 'away';
+  number: number | null;
+  pos: string | null;
+  rating: number;
+  minutes: number;
+  goals: number;
+  assists: number;
+};
+
 export type MatchRow = {
   sport_type?: 'football' | 'nba';
   fixture_id: number;
@@ -63,6 +90,10 @@ export type MatchRow = {
   away_team_id?: number | null;
   home_logo?: string | null;
   away_logo?: string | null;
+  /** 0013_lineups_freshness.sql */
+  lineup_detail?: LineupDetail | null;
+  player_ratings?: PlayerRating[] | null;
+  updated_at?: string;
 };
 
 export type ShotQualityVerdict = 'sterile_dominance' | 'clinical_transition' | 'balanced_exchange' | 'chance_wastage';

@@ -13,6 +13,7 @@ import {
   type HalftimeLlmOut,
 } from '../_shared/halftime.ts';
 import { notifyFollowers } from '../_shared/notify.ts';
+import { storeLineupFields } from '../_shared/lineups.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 
 const KEY = Deno.env.get('API_FOOTBALL_KEY')!;
@@ -51,6 +52,7 @@ Deno.serve(async (req) => {
 
     // Veritabanını da tazele (ücretsiz planda durum 30 dk'ya kadar eski olabilir)
     await admin.from('matches').upsert({ ...mapCore(f), ...mapDetails(f) }, { onConflict: 'fixture_id' });
+    await storeLineupFields(admin, [f]); // 0013: devre arası kadrosu (ayrı update; throw etmez)
 
     if (status === '1H') return fail('ilk yarı henüz bitmedi', 'none'); // tekrar denenebilir
     if (status !== 'HT') return fail(`devre arası değil (${status})`); // ikinci yarı başladı: kaçırıldı

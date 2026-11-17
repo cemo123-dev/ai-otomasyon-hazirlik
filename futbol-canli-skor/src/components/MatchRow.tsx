@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFollows } from '@/hooks/useFollows';
+import { clockTime } from '@/lib/days';
 import { isFinished, isLive, type Match } from '@/lib/types';
 import { colors, space } from '@/theme';
 import { QuarterTable } from './nba/QuarterTable';
@@ -60,6 +61,8 @@ function MatchRowBase({ match: m }: { match: Match }) {
             <Text style={[styles.team, homeWin && styles.loser]} numberOfLines={1}>{m.away_team}</Text>
           </View>
           {nba && (live || done) ? <QuarterTable match={m} compact /> : null}
+          {/* Veri tazeliği: ücretsiz planda canlı skor ~30 dk'da bir güncellenir; gecikme gizlenmez */}
+          {live && m.updated_at ? <Text style={styles.fresh}>Son güncelleme {clockTime(m.updated_at)}</Text> : null}
           {done && m.analysis_status === 'completed' ? (
             <View style={{ marginTop: 4 }}>
               <Badge label="✦ AI Analiz Hazır" color={colors.pro} />
@@ -107,6 +110,7 @@ const styles = StyleSheet.create({
   team: { flexShrink: 1, color: colors.text, fontSize: 15, fontWeight: '600' },
   loser: { color: colors.textMuted, fontWeight: '500' },
   scores: { alignItems: 'flex-end', gap: 4, minWidth: 22 },
+  fresh: { color: colors.textDim, fontSize: 11, fontVariant: ['tabular-nums'] },
   bell: { paddingLeft: space(1) },
   bellIcon: { fontSize: 16 },
   bellOff: { opacity: 0.45 },

@@ -21,21 +21,28 @@ const HINT_MS = 2200;
 export function GeneratingLoader({ steps = HINTS, title = 'AI taktik analizi hazırlanıyor' }: { steps?: string[]; title?: string } = {}) {
   const [hint, setHint] = useState(0);
   const [pulse] = useState(() => new Animated.Value(0));
+  // Çubuk 'left' ile kayar: native sürücü yerleşim özelliklerini desteklemez → JS sürücüsü
+  const [bar] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const t = setInterval(() => setHint((h) => (h + 1) % steps.length), HINT_MS);
     const loop = Animated.loop(
       Animated.timing(pulse, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver }),
     );
+    const barLoop = Animated.loop(
+      Animated.timing(bar, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+    );
     loop.start();
+    barLoop.start();
     return () => {
       clearInterval(t);
       loop.stop();
+      barLoop.stop();
     };
-  }, [pulse, steps.length]);
+  }, [pulse, bar, steps.length]);
 
   const scale = pulse.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.25, 1] });
-  const slide = pulse.interpolate({ inputRange: [0, 1], outputRange: ['-40%', '100%'] });
+  const slide = bar.interpolate({ inputRange: [0, 1], outputRange: ['-40%', '100%'] });
 
   return (
     <Card accent={colors.pro}>

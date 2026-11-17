@@ -21,6 +21,7 @@ npm run e2e
 | chat_ui.mjs | Taktik Asistan: çip, yazılı soru, 3 soru limiti |
 | account_ui.mjs | Test aboneliği, gizlilik/KVKK metinleri, hesap silme |
 | teams_ui.mjs | Takım takibi, ★ Takip filtresi, ayarlarda takım listesi |
+| lineup_ui.mjs | Tarih şeridi (Dün/Bugün/Yarın + filtre), veri tazeliği etiketi, Kadro sekmesi (diziliş, yedekler, puanlar, boş durum, NBA'da yok) |
 
 Her test ayrı tarayıcı oturumunda çalışır; ekran görüntüleri `e2e/shots/` altına yazılır.
 Farklı adres için `BASE_URL` ortam değişkenini verin.

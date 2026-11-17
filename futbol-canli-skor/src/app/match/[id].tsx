@@ -7,6 +7,7 @@ import { GeneratingLoader, HALFTIME_STEPS, PREVIEW_STEPS } from '@/components/an
 import { AlertsFeed } from '@/components/alerts/AlertsFeed';
 import { HalftimeLocked, HalftimeReport } from '@/components/halftime/HalftimeCards';
 import { PaywallGate } from '@/components/analysis/PaywallGate';
+import { LineupTab } from '@/components/match/LineupTab';
 import { StatsBars } from '@/components/match/StatsBars';
 import { Timeline } from '@/components/match/Timeline';
 import { NbaAnalysisReport } from '@/components/nba/NbaAnalysisCards';
@@ -22,15 +23,18 @@ import { teamKey, useFollows } from '@/hooks/useFollows';
 import { useHalftime, type HalftimeState } from '@/hooks/useHalftime';
 import { useMatch } from '@/hooks/useMatch';
 import { usePreview, type PreviewState } from '@/hooks/usePreview';
+import { clockTime } from '@/lib/days';
 import { getNbaStats, isFinished, isLive, isNbaPayload, type Match } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
 
-type TabKey = 'summary' | 'stats' | 'ai';
+type TabKey = 'summary' | 'stats' | 'lineup' | 'ai';
 const TABS = [
   { key: 'summary' as const, label: 'Özet' },
   { key: 'stats' as const, label: 'İstatistik' },
   { key: 'ai' as const, label: 'AI Taktik', pro: true },
 ];
+// "Kadro" yalnız futbolda (NBA sekmeleri değişmez)
+const FOOTBALL_TABS = [TABS[0], TABS[1], { key: 'lineup' as const, label: 'Kadro' }, TABS[2]];
 
 export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -59,9 +63,10 @@ export default function MatchDetailScreen() {
       <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={styles.content}>
         <ScoreHeader m={match} />
         {!nba && !isFinished(match.status_short) ? <FollowBar fixtureId={match.fixture_id} /> : null}
-        <SegmentedTabs items={TABS} value={tab} onChange={setTab} />
+        <SegmentedTabs items={nba ? TABS : FOOTBALL_TABS} value={tab} onChange={setTab} />
 
         {tab === 'summary' ? <AlertsFeed match={match} alerts={alerts} /> : null}
+        {tab === 'lineup' && !nba ? <LineupTab match={match} /> : null}
         {tab === 'summary' ? nba ? <NbaSummary match={match} /> : <Timeline match={match} /> : null}
         {tab === 'stats' ? nba ? <NbaStatsBars match={match} /> : <StatsBars match={match} /> : null}
         {tab === 'ai' && halftimeMode ? (
@@ -211,6 +216,10 @@ function ScoreHeader({ m }: { m: Match }) {
               : new Date(m.kickoff_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
           </Text>
         )}
+        {/* Veri tazeliği: ücretsiz planda canlı skor ~30 dk'da bir güncellenir; gecikme gizlenmez */}
+        {(live || done) && m.updated_at ? (
+          <Text style={styles.fresh}>Son güncelleme {clockTime(m.updated_at)}</Text>
+        ) : null}
       </View>
       <TeamSide m={m} side="away" />
     </View>
@@ -294,6 +303,7 @@ const styles = StyleSheet.create({
   scoreMid: { alignItems: 'center', gap: space(1) },
   score: { color: colors.text, fontSize: 34, fontWeight: '900', fontVariant: ['tabular-nums'] },
   dash: { color: colors.textDim },
+  fresh: { color: colors.textDim, fontSize: 11, textAlign: 'center', fontVariant: ['tabular-nums'] },
   muted: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   cardTitle: { color: colors.text, fontWeight: '800', fontSize: 16 },
   retry: { alignSelf: 'flex-start', backgroundColor: colors.surfaceAlt, borderRadius: radius.sm, paddingHorizontal: space(4), paddingVertical: space(2) },

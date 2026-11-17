@@ -13,6 +13,7 @@ import {
   PAID,
 } from '../_shared/apiFootball.ts';
 import { runFootballAlerts } from '../_shared/alertStore.ts';
+import { storeLineupFields } from '../_shared/lineups.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 import { followTeamFixtures, notifyKickoffs } from '../_shared/teamEvents.ts';
 import { buildTeaser } from '../_shared/teaser.ts';
@@ -90,6 +91,7 @@ async function syncSchedule() {
         const { error: upErr } = await admin.from('matches').upsert(details, { onConflict: 'fixture_id' });
         if (upErr) throw upErr;
       }
+      await storeLineupFields(admin, fetched); // 0013: kadro + puan (ayrı update; throw etmez)
       await storePlayerRows(fetched);
       enriched = details.length;
     }
@@ -156,6 +158,7 @@ async function syncLive() {
     const { error: upErr } = await admin.from('matches').upsert(rows, { onConflict: 'fixture_id' });
     if (upErr) throw upErr;
   }
+  await storeLineupFields(admin, fixtures); // 0013: kadro + puan (ayrı update; throw etmez)
   // Yalnızca biten maçların oyuncu verisi form hafızasına yazılır (canlı veri eksik olabilir)
   await storePlayerRows(fixtures.filter((f) => FINISHED.includes(f.fixture?.status?.short)));
 

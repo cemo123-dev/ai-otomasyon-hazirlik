@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { dataSource } from '@/lib/data';
+import { dayKeyFromToday, istanbulDayKey, istanbulDayStartMs, type DayOffset } from '@/lib/days';
 import { isFinished, isLive, type Match, type Sport } from '@/lib/types';
 
 export type MatchFilter = 'all' | 'live' | 'finished' | 'followed';
@@ -17,7 +19,11 @@ export type LeagueGroup = {
 
 const stateRank = (m: Match) => (isLive(m.status_short) ? 0 : isFinished(m.status_short) ? 1 : 2);
 
-export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSets) {
+/**
+ * day: tarih şeridi (-1 Dün, 0 Bugün, 1 Yarın; Europe/Istanbul günü). Filtreler seçili günle birlikte çalışır.
+ * Gece yarısını geçen canlı maç "Bugün"de de görünür (kendi gününde de kalır).
+ */
+export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSets, day: DayOffset = 0) {
   // Liste ve hata, yüklendikleri spora göre anahtarlanır: spor değişince eski liste
   // effect içinde temizlenmez, render sırasında türetilerek gizlenir
   const [data, setData] = useState<{ sport: Sport; map: Map<number, Match> } | null>(null);
@@ -32,6 +38,39 @@ export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSe
       setFailure({ sport, message: (e as { message?: string } | null)?.message ?? 'Maçlar yüklenemedi' });
     }
   }, [sport]);
+
+  // İstanbul'da gün dönünce (uygulama gece yarısını açık geçirirse) gün anahtarı ve sorgu penceresi
+  // tazelenir: bir sonraki gece yarısına kurulan zamanlayıcı + uygulama öne gelince kontrol
+  const [today, setToday] = useState(() => dayKeyFromToday(0));
+  const todayRef = useRef(today);
+  const loadRef = useRef(load);
+  useEffect(() => {
+    loadRef.current = load;
+  }, [load]);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const check = () => {
+      const k = dayKeyFromToday(0);
+      if (k === todayRef.current) return;
+      todayRef.current = k;
+      setToday(k);
+      loadRef.current();
+    };
+    const schedule = () => {
+      timer = setTimeout(() => {
+        check();
+        schedule();
+      }, istanbulDayStartMs(1) - Date.now() + 1000);
+    };
+    schedule();
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') check();
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      sub.remove();
+    };
+  }, []);
 
   useEffect(() => {
     Promise.resolve().then(load);
@@ -50,9 +89,13 @@ export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSe
   const error = failure?.sport === sport ? failure.message : null;
   const loading = data?.sport !== sport && !error;
 
+  // Seçili günün anahtarı "bugün" durumundan türetilir (gün dönünce yukarıdaki kontrol günceller)
+  const dayKey = dayKeyFromToday(day, Date.parse(`${today}T12:00:00+03:00`));
+
   const groups = useMemo<LeagueGroup[]>(() => {
     const byLeague = new Map<string, LeagueGroup>();
     for (const m of matches.values()) {
+      if (istanbulDayKey(m.kickoff_at) !== dayKey && !(day === 0 && isLive(m.status_short))) continue;
       if (filter === 'live' && !isLive(m.status_short)) continue;
       if (filter === 'finished' && !isFinished(m.status_short)) continue;
       if (
@@ -80,9 +123,14 @@ export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSe
       g.data.sort((a, b) => stateRank(a) - stateRank(b) || a.kickoff_at.localeCompare(b.kickoff_at));
     }
     return out;
-  }, [matches, filter, follows]);
+  }, [matches, filter, follows, day, dayKey]);
 
-  const liveCount = useMemo(() => [...matches.values()].filter((m) => isLive(m.status_short)).length, [matches]);
+  // Canlı çipindeki sayı seçili günle tutarlı (Bugün: tüm canlı maçlar)
+  const liveCount = useMemo(
+    () =>
+      [...matches.values()].filter((m) => isLive(m.status_short) && (day === 0 || istanbulDayKey(m.kickoff_at) === dayKey)).length,
+    [matches, day, dayKey],
+  );
 
   return { groups, liveCount, loading, error, reload: load };
 }
