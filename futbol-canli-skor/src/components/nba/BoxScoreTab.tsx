@@ -1,36 +1,61 @@
-import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { isLive, type Match, type NbaBoxLine } from '@/lib/types';
 import { colors, space } from '@/theme';
-import { SegmentedTabs } from '../SegmentedTabs';
 import { TeamLogo } from '../TeamLogo';
 import { Card } from '../ui';
 
-type Col = { key: string; label: string; get: (p: NbaBoxLine) => string; width: number };
+/** Satır verisi: oyuncu veya takım toplamı (yüzdeler toplamdan hesaplanır) */
+type Line = Pick<
+  NbaBoxLine,
+  'minutes' | 'points' | 'rebounds' | 'assists' | 'plus_minus' | 'fgm' | 'fga' | 'tpm' | 'tpa' | 'fta'
+> &
+  Partial<Pick<NbaBoxLine, 'ftm' | 'off_reb' | 'def_reb' | 'steals' | 'blocks' | 'turnovers' | 'fouls'>>;
 
-const ma = (m?: number, a?: number) => `${m ?? 0}-${a ?? 0}`;
+type Col = { label: string; get: (p: Line) => string; width: number; strong?: boolean };
+
+const n = (v?: number) => String(v ?? 0);
+/** İsabet yüzdesi, 1 ondalık (deneme yoksa 0.0) */
+const pct = (m?: number, a?: number) => (a ? ((100 * (m ?? 0)) / a).toFixed(1) : '0.0');
+const sgn = (v: number) => (v > 0 ? `+${v}` : String(v));
+
+// NBA kutu skoru sütunları (yayınlardaki sıra)
 const COLS: Col[] = [
-  { key: 'min', label: 'DK', get: (p) => String(p.minutes), width: 34 },
-  { key: 'pts', label: 'SAY', get: (p) => String(p.points), width: 38 },
-  { key: 'reb', label: 'RİB', get: (p) => String(p.rebounds), width: 36 },
-  { key: 'ast', label: 'AST', get: (p) => String(p.assists), width: 36 },
-  { key: 'fg', label: 'SAHA', get: (p) => ma(p.fgm, p.fga), width: 50 },
-  { key: '3p', label: 'ÜÇ', get: (p) => ma(p.tpm, p.tpa), width: 44 },
-  { key: 'ft', label: 'SA', get: (p) => ma(p.ftm, p.fta), width: 44 },
-  { key: 'stl', label: 'TÇ', get: (p) => String(p.steals ?? 0), width: 32 },
-  { key: 'blk', label: 'BLK', get: (p) => String(p.blocks ?? 0), width: 36 },
-  { key: 'to', label: 'TK', get: (p) => String(p.turnovers ?? 0), width: 32 },
-  { key: 'pf', label: 'F', get: (p) => String(p.fouls ?? 0), width: 28 },
-  { key: 'pm', label: '+/-', get: (p) => (p.plus_minus > 0 ? `+${p.plus_minus}` : String(p.plus_minus)), width: 40 },
+  { label: 'DK', get: (p) => n(p.minutes), width: 34 },
+  { label: 'FGM', get: (p) => n(p.fgm), width: 38 },
+  { label: 'FGA', get: (p) => n(p.fga), width: 38 },
+  { label: 'FG%', get: (p) => pct(p.fgm, p.fga), width: 44 },
+  { label: '3PM', get: (p) => n(p.tpm), width: 38 },
+  { label: '3PA', get: (p) => n(p.tpa), width: 38 },
+  { label: '3P%', get: (p) => pct(p.tpm, p.tpa), width: 44 },
+  { label: 'FTM', get: (p) => n(p.ftm), width: 38 },
+  { label: 'FTA', get: (p) => n(p.fta), width: 38 },
+  { label: 'FT%', get: (p) => pct(p.ftm, p.fta), width: 44 },
+  { label: 'OREB', get: (p) => n(p.off_reb), width: 42 },
+  { label: 'DREB', get: (p) => n(p.def_reb), width: 42 },
+  { label: 'REB', get: (p) => n(p.rebounds), width: 38 },
+  { label: 'AST', get: (p) => n(p.assists), width: 38 },
+  { label: 'STL', get: (p) => n(p.steals), width: 36 },
+  { label: 'BLK', get: (p) => n(p.blocks), width: 36 },
+  { label: 'TO', get: (p) => n(p.turnovers), width: 32 },
+  { label: 'PF', get: (p) => n(p.fouls), width: 32 },
+  { label: 'PTS', get: (p) => n(p.points), width: 38, strong: true },
+  { label: '+/-', get: (p) => sgn(p.plus_minus), width: 40 },
 ];
 
-const NAME_W = 132;
+const NAME_W = 140;
 
 const sum = (rows: NbaBoxLine[], k: keyof NbaBoxLine) => rows.reduce((t, r) => t + (Number(r[k]) || 0), 0);
 
-/** NBA "Box Score" sekmesi: takım seçimi, ilk 5 / yedekler, takım toplamı (yatay kaydırmalı tablo) */
+/** "Guard-Forward" → "G-F", "Pivot" → "C" (eski kayıtlarda "Forvet") */
+const posLetter = (pos?: string) =>
+  (pos ?? '')
+    .split('-')
+    .map((x) => (/^g/i.test(x) ? 'G' : /^f/i.test(x) ? 'F' : /^(p|c)/i.test(x) ? 'C' : ''))
+    .filter(Boolean)
+    .join('-');
+
+/** NBA "Box Score" sekmesi: iki takımın tam kutu skoru alt alta (yatay kaydırmalı tablo) */
 export function BoxScoreTab({ match }: { match: Match }) {
-  const [side, setSide] = useState<'home' | 'away'>('home');
   const box = Array.isArray(match.box_score) ? match.box_score : [];
 
   if (!box.length) {
@@ -47,25 +72,38 @@ export function BoxScoreTab({ match }: { match: Match }) {
     );
   }
 
-  const rows = box.filter((p) => p && p.team === side);
-  const starters = rows.filter((p) => p.starter);
-  const bench = rows.filter((p) => !p.starter);
-  const total: NbaBoxLine = {
-    name: 'Takım toplamı',
-    team: side,
-    starter: false,
-    position: '',
+  return (
+    <View style={{ gap: space(3) }}>
+      <TeamBox match={match} side="home" rows={box.filter((p) => p && p.team === 'home')} />
+      <TeamBox match={match} side="away" rows={box.filter((p) => p && p.team === 'away')} />
+      <Text style={styles.legend}>
+        DK dakika · FGM/FGA saha içi isabet/deneme · 3PM/3PA üçlük · FTM/FTA serbest atış · OREB/DREB hücum/savunma ribaundu ·
+        REB ribaund · AST asist · STL top çalma · BLK blok · TO top kaybı · PF faul · PTS sayı · G guard · F forward · C pivot
+      </Text>
+    </View>
+  );
+}
+
+function TeamBox({ match, side, rows }: { match: Match; side: 'home' | 'away'; rows: NbaBoxLine[] }) {
+  if (!rows.length) return null;
+  const team = side === 'home' ? match.home_team : match.away_team;
+  // İlk 5 üstte, sonra yedekler (sunucu sırasını korur)
+  const ordered = [...rows.filter((p) => p.starter), ...rows.filter((p) => !p.starter)];
+  const total: Line = {
     minutes: sum(rows, 'minutes'),
     points: sum(rows, 'points'),
     rebounds: sum(rows, 'rebounds'),
     assists: sum(rows, 'assists'),
-    plus_minus: 0,
+    // Takım +/- = skor farkı
+    plus_minus: (side === 'home' ? 1 : -1) * ((match.home_score ?? 0) - (match.away_score ?? 0)),
     fgm: sum(rows, 'fgm'),
     fga: sum(rows, 'fga'),
     tpm: sum(rows, 'tpm'),
     tpa: sum(rows, 'tpa'),
     ftm: sum(rows, 'ftm'),
     fta: sum(rows, 'fta'),
+    off_reb: sum(rows, 'off_reb'),
+    def_reb: sum(rows, 'def_reb'),
     steals: sum(rows, 'steals'),
     blocks: sum(rows, 'blocks'),
     fouls: sum(rows, 'fouls'),
@@ -74,87 +112,87 @@ export function BoxScoreTab({ match }: { match: Match }) {
   const topScorer = rows.reduce<NbaBoxLine | null>((b, p) => (!b || p.points > b.points ? p : b), null);
 
   return (
-    <View style={{ gap: space(3) }}>
-      <SegmentedTabs
-        items={[
-          { key: 'home' as const, label: match.home_team },
-          { key: 'away' as const, label: match.away_team },
-        ]}
-        value={side}
-        onChange={setSide}
-      />
-      <Card>
-        <View style={styles.teamHead}>
-          <TeamLogo uri={side === 'home' ? match.home_logo : match.away_logo} name={side === 'home' ? match.home_team : match.away_team} size={28} />
-          <Text style={styles.teamName}>{side === 'home' ? match.home_team : match.away_team}</Text>
-        </View>
-        <View style={styles.tableWrap}>
-          {/* Sabit oyuncu sütunu */}
-          <View style={{ width: NAME_W }}>
-            <Text style={[styles.th, styles.nameCell]}>OYUNCU</Text>
-            {starters.length ? <Text style={styles.group}>İLK 5</Text> : null}
-            {starters.map((p) => <NameCell key={`s-${p.name}`} p={p} top={p === topScorer} />)}
-            {bench.length ? <Text style={styles.group}>YEDEKLER</Text> : null}
-            {bench.map((p) => <NameCell key={`b-${p.name}`} p={p} top={p === topScorer} />)}
-            <Text style={[styles.td, styles.nameCell, styles.totalText]}>{total.name}</Text>
-          </View>
-          {/* Kaydırılabilir istatistik sütunları */}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel="Box score tablosu">
-            <View>
-              <Row cells={COLS.map((c) => ({ w: c.width, v: c.label }))} header />
-              {starters.length ? <View style={styles.groupSpacer} /> : null}
-              {starters.map((p) => <Row key={`s-${p.name}`} cells={COLS.map((c) => ({ w: c.width, v: c.get(p) }))} />)}
-              {bench.length ? <View style={styles.groupSpacer} /> : null}
-              {bench.map((p) => <Row key={`b-${p.name}`} cells={COLS.map((c) => ({ w: c.width, v: c.get(p) }))} />)}
-              <Row cells={COLS.map((c) => ({ w: c.width, v: c.key === 'pm' ? '' : c.get(total) }))} total />
+    <Card>
+      <View style={styles.teamHead}>
+        <TeamLogo uri={side === 'home' ? match.home_logo : match.away_logo} name={team} size={28} />
+        <Text style={styles.teamName}>{team.toUpperCase() /* NBA adları İngilizce: Türkçe büyük harf "VİPERS" yapar */}</Text>
+      </View>
+      <View style={styles.tableWrap}>
+        {/* Sabit oyuncu sütunu */}
+        <View style={{ width: NAME_W }}>
+          <Text style={[styles.th, styles.nameCell]}>OYUNCU</Text>
+          {ordered.map((p, i) => (
+            <View key={`${p.name}-${i}`} style={[styles.nameRow, i === 0 && styles.firstRow]}>
+              <Text style={[styles.nameText, p === topScorer && { color: colors.pro }]} numberOfLines={1}>
+                {p.name}
+              </Text>
+              {p.starter && posLetter(p.position) ? <Text style={styles.pos}>{posLetter(p.position)}</Text> : null}
             </View>
-          </ScrollView>
+          ))}
+          <View style={[styles.nameRow, styles.totalRow]}>
+            <Text style={[styles.nameText, styles.totalText]}>TOPLAM</Text>
+          </View>
         </View>
-        <Text style={styles.legend}>
-          DK dakika · SAY sayı · RİB ribaund · AST asist · SAHA isabet-deneme · ÜÇ üçlük · SA serbest atış · TÇ top çalma · BLK blok ·
-          TK top kaybı · F faul
-        </Text>
-      </Card>
-    </View>
+        {/* Kaydırılabilir istatistik sütunları */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={`${team} box score tablosu`}>
+          <View>
+            <View style={styles.row}>
+              {COLS.map((c) => (
+                <Text key={c.label} style={[styles.th, styles.num, { width: c.width }]}>
+                  {c.label}
+                </Text>
+              ))}
+            </View>
+            {ordered.map((p, i) => (
+              <View key={`${p.name}-${i}`} style={[styles.row, styles.cellRow, i === 0 && styles.firstRow]}>
+                {COLS.map((c) => (
+                  <Text key={c.label} style={[styles.td, styles.num, { width: c.width }, c.strong && styles.strong]}>
+                    {c.get(p)}
+                  </Text>
+                ))}
+              </View>
+            ))}
+            <View style={[styles.row, styles.cellRow, styles.totalRow]}>
+              {COLS.map((c) => (
+                <Text key={c.label} style={[styles.td, styles.num, styles.totalText, { width: c.width }]}>
+                  {c.get(total)}
+                </Text>
+              ))}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </Card>
   );
 }
 
-function NameCell({ p, top }: { p: NbaBoxLine; top: boolean }) {
-  return (
-    <Text style={[styles.td, styles.nameCell, top && { color: colors.pro }]} numberOfLines={1}>
-      {p.name}
-      {p.position ? <Text style={styles.pos}> {p.position}</Text> : null}
-    </Text>
-  );
-}
-
-function Row({ cells, header, total }: { cells: { w: number; v: string }[]; header?: boolean; total?: boolean }) {
-  return (
-    <View style={styles.row}>
-      {cells.map((c, i) => (
-        <Text key={i} style={[header ? styles.th : styles.td, { width: c.w }, styles.num, total && styles.totalText]}>
-          {c.v}
-        </Text>
-      ))}
-    </View>
-  );
-}
-
-const ROW_H = 30;
+const ROW_H = 34;
 
 const styles = StyleSheet.create({
   empty: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   teamHead: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
-  teamName: { color: colors.text, fontWeight: '900', fontSize: 16 },
+  teamName: { color: colors.text, fontWeight: '900', fontSize: 15, letterSpacing: 0.5 },
   tableWrap: { flexDirection: 'row' },
   row: { flexDirection: 'row' },
+  cellRow: { height: ROW_H, borderTopWidth: 1, borderTopColor: colors.border, alignItems: 'center' },
+  firstRow: { borderTopColor: colors.textDim },
   th: { height: ROW_H, lineHeight: ROW_H, color: colors.textDim, fontSize: 11, fontWeight: '800' },
-  td: { height: ROW_H, lineHeight: ROW_H, color: colors.text, fontSize: 13, borderTopWidth: 1, borderTopColor: colors.border },
+  td: { color: colors.text, fontSize: 13 },
   num: { textAlign: 'center', fontVariant: ['tabular-nums'] },
-  nameCell: { paddingRight: space(2), fontWeight: '700' },
-  pos: { color: colors.textDim, fontSize: 11, fontWeight: '600' },
-  group: { height: 22, lineHeight: 22, color: colors.textMuted, fontSize: 10, fontWeight: '900', letterSpacing: 1 },
-  groupSpacer: { height: 22 },
+  strong: { fontWeight: '900' },
+  nameCell: { paddingRight: space(2) },
+  nameRow: {
+    height: ROW_H,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingRight: space(2),
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  nameText: { color: colors.text, fontSize: 13, fontWeight: '700', flexShrink: 1 },
+  pos: { color: colors.textDim, fontSize: 10, fontWeight: '900' },
+  totalRow: { borderTopColor: colors.textDim },
   totalText: { color: colors.text, fontWeight: '900' },
   legend: { color: colors.textDim, fontSize: 11, lineHeight: 16 },
 });

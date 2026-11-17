@@ -259,6 +259,8 @@ export type NbaBoxLine = {
   tpa: number;
   ftm?: number;
   fta: number;
+  off_reb?: number;
+  def_reb?: number;
   steals?: number;
   blocks?: number;
   fouls?: number;

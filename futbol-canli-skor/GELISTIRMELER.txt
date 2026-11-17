@@ -574,6 +574,17 @@ google-services.json           Firebase (Android FCM) yapılandırması
      - Testler: tests/sportTerms.test.ts (5).
      - Sıra: npm run deploy:functions → npm run update:apk.
 
+3.27 NBA Box Score: iki takım alt alta, tam kutu skoru
+     - Takım seçimi kaldırıldı; iki takımın tablosu aynı sekmede alt alta.
+     - Sütunlar NBA yayınlarındaki sırayla: DK, FGM, FGA, FG%, 3PM, 3PA, 3P%, FTM, FTA,
+       FT%, OREB, DREB, REB, AST, STL, BLK, TO, PF, PTS, +/-. Yüzdeler isabet/denemeden.
+     - İlk 5 oyuncuda mevki harfi (G / F / C), en skorer vurgulu, TOPLAM satırı
+       (takım +/- = skor farkı). Oyuncu sütunu sabit, istatistikler yatay kayar.
+     - Not: süre almayan (DNP) oyuncular sunucuda zaten ayıklanıyor, tabloda yok.
+     - Telefonda eski arayüz görünüyorsa: Ayarlar altındaki sürüm satırı
+       "development" diyorsa geliştirme build'i Metro'ya bağlıdır (Metro --clear ile
+       yeniden başlatılmalı); "preview" diyorsa npm run update:apk gerekir.
+
 8. YAPILACAKLAR VE İNCELEME NOTLARI (genel gözden geçirme)
 --------------------------------------------------------------------------
 A) [ÇÖZÜLDÜ — bkz. 3.17] Taktik Asistan çok "kuru" yanıt veriyordu
