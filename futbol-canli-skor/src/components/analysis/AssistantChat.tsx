@@ -6,7 +6,7 @@ import { colors, radius, space } from '@/theme';
 import { Card, CardTitle } from '../ui';
 
 const CHIPS: Record<Match['sport_type'], string[]> = {
-  football: ['Maçın kırılma anı neydi?', 'Hakem kararları skoru etkiledi mi?', 'Rövanş için kim avantajlı?'],
+  football: ['Maçın kırılma anı neydi?', 'Teknik direktör hamleleri işe yaradı mı?', 'Rövanş için kim avantajlı?'],
   nba: ['Maçın kırılma anı neydi?', 'Bench farkı nasıl oluştu?', 'Rövanş için kim avantajlı?'],
 };
 

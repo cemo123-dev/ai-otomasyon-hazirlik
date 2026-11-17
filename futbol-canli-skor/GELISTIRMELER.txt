@@ -318,9 +318,33 @@ google-services.json           Firebase (Android FCM) yapılandırması
   hesabı ve APNs anahtarı.
 
 
+3.17 Taktik Asistan iyileştirmesi (yorumcu modu)
+     - Kök neden 1: "Rövanş" sorusu sayı doğrulamasına değil Gemini 503
+       (model aşırı yük) hatasına takılmıştı. gemini.ts'e 429/500/503 için
+       beklemeli yeniden deneme eklendi (1 sn, 3 sn). [ask-assistant'ta
+       yayında; generate-analysis/preview/halftime ve process-alert bir
+       sonraki deploy'da alacak.]
+     - Kök neden 2: dosyada "neden" sorularına dayanak yoktu. Maç dosyası v2:
+       "cikarimlar" bölümünü KOD üretir — her değişikliğin skor durumu
+       (önde/geride/berabere) ve sonrası, giren oyuncunun gol/asisti,
+       gollerin skora etkisi, hakem kararları özeti, pozisyon üstünlüğü ve
+       sonucun oyunu yansıtıp yansıtmadığı. Eski önbellek otomatik yenilenir.
+     - Talimat yorumcu moduna geçti: "bilgi yok" yerine verideki olaylardan
+       çıkarım, "Yorumum:" etiketiyle.
+     - Sayı doğrulaması cümle bazlı: uydurma sayı içeren cümle atılır, kalan
+       yorum gösterilir; hiçbir şey kalmazsa hak iade edilir.
+     - Çip: "Hakem kararları skoru etkiledi mi?" → "Teknik direktör
+       hamleleri işe yaradı mı?".
+     - Gerçek test (Yunanistan 1-0 Sırbistan): üç soru da yanıtlandı.
+       "neden 70. dk forvet çıktı" → "Yorumum: 73. dakikada Pavlidis çıkıp
+       Kostoulas girdi; 1-0 öndeyken skoru koruma hamlesi". Soru başına
+       ~2.480 giriş, 50-100 çıkış tokeni.
+     - Kalan: flash-lite ara sıra yazım hatası yapıyor ("konfunda");
+       ASSISTANT_MODEL ile daha güçlü bir model denenebilir.
+
 8. YAPILACAKLAR VE İNCELEME NOTLARI (genel gözden geçirme)
 --------------------------------------------------------------------------
-A) ÖNCELİKLİ SORUN — Taktik Asistan çok "kuru" yanıt veriyor
+A) [ÇÖZÜLDÜ — bkz. 3.17] Taktik Asistan çok "kuru" yanıt veriyordu
    Gerçek test (Yunanistan 1-0 Sırbistan): soruların çoğunda "Bu maçın
    verisinde bu bilgi yok" diyor; "Rövanş için kim avantajlı?" sorusu sayı
    doğrulamasına takılıp iade edildi.

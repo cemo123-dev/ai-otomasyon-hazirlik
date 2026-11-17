@@ -15,30 +15,40 @@ export async function generateJson<T>(opts: {
   schema: object;
   maxOutputTokens: number;
 }): Promise<{ data: T; usage: GeminiUsage }> {
-  const res = await fetch(ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'x-goog-api-key': opts.apiKey,
-      'Content-Type': 'application/json',
-      'Api-Revision': API_REVISION,
+  const body = JSON.stringify({
+    model: opts.model,
+    system_instruction: opts.system,
+    input: opts.input,
+    store: false, // sunucu tarafında konuşma durumu saklanmasın
+    response_format: { type: 'text', mime_type: 'application/json', schema: opts.schema },
+    generation_config: {
+      thinking_level: 'minimal', // düşünme tokenları da output olarak ücretlendirilir
+      thinking_summaries: 'none',
+      max_output_tokens: opts.maxOutputTokens,
     },
-    body: JSON.stringify({
-      model: opts.model,
-      system_instruction: opts.system,
-      input: opts.input,
-      store: false, // sunucu tarafında konuşma durumu saklanmasın
-      response_format: { type: 'text', mime_type: 'application/json', schema: opts.schema },
-      generation_config: {
-        thinking_level: 'minimal', // düşünme tokenları da output olarak ücretlendirilir
-        thinking_summaries: 'none',
-        max_output_tokens: opts.maxOutputTokens,
-      },
-    }),
   });
 
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 500)}`);
-  const body: Json = await res.json();
+  // Geçici hatalar (aşırı yük 503, kota 429, 500) beklemeli yeniden denenir
+  let res: Response | null = null;
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    res = await fetch(ENDPOINT, {
+      method: 'POST',
+      headers: { 'x-goog-api-key': opts.apiKey, 'Content-Type': 'application/json', 'Api-Revision': API_REVISION },
+      body,
+    });
+    if (res.ok || !RETRYABLE.has(res.status) || attempt === RETRY_DELAYS_MS.length) break;
+    await res.body?.cancel();
+    await new Promise((r) => setTimeout(r, RETRY_DELAYS_MS[attempt] + Math.random() * 400));
+  }
 
+  if (!res!.ok) throw new Error(`Gemini ${res!.status}: ${(await res!.text()).slice(0, 500)}`);
+  return parseResponse<T>(await res!.json());
+}
+
+const RETRYABLE = new Set([429, 500, 503]);
+const RETRY_DELAYS_MS = [1000, 3000];
+
+function parseResponse<T>(body: Json): { data: T; usage: GeminiUsage } {
   const text: string | undefined =
     body.output_text ??
     [...(body.steps ?? [])]

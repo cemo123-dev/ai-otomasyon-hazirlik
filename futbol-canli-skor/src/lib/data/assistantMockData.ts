@@ -11,6 +11,12 @@ export function mockAnswer(m: Match, q: string): string {
       ? `Maçın kırılma anı ${goal.minute}. dakikadaki ${goal.player} golü. Bu golle skor dengesi değişti ve maç ${score} bitti.`
       : `Maç ${score} bitti; skor tabelasını değiştiren bir an olmadı. Kırılma, şut kalitesindeki farktaydı.`;
   }
+  if (s.includes('teknik direktör') || s.includes('hamle')) {
+    const subs = (m.events ?? []).filter((e) => e.type === 'substitution');
+    return subs.length
+      ? `Yorumum: ${subs[0].minute}. dakikadaki ${subs[0].player} değişikliği oyunun dengesini değiştirdi; hamleler skora ${m.home_score ?? 0}-${m.away_score ?? 0} olarak yansıdı.`
+      : 'Yorumum: Teknik direktörler ilk 11 ile devam etti; maçı sahadaki oyun planı belirledi.';
+  }
   if (s.includes('hakem')) {
     const cards = (m.events ?? []).filter((e) => e.type === 'red_card' || e.type === 'penalty_goal' || e.type === 'var');
     return cards.length

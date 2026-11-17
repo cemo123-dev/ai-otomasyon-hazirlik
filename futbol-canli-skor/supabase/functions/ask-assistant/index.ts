@@ -1,7 +1,15 @@
 // Tetikleyici: match_chat INSERT → pg_net → bu fonksiyon (bkz. 0008_assistant.sql)
 // "Taktik Asistana Sor": tek Gemini çağrısı, girdi = maçın hazır dosyası + soru.
-// Yanıttaki sayılar dosyayla doğrulanır; doğrulanamazsa soru hakkı iade edilir (status=failed).
-import { buildAssistantInput, buildDossier, ASSISTANT_SCHEMA, ASSISTANT_SYSTEM_INSTRUCTION, verifyAnswer } from '../_shared/dossier.ts';
+// Yanıttaki sayılar dosyayla doğrulanır: doğrulanamayan sayı içeren cümleler atılır,
+// geriye anlamlı yanıt kalmazsa soru hakkı iade edilir (status=failed).
+import {
+  ASSISTANT_SCHEMA,
+  ASSISTANT_SYSTEM_INSTRUCTION,
+  buildAssistantInput,
+  buildDossier,
+  isCurrentDossier,
+  sanitizeAnswer,
+} from '../_shared/dossier.ts';
 import { generateJson } from '../_shared/gemini.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 
@@ -37,9 +45,10 @@ Deno.serve(async (req) => {
       schema: ASSISTANT_SCHEMA,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
     });
-    const answer = data.a?.trim();
-    const ok = !!answer && verifyAnswer(answer, dossier, msg.question);
-    if (!ok) console.warn(`[ask-assistant] ${message_id} doğrulanamadı:`, answer);
+    const raw = data.a?.trim() ?? '';
+    const answer = raw ? sanitizeAnswer(raw, dossier, msg.question) : null;
+    const ok = !!answer;
+    if (answer !== raw) console.warn(`[ask-assistant] ${message_id} doğrulanamayan kısım atıldı:`, raw);
     await finish({
       status: ok ? 'answered' : 'failed',
       answer: ok ? answer : REFUND_MSG,
@@ -59,7 +68,8 @@ Deno.serve(async (req) => {
 /** Biten maçta önbellekten; yoksa veritabanından derle (bitmişse sakla) */
 async function getDossier(fixtureId: number): Promise<string | null> {
   const { data: cached } = await admin.from('match_dossiers').select('dossier').eq('fixture_id', fixtureId).maybeSingle();
-  if (cached?.dossier) return cached.dossier as string;
+  // Eski sürüm dosya (çıkarımsız) yeniden derlenir
+  if (cached?.dossier && isCurrentDossier(cached.dossier as string)) return cached.dossier as string;
 
   const { data: m } = await admin
     .from('matches')
@@ -79,7 +89,7 @@ async function getDossier(fixtureId: number): Promise<string | null> {
     alerts: (al ?? []) as { minute: number | null; title: string; body: string }[],
   });
   if (FINISHED.includes(m.status_short)) {
-    await admin.from('match_dossiers').upsert({ fixture_id: fixtureId, dossier });
+    await admin.from('match_dossiers').upsert({ fixture_id: fixtureId, dossier, built_at: new Date().toISOString() });
   }
   return dossier;
 }
