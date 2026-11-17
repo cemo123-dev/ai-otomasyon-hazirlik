@@ -15,36 +15,37 @@ export type LeagueGroup = {
 const stateRank = (m: Match) => (isLive(m.status_short) ? 0 : isFinished(m.status_short) ? 1 : 2);
 
 export function useMatches(sport: Sport, filter: MatchFilter) {
-  const [matches, setMatches] = useState<Map<number, Match>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Liste ve hata, yüklendikleri spora göre anahtarlanır: spor değişince eski liste
+  // effect içinde temizlenmez, render sırasında türetilerek gizlenir
+  const [data, setData] = useState<{ sport: Sport; map: Map<number, Match> } | null>(null);
+  const [failure, setFailure] = useState<{ sport: Sport; message: string } | null>(null);
 
   const load = useCallback(async () => {
     try {
-      setError(null);
       const list = await dataSource.listMatches(sport);
-      setMatches(new Map(list.map((m) => [m.fixture_id, m])));
+      setData({ sport, map: new Map(list.map((m) => [m.fixture_id, m])) });
+      setFailure(null);
     } catch (e) {
-      setError((e as { message?: string } | null)?.message ?? 'Maçlar yüklenemedi');
-    } finally {
-      setLoading(false);
+      setFailure({ sport, message: (e as { message?: string } | null)?.message ?? 'Maçlar yüklenemedi' });
     }
   }, [sport]);
 
   useEffect(() => {
-    // Spor değişince eski listeyi göstermemek için temizle
-    setMatches(new Map());
-    setLoading(true);
-    load();
+    Promise.resolve().then(load);
     // Realtime: yalnızca seçili sporun skor / dakika / analiz durumu değişiklikleri
     return dataSource.subscribeMatches(sport, (m) =>
-      setMatches((prev) => {
-        const next = new Map(prev);
-        next.set(m.fixture_id, { ...prev.get(m.fixture_id), ...m });
-        return next;
+      setData((prev) => {
+        if (!prev || prev.sport !== sport) return prev;
+        const map = new Map(prev.map);
+        map.set(m.fixture_id, { ...prev.map.get(m.fixture_id), ...m });
+        return { sport, map };
       }),
     );
   }, [sport, load]);
+
+  const matches = useMemo(() => (data?.sport === sport ? data.map : new Map<number, Match>()), [data, sport]);
+  const error = failure?.sport === sport ? failure.message : null;
+  const loading = data?.sport !== sport && !error;
 
   const groups = useMemo<LeagueGroup[]>(() => {
     const byLeague = new Map<string, LeagueGroup>();

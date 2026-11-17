@@ -47,3 +47,9 @@ yarn-error.*
 *-firebase-adminsdk-*.json
 service-account*.json
 firebase-service-account*.json
+
+# Arayüz testi ekran görüntüleri
+e2e/shots/
+
+# Supabase CLI geçici dosyaları
+supabase/.temp/

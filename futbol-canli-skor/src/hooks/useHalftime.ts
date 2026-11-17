@@ -36,7 +36,6 @@ export function useHalftime(match: Match | null, active: boolean) {
   const request = useCallback(async () => {
     if (fixtureId == null) return;
     const my = ++reqId.current;
-    setState({ kind: 'loading' });
     try {
       const res = await dataSource.requestHalftime(fixtureId);
       if (my !== reqId.current) return;
@@ -63,14 +62,14 @@ export function useHalftime(match: Match | null, active: boolean) {
 
   useEffect(() => {
     if (!active || fixtureId == null) return;
-    request();
+    // request durum güncellemelerini zaten asenkron yapar; effect gövdesinde senkron setState olmasın
+    Promise.resolve().then(request);
   }, [active, isPremium, fixtureId, request]);
 
   // Realtime: halftime_status 'completed' / 'failed' (otomatik üretim de buraya düşer)
   useEffect(() => {
     if (!active || fixtureId == null) return;
     if (status === 'completed' && (state.kind === 'generating' || state.kind === 'not_halftime')) loadPayload(fixtureId, reqId.current);
-    else if (status === 'failed' && state.kind === 'generating') setState({ kind: 'error', message: FAILED_MSG });
   }, [active, status, state.kind, fixtureId, loadPayload]);
 
   // Güvenlik ağı: Realtime koparsa periyodik kontrol
@@ -84,5 +83,13 @@ export function useHalftime(match: Match | null, active: boolean) {
     return () => clearInterval(t);
   }, [state.kind, fixtureId, loadPayload]);
 
-  return { state, retry: request };
+  // Realtime "failed" durumu türetilir (effect içinde setState yerine)
+  const shown: HalftimeState = state.kind === 'generating' && status === 'failed' ? { kind: 'error', message: FAILED_MSG } : state;
+
+  const retry = useCallback(() => {
+    setState({ kind: 'loading' });
+    request();
+  }, [request]);
+
+  return { state: shown, retry };
 }

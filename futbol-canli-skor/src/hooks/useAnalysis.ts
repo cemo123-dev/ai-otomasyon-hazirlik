@@ -36,7 +36,6 @@ export function useAnalysis(match: Match | null, active: boolean) {
   const request = useCallback(async () => {
     if (fixtureId == null) return;
     const my = ++reqId.current;
-    setState({ kind: 'loading' });
     try {
       const res = await dataSource.requestAnalysis(fixtureId);
       if (my !== reqId.current) return;
@@ -63,12 +62,9 @@ export function useAnalysis(match: Match | null, active: boolean) {
 
   // Sekme açıldığında, maç bittiğinde veya abonelik değiştiğinde yeniden iste
   useEffect(() => {
-    if (!active || fixtureId == null) return;
-    if (!finished) {
-      setState({ kind: 'not_finished' });
-      return;
-    }
-    request();
+    if (!active || fixtureId == null || !finished) return;
+    // request durum güncellemelerini zaten asenkron yapar; effect gövdesinde senkron setState olmasın
+    Promise.resolve().then(request);
   }, [active, finished, isPremium, fixtureId, request]);
 
   // Realtime: analysis_status 'completed' / 'failed' olduğunda
@@ -76,7 +72,6 @@ export function useAnalysis(match: Match | null, active: boolean) {
   useEffect(() => {
     if (state.kind !== 'generating' || fixtureId == null) return;
     if (status === 'completed') loadPayload(fixtureId, reqId.current);
-    else if (status === 'failed') setState({ kind: 'error', message: 'Analiz üretilemedi. Tekrar deneyin.' });
   }, [status, state.kind, fixtureId, loadPayload]);
 
   // Güvenlik ağı: Realtime bağlantısı koparsa durumu periyodik kontrol et
@@ -90,5 +85,18 @@ export function useAnalysis(match: Match | null, active: boolean) {
     return () => clearInterval(t);
   }, [state.kind, fixtureId, loadPayload]);
 
-  return { state, retry: request };
+  // Türetilmiş durumlar (effect içinde setState yerine): maç bitmedi / Realtime "failed"
+  const shown: AnalysisState =
+    active && match && !finished
+      ? { kind: 'not_finished' }
+      : state.kind === 'generating' && status === 'failed'
+        ? { kind: 'error', message: 'Analiz üretilemedi. Tekrar deneyin.' }
+        : state;
+
+  const retry = useCallback(() => {
+    setState({ kind: 'loading' });
+    request();
+  }, [request]);
+
+  return { state: shown, retry };
 }

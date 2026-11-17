@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, space } from '@/theme';
 import { Card, useNativeDriver } from '../ui';
@@ -32,7 +32,7 @@ export const HALFTIME_STEPS = [
 export function GeneratingLoader({ steps = STEPS, title = 'AI taktik analizi hazırlanıyor' }: { steps?: string[]; title?: string } = {}) {
   const STEPS = steps;
   const [step, setStep] = useState(0);
-  const pulse = useRef(new Animated.Value(0)).current;
+  const [pulse] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     const t = setInterval(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)), STEP_MS);

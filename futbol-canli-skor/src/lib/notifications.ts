@@ -35,6 +35,7 @@ async function register(): Promise<PushRegistration> {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'Maç bildirimleri',
+      // eslint-disable-next-line import/namespace -- yanlış alarm: enum, tsc ile doğrulanıyor
       importance: Notifications.AndroidImportance.HIGH,
     });
   }

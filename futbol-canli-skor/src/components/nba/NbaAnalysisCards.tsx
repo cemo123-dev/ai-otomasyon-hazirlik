@@ -208,7 +208,7 @@ export function PlayerImpactCard({ p, match }: { p: NbaTacticalPayload; match: M
           <Text style={styles.meta}>Bu maçta 5 ve üzeri faul yapan oyuncu yok.</Text>
         )}
       </View>
-      <Text style={styles.note}>Puanlar Hollinger Game Score'un hücum ve savunma bileşenleridir.</Text>
+      <Text style={styles.note}>{"Puanlar Hollinger Game Score'un hücum ve savunma bileşenleridir."}</Text>
     </Card>
   );
 }

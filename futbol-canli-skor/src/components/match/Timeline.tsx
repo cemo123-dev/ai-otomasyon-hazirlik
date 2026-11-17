@@ -65,7 +65,7 @@ export function Timeline({ match }: { match: Match }) {
                   <Text style={styles.icon}>{ICON[e.type]}</Text>
                   <Text style={styles.minute}>
                     {e.minute}
-                    {e.extra ? `+${e.extra}` : ''}'
+                    {e.extra ? `+${e.extra}'` : "'"}
                   </Text>
                 </View>
                 <View style={styles.side}>{!home ? <EventText e={e} align="left" /> : null}</View>

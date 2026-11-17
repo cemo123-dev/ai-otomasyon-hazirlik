@@ -79,7 +79,7 @@ export function MomentumCard({ p }: { p: TacticalPayload }) {
               </View>
               <View style={{ flex: 1, paddingBottom: last ? 0 : space(4), gap: 4 }}>
                 <View style={styles.shiftHead}>
-                  <Text style={[styles.shiftMinute, { color: c }]}>{s.minute}'</Text>
+                  <Text style={[styles.shiftMinute, { color: c }]}>{`${s.minute}'`}</Text>
                   {s.score_state ? <Badge label={s.score_state} color={colors.textMuted} /> : null}
                 </View>
                 <Text style={styles.shiftTitle}>{s.title}</Text>

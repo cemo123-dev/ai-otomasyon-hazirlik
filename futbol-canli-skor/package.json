@@ -26,6 +26,7 @@
     "@types/react": "~19.3.0",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~58.0.4",
+    "playwright-core": "^1.65.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -34,7 +35,10 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "e2e": "node e2e/ht_ui.mjs && node e2e/alerts_ui.mjs && node e2e/nba_ui.mjs && node e2e/chat_ui.mjs",
+    "test:functions": "cd supabase/functions && deno test --allow-read tests/",
+    "deploy:functions": "npx supabase functions deploy sync-matches sync-nba generate-analysis generate-preview generate-halftime process-alert ask-assistant --project-ref hcihjovckgojhtoemkpc --no-verify-jwt --use-api"
   },
   "private": true
 }

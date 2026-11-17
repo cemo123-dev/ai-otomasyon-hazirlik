@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Animated, Platform, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, radius, space } from '@/theme';
 
@@ -35,7 +35,7 @@ export function Badge({ label, color = colors.accent, filled }: { label: string;
 /** Canlı maçlar için yanıp sönen yeşil nokta + dakika */
 /** label verilirse dakika yerine gösterilir (NBA: "Q3 04:12", "Devre Arası") */
 export function LiveMinute({ minute, status, label: custom }: { minute: number | null; status: string; label?: string | null }) {
-  const opacity = useRef(new Animated.Value(1)).current;
+  const [opacity] = useState(() => new Animated.Value(1));
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([

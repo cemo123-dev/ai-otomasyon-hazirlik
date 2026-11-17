@@ -229,9 +229,9 @@ export function PreviewTooEarly({ match }: { match: Match }) {
   return (
     <Card accent={colors.pro}>
       <Badge label="✦ MAÇ ÖNÜ AI" color={colors.pro} />
-      <Text style={styles.cardTitle}>İlk 11'ler açıklanınca hazır</Text>
+      <Text style={styles.cardTitle}>{"İlk 11'ler açıklanınca hazır"}</Text>
       <Text style={styles.bodySmall}>
-        Maç {kickoff(match.kickoff_at)}'te başlıyor. Kadrolar genellikle başlamadan 20-40 dakika önce açıklanır; taktiksel
+        Maç {kickoff(match.kickoff_at)}{"'te"} başlıyor. Kadrolar genellikle başlamadan 20-40 dakika önce açıklanır; taktiksel
         eşleşme analizi başlamaya 45 dakika kala açılır.
       </Text>
     </Card>
@@ -252,7 +252,7 @@ export function PreviewLocked({ match }: { match: Match }) {
       ) : null}
       <Text style={styles.bodySmall}>Kilit kanat eşleşmesi, son 5 maç formu, eksikler ve maçın kırılma senaryosu.</Text>
       <Pressable accessibilityRole="button" onPress={() => router.push('/paywall')} style={({ pressed }) => [styles.button, pressed && { opacity: 0.85 }]}>
-        <Text style={styles.buttonText}>Pro'ya Geçerek Maç Önü Analizi Aç</Text>
+        <Text style={styles.buttonText}>{"Pro'ya Geçerek Maç Önü Analizi Aç"}</Text>
       </Pressable>
     </Card>
   );

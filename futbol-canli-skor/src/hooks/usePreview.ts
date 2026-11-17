@@ -37,7 +37,6 @@ export function usePreview(match: Match | null, active: boolean) {
   const request = useCallback(async () => {
     if (fixtureId == null) return;
     const my = ++reqId.current;
-    setState({ kind: 'loading' });
     try {
       const res = await dataSource.requestPreview(fixtureId);
       if (my !== reqId.current) return;
@@ -67,14 +66,14 @@ export function usePreview(match: Match | null, active: boolean) {
 
   useEffect(() => {
     if (!active || fixtureId == null) return;
-    request();
+    // request durum güncellemelerini zaten asenkron yapar; effect gövdesinde senkron setState olmasın
+    Promise.resolve().then(request);
   }, [active, isPremium, fixtureId, request]);
 
   // Realtime: preview_status 'completed' / 'failed'
   useEffect(() => {
     if (state.kind !== 'generating' || fixtureId == null) return;
     if (status === 'completed') loadPayload(fixtureId, reqId.current);
-    else if (status === 'failed') setState({ kind: 'error', message: 'İlk 11 henüz alınamadı. Birkaç dakika sonra tekrar dene.' });
   }, [status, state.kind, fixtureId, loadPayload]);
 
   // Güvenlik ağı: Realtime koparsa periyodik kontrol
@@ -88,5 +87,16 @@ export function usePreview(match: Match | null, active: boolean) {
     return () => clearInterval(t);
   }, [state.kind, fixtureId, loadPayload]);
 
-  return { state, retry: request };
+  // Realtime "failed" durumu türetilir (effect içinde setState yerine)
+  const shown: PreviewState =
+    state.kind === 'generating' && status === 'failed'
+      ? { kind: 'error', message: 'İlk 11 henüz alınamadı. Birkaç dakika sonra tekrar dene.' }
+      : state;
+
+  const retry = useCallback(() => {
+    setState({ kind: 'loading' });
+    request();
+  }, [request]);
+
+  return { state: shown, retry };
 }
