@@ -3,6 +3,8 @@ import { ensureSession } from '../supabase';
 import type {
   AnalysisRequestResult,
   AnyTacticalPayload,
+  AskResult,
+  ChatMessage,
   HalftimePayload,
   HalftimeRequestResult,
   Match,
@@ -198,6 +200,41 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
         p_red_card: p.red_card,
       });
       if (error) throw error;
+    },
+
+    async listChat(fixtureId) {
+      if (!(await ensureSession())) return [];
+      // RLS: yalnız kendi soruları
+      const { data, error } = await sb
+        .from('match_chat')
+        .select('id, fixture_id, question, answer, status, created_at')
+        .eq('fixture_id', fixtureId)
+        .order('created_at');
+      if (error) throw error;
+      return (data ?? []) as ChatMessage[];
+    },
+
+    async askAssistant(fixtureId, question) {
+      if (!(await ensureSession())) return 'unauthenticated';
+      const { data, error } = await sb.rpc('ask_assistant', { p_fixture_id: fixtureId, p_question: question });
+      if (error) throw error;
+      return data as AskResult;
+    },
+
+    subscribeChat(fixtureId, onMessage) {
+      const channel = sb
+        .channel(`chat:${fixtureId}:${++channelSeq}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'match_chat', filter: `fixture_id=eq.${fixtureId}` },
+          (payload) => {
+            if (payload.eventType !== 'DELETE') onMessage(payload.new as ChatMessage);
+          },
+        )
+        .subscribe();
+      return () => {
+        sb.removeChannel(channel);
+      };
     },
 
     async getPremium() {

@@ -1,6 +1,8 @@
 import type {
   AnalysisRequestResult,
   AnyTacticalPayload,
+  AskResult,
+  ChatMessage,
   HalftimePayload,
   HalftimeRequestResult,
   Match,
@@ -42,6 +44,10 @@ export interface DataSource {
   getAlertAnalysis(alertId: number): Promise<RedCardAnalysis | null>;
   getNotificationPrefs(): Promise<NotificationPrefs>;
   setNotificationPrefs(p: NotificationPrefs): Promise<void>;
+  /** Taktik Asistana Sor: kullanıcının bu maçtaki soruları, soru gönderme, canlı yanıt */
+  listChat(fixtureId: number): Promise<ChatMessage[]>;
+  askAssistant(fixtureId: number, question: string): Promise<AskResult>;
+  subscribeChat(fixtureId: number, onMessage: (m: ChatMessage) => void): () => void;
   getPremium(): Promise<boolean>;
   /** YALNIZCA TEST: gerçek ödeme entegrasyonu (RevenueCat / IAP) gelene kadar */
   simulateSubscription(plan: SubscriptionPlan | null): Promise<boolean>;

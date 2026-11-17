@@ -1,14 +1,17 @@
 import {
+  ASSISTANT_QUESTION_LIMIT,
   DEFAULT_PREFS,
   isFinished,
   type AnyTacticalPayload,
   type HalftimePayload,
   type Match,
+  type ChatMessage,
   type MatchAlert,
   type MatchEvent,
   type NotificationPrefs,
   type PreviewPayload,
 } from '../types';
+import { mockAnswer } from './assistantMockData';
 import { LIVE_PRESSURE_MINUTE, livePressureAlert, redCardAnalysisMock, seedAlerts, TURKEY_SCOTLAND_ID } from './alertsMockData';
 import { buildMockHalftime } from './halftimeMockData';
 import { PREVIEW_MOCK_ID, previewMockPayload } from './previewMockData';
@@ -61,6 +64,8 @@ export function createMockSource(): DataSource {
   const alerts: MatchAlert[] = seedAlerts.map((a) => ({ ...a }));
   const alertListeners = new Set<(a: MatchAlert) => void>();
   let prefs: NotificationPrefs = { ...DEFAULT_PREFS };
+  const chat: ChatMessage[] = [];
+  const chatListeners = new Set<(m: ChatMessage) => void>();
   const listeners = new Set<(m: Match) => void>();
   let premium = false;
   let timer: ReturnType<typeof setInterval> | null = null;
@@ -311,6 +316,39 @@ export function createMockSource(): DataSource {
       if (!premium) return null; // RLS taklidi
       const a = alerts.find((x) => x.id === alertId);
       return a?.kind === 'red_card' && a.analysis_status === 'completed' ? redCardAnalysisMock : null;
+    },
+
+    async listChat(id) {
+      return chat.filter((c) => c.fixture_id === id).map((c) => ({ ...c }));
+    },
+
+    // ask_assistant RPC kurallarının taklidi; yanıt ~1,2 sn sonra "Realtime" ile gelir
+    async askAssistant(id, question) {
+      const m = matches.get(id);
+      if (!m) return 'not_found';
+      if (m.analysis_status !== 'completed') return 'not_ready';
+      if (!premium) return 'paywall_blocked';
+      const q = question.trim();
+      if (q.length < 3 || q.length > 200) return 'invalid';
+      const mine = chat.filter((c) => c.fixture_id === id);
+      if (mine.some((c) => c.status === 'pending')) return 'busy';
+      if (mine.filter((c) => c.status !== 'failed').length >= ASSISTANT_QUESTION_LIMIT) return 'limit_reached';
+      const msg: ChatMessage = { id: chat.length + 1, fixture_id: id, question: q, answer: null, status: 'pending', created_at: new Date().toISOString() };
+      chat.push(msg);
+      chatListeners.forEach((l) => l({ ...msg }));
+      setTimeout(() => {
+        Object.assign(msg, { status: 'answered', answer: mockAnswer(matches.get(id)!, q) });
+        chatListeners.forEach((l) => l({ ...msg }));
+      }, 1200);
+      return 'queued';
+    },
+
+    subscribeChat(id, onMessage) {
+      const l = (m: ChatMessage) => m.fixture_id === id && onMessage(m);
+      chatListeners.add(l);
+      return () => {
+        chatListeners.delete(l);
+      };
     },
 
     async getNotificationPrefs() {

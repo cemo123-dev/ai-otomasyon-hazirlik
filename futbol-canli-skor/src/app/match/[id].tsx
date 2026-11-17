@@ -2,6 +2,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnalysisReport } from '@/components/analysis/AnalysisCards';
+import { AssistantChat } from '@/components/analysis/AssistantChat';
 import { GeneratingLoader, HALFTIME_STEPS, PREVIEW_STEPS } from '@/components/analysis/GeneratingLoader';
 import { AlertsFeed } from '@/components/alerts/AlertsFeed';
 import { HalftimeLocked, HalftimeReport } from '@/components/halftime/HalftimeCards';
@@ -81,11 +82,14 @@ export default function MatchDetailScreen() {
           ) : state.kind === 'generating' ? (
             <GeneratingLoader />
           ) : state.kind === 'completed' ? (
-            isNbaPayload(state.payload) ? (
-              <NbaAnalysisReport p={state.payload} match={match} />
-            ) : (
-              <AnalysisReport p={state.payload} match={match} />
-            )
+            <View style={{ gap: space(3) }}>
+              {isNbaPayload(state.payload) ? (
+                <NbaAnalysisReport p={state.payload} match={match} />
+              ) : (
+                <AnalysisReport p={state.payload} match={match} />
+              )}
+              <AssistantChat match={match} />
+            </View>
           ) : (
             <Card>
               <Text style={styles.cardTitle}>{state.message}</Text>

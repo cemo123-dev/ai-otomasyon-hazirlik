@@ -395,3 +395,27 @@ export type RedCardAnalysis = {
 export type NotificationPrefs = { halftime: boolean; pressure: boolean; nba_run: boolean; red_card: boolean };
 
 export const DEFAULT_PREFS: NotificationPrefs = { halftime: true, pressure: true, nba_run: true, red_card: true };
+
+// ═══════════════════════════════════════════════ TAKTİK ASİSTANA SOR (bkz. 0008_assistant.sql)
+
+export const ASSISTANT_QUESTION_LIMIT = 3;
+
+export type ChatMessage = {
+  id: number;
+  fixture_id: number;
+  question: string;
+  answer: string | null;
+  /** failed = doğrulanamadı / hata; hakka sayılmaz */
+  status: 'pending' | 'answered' | 'failed';
+  created_at: string;
+};
+
+export type AskResult =
+  | 'unauthenticated'
+  | 'not_found'
+  | 'not_ready'
+  | 'paywall_blocked'
+  | 'invalid'
+  | 'limit_reached'
+  | 'busy'
+  | 'queued';
