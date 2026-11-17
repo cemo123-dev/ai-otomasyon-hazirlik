@@ -3,39 +3,27 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { colors, radius, space } from '@/theme';
 import { Card, useNativeDriver } from '../ui';
 
-const STEPS = [
-  'Maç olayları ve istatistikler okunuyor…',
-  'xG ve şut kalitesi taranıyor…',
-  'Skor durumu kırılma anları analiz ediliyor…',
-  'Teknik direktör hamlelerinin etkisi ölçülüyor…',
-  'Taktik rapor derleniyor…',
-];
-const STEP_MS = 1600;
+/**
+ * Üretim sırasında gösterilen sade bekleme kartı. Gerçek ilerleme bilinmediği için
+ * sahte adım/yüzde göstermez; yalnız AI'ın neye baktığını sırayla anlatır.
+ * Tamamlanma Realtime ile gelir ve kart kendiliğinden kapanır.
+ */
+const HINTS = ['Maç olayları ve istatistikler', 'xG ve şut kalitesi', 'Skor durumu ve kırılma anları', 'Teknik direktör hamleleri'];
 
-/** Maç öncesi AI için adımlar */
-export const PREVIEW_STEPS = [
-  'İlk 11\'ler ve dizilişler okunuyor…',
-  'Son 5 maç formu ve xG trendi taranıyor…',
-  'Bek ↔ kanat eşleşmeleri hesaplanıyor…',
-  'Eksik oyuncular kontrol ediliyor…',
-  'Kırılma senaryosu kuruluyor…',
-];
+/** Maç öncesi AI'ın baktıkları */
+export const PREVIEW_STEPS = ["İlk 11'ler ve dizilişler", 'Son 5 maç formu ve xG trendi', 'Bek ↔ kanat eşleşmeleri', 'Eksik oyuncular'];
 
-export const HALFTIME_STEPS = [
-  'İlk yarı istatistikleri alınıyor…',
-  'Topla oynama ve xG dengesi okunuyor…',
-  'Şut kalitesi ve kritik olaylar taranıyor…',
-  'İkinci yarı reçetesi yazılıyor…',
-];
+/** Devre arası raporunun baktıkları */
+export const HALFTIME_STEPS = ['İlk yarı istatistikleri', 'Topla oynama ve xG dengesi', 'Şut kalitesi ve kritik olaylar'];
 
-/** Aşamalı yükleme animasyonu; son adımda Realtime "completed" sinyalini bekler */
-export function GeneratingLoader({ steps = STEPS, title = 'AI taktik analizi hazırlanıyor' }: { steps?: string[]; title?: string } = {}) {
-  const STEPS = steps;
-  const [step, setStep] = useState(0);
+const HINT_MS = 2200;
+
+export function GeneratingLoader({ steps = HINTS, title = 'AI taktik analizi hazırlanıyor' }: { steps?: string[]; title?: string } = {}) {
+  const [hint, setHint] = useState(0);
   const [pulse] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
-    const t = setInterval(() => setStep((s) => Math.min(s + 1, STEPS.length - 1)), STEP_MS);
+    const t = setInterval(() => setHint((h) => (h + 1) % steps.length), HINT_MS);
     const loop = Animated.loop(
       Animated.timing(pulse, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.ease), useNativeDriver }),
     );
@@ -44,10 +32,10 @@ export function GeneratingLoader({ steps = STEPS, title = 'AI taktik analizi haz
       clearInterval(t);
       loop.stop();
     };
-  }, [pulse, STEPS.length]);
+  }, [pulse, steps.length]);
 
   const scale = pulse.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.25, 1] });
-  const progress = ((step + 1) / STEPS.length) * 100;
+  const slide = pulse.interpolate({ inputRange: [0, 1], outputRange: ['-40%', '100%'] });
 
   return (
     <Card accent={colors.pro}>
@@ -55,28 +43,16 @@ export function GeneratingLoader({ steps = STEPS, title = 'AI taktik analizi haz
         <Animated.View style={[styles.orb, { transform: [{ scale }] }]} />
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.sub}>Bu maç için ilk kez üretiliyor. Hazır olunca otomatik açılacak.</Text>
+          <Text style={styles.sub}>Genellikle birkaç saniye sürer; hazır olunca otomatik açılır.</Text>
         </View>
       </View>
+      {/* Belirsiz ilerleme çubuğu: gerçek yüzde bilinmiyor */}
       <View style={styles.track}>
-        <View style={[styles.fill, { width: `${progress}%` }]} />
+        <Animated.View style={[styles.fill, { left: slide }]} />
       </View>
-      <View style={{ gap: space(2) }}>
-        {STEPS.map((s, i) => {
-          const done = i < step;
-          const current = i === step;
-          return (
-            <View key={s} style={styles.stepRow}>
-              <Text style={[styles.stepIcon, done && { color: colors.live }, current && { color: colors.pro }]}>
-                {done ? '✓' : current ? '◉' : '○'}
-              </Text>
-              <Text style={[styles.step, (done || current) && { color: colors.text }, current && { fontWeight: '800' }]}>
-                {s}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
+      <Text style={styles.hint} accessibilityLiveRegion="polite">
+        Bakılıyor: <Text style={styles.hintStrong}>{steps[hint % steps.length]}</Text>
+      </Text>
     </Card>
   );
 }
@@ -87,8 +63,7 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontWeight: '800', fontSize: 16 },
   sub: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   track: { height: 4, backgroundColor: colors.surfaceAlt, borderRadius: radius.sm, overflow: 'hidden' },
-  fill: { height: '100%', backgroundColor: colors.pro },
-  stepRow: { flexDirection: 'row', gap: space(2), alignItems: 'center' },
-  stepIcon: { width: 16, color: colors.textDim, fontWeight: '900' },
-  step: { color: colors.textDim, fontSize: 13 },
+  fill: { position: 'absolute', top: 0, bottom: 0, width: '40%', backgroundColor: colors.pro, borderRadius: radius.sm },
+  hint: { color: colors.textMuted, fontSize: 13 },
+  hintStrong: { color: colors.text, fontWeight: '700' },
 });

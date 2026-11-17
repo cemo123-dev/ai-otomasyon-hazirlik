@@ -257,7 +257,8 @@ supabase/functions/tests/      Deno birim testleri (npm run test:functions)
 e2e/                           Playwright arayüz testleri (npm run e2e)
 supabase/migrations/           0001_init, 0002_pipeline, 0003_nba, 0004_quota,
                                0005_prematch, 0006_halftime, 0007_alerts,
-                               0008_assistant, 0009_maintenance, 0010_teams
+                               0008_assistant, 0009_maintenance, 0010_teams,
+                               0011_config
 supabase/functions/
   sync-matches/                Futbol senkronu
   sync-nba/                    NBA senkronu
@@ -278,7 +279,8 @@ google-services.json           Firebase (Android FCM) yapılandırması
 --------------------------------------------------------------------------
 1) Supabase SQL Editor'de sırayla: 0001_init.sql, 0002_pipeline.sql,
    0003_nba.sql, 0004_quota.sql, 0005_prematch.sql, 0006_halftime.sql,
-   0007_alerts.sql, 0008_assistant.sql, 0009_maintenance.sql, 0010_teams.sql.
+   0007_alerts.sql, 0008_assistant.sql, 0009_maintenance.sql, 0010_teams.sql,
+   0011_config.sql.
 2) Authentication → Allow anonymous sign-ins: AÇIK (Save changes).
 3) Edge Functions → Secrets: API_FOOTBALL_KEY, GEMINI_API_KEY.
    İsteğe bağlı: GEMINI_MODEL, API_FOOTBALL_PAID=1 (ücretli plan),
@@ -396,6 +398,21 @@ google-services.json           Firebase (Android FCM) yapılandırması
      - SIRA ÖNEMLİ: 0010 çalıştırılmadan fonksiyonlar deploy edilirse
        senkron yeni kolonlara yazamaz ve hata verir.
 
+3.20 Sadeleştirmeler (0011_config.sql)
+     - Yükleme ekranı: sahte adım listesi ve sahte yüzde kaldırıldı. Yerine
+       belirsiz ilerleme çubuğu ve AI'ın neye baktığını sırayla gösteren
+       tek satır ("Bakılıyor: xG ve şut kalitesi").
+     - Önizleme (örnek) verisi yayın paketinden çıkarıldı: veri kaynağı
+       koşulu derleme zamanında sabitlenen EXPO_PUBLIC_ değişkenleriyle
+       yazıldı. Production Android paketinde doğrulandı: örnek takım adları
+       pakette yok, paket 3380 KB → 3324 KB.
+     - Devre arası tahmin penceresi plana bağlandı: app_config.api_paid
+       bayrağı. Ücretsiz planda 45-75 dk penceresi sürer; ücretli planda
+       yalnız gerçek HT durumu geçerli (gereksiz API isteği yok).
+       Ücretli plana geçişte: update app_config set value='true' where
+       key='api_paid'.
+     - npm run test:functions artık npx ile Deno'yu kendisi indiriyor.
+
 8. YAPILACAKLAR VE İNCELEME NOTLARI (genel gözden geçirme)
 --------------------------------------------------------------------------
 A) [ÇÖZÜLDÜ — bkz. 3.17] Taktik Asistan çok "kuru" yanıt veriyordu
@@ -432,7 +449,7 @@ B) YAYIN ÖNCESİ ZORUNLU
    - iOS: Apple Developer hesabı + APNs anahtarı (push için).
    - Ücretli API-Sports planı: dakikalık canlı skor, canlı istatistik, akıllı
      alarm ve otomatik devre arası raporu için şart. Geçince: secret
-     API_FOOTBALL_PAID=1, 0006/0007 sonundaki cron.alter_job satırları,
+     API_FOOTBALL_PAID=1, app_config.api_paid = true (0011), 0006/0007 sonundaki cron.alter_job satırları,
      sync-matches ve sync-nba deploy.
    - API-Sports kullanım koşulları ticari kullanım için kontrol edilmeli.
 
@@ -464,7 +481,7 @@ D) EKLENMESİ ÖNERİLEN ÖZELLİKLER  [Takip filtresi, takım takibi, maç baş
    - Ayarlar ekranına abonelik yönetimi, hesap, dil seçenekleri.
    - Maç önü AI'ın gerçek ilk 11 ile canlı testi (henüz yapılmadı).
 
-E) ÇIKARILMASI / SADELEŞTİRİLMESİ ÖNERİLENLER
+E) ÇIKARILMASI / SADELEŞTİRİLMESİ ÖNERİLENLER  [tamamlandı — bkz. 3.20]
    - GeneratingLoader'daki sahte aşama metinleri (gerçek ilerlemeyi
      yansıtmıyor) daha sade bir yükleniyor durumuna indirilebilir.
    - Ücretsiz planda devre arası "45-75 dk" tahmin penceresi gerçek durumla
