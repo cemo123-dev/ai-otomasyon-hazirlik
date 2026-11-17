@@ -53,6 +53,12 @@ export interface DataSource {
   askAssistant(fixtureId: number, question: string): Promise<AskResult>;
   subscribeChat(fixtureId: number, onMessage: (m: ChatMessage) => void): () => void;
   getPremium(): Promise<boolean>;
+  /** Test aboneliği (simulate_subscription) yalnız izin listesindeki hesaplarda açık */
+  isTestUser(): Promise<boolean>;
+  /** Oturumdaki hesabın kimliği (Ayarlar'da gösterilir; test listesine eklemek için) */
+  getAccountId(): Promise<string | null>;
+  /** Hesabı ve ona bağlı tüm kullanıcı verisini kalıcı olarak siler; yeni anonim oturum açılır */
+  deleteAccount(): Promise<void>;
   /** YALNIZCA TEST: gerçek ödeme entegrasyonu (RevenueCat / IAP) gelene kadar */
   simulateSubscription(plan: SubscriptionPlan | null): Promise<boolean>;
 }

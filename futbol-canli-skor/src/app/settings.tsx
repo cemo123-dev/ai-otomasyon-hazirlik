@@ -1,8 +1,12 @@
+import Constants from 'expo-constants';
+import { router } from 'expo-router';
+import * as Updates from 'expo-updates';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { TeamLogo } from '@/components/TeamLogo';
 import { Card, CardTitle } from '@/components/ui';
 import { useFollows } from '@/hooks/useFollows';
+import { usePremium } from '@/hooks/usePremium';
 import { dataSource } from '@/lib/data';
 import { DEFAULT_PREFS, type NotificationPrefs } from '@/lib/types';
 import { colors, space } from '@/theme';
@@ -66,7 +70,90 @@ export default function SettingsScreen() {
       </Card>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <FollowedTeams />
+      <AccountCard />
     </ScrollView>
+  );
+}
+
+/** Onay: native'de Alert, web'de window.confirm */
+function confirmAsync(title: string, message: string, ok: string): Promise<boolean> {
+  if (Platform.OS === 'web') return Promise.resolve(globalThis.confirm?.(`${title}
+
+${message}`) ?? false);
+  return new Promise((resolve) =>
+    Alert.alert(title, message, [
+      { text: 'Vazgeç', style: 'cancel', onPress: () => resolve(false) },
+      { text: ok, style: 'destructive', onPress: () => resolve(true) },
+    ]),
+  );
+}
+
+/** Hesap: kimlik, yasal metinler, hesap silme (Google Play şartı) */
+function AccountCard() {
+  const { refresh } = usePremium();
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    dataSource
+      .getAccountId()
+      .then(setAccountId)
+      .catch(() => {});
+  }, []);
+
+  const remove = async () => {
+    const ok = await confirmAsync(
+      'Hesabın silinsin mi?',
+      "Pro aboneliğin, takiplerin, bildirim ayarların ve asistan soruların kalıcı olarak silinir. Bu işlem geri alınamaz. Google Play aboneliğin varsa ayrıca Google Play'den iptal etmelisin.",
+      'Hesabımı sil',
+    );
+    if (!ok) return;
+    setDeleting(true);
+    setMsg(null);
+    try {
+      await dataSource.deleteAccount();
+      await refresh();
+      setAccountId(await dataSource.getAccountId());
+      setMsg('Hesabın silindi. Uygulamayı yeni, boş bir hesapla kullanmaya devam edebilirsin.');
+    } catch (e) {
+      setMsg((e as { message?: string } | null)?.message ?? 'Hesap silinemedi.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardTitle kicker="Hesap" title="Gizlilik ve hesap" />
+      <Pressable accessibilityRole="link" onPress={() => router.push('/legal/privacy')} style={styles.linkRow}>
+        <Text style={styles.title}>Gizlilik Politikası</Text>
+        <Text style={styles.chev}>›</Text>
+      </Pressable>
+      <Pressable accessibilityRole="link" onPress={() => router.push('/legal/kvkk')} style={[styles.linkRow, styles.divider]}>
+        <Text style={styles.title}>KVKK Aydınlatma Metni</Text>
+        <Text style={styles.chev}>›</Text>
+      </Pressable>
+      {accountId ? (
+        <Text style={[styles.desc, styles.divider, { paddingTop: space(3) }]} selectable>
+          Hesap kimliği: {accountId}
+        </Text>
+      ) : null}
+      <Pressable
+        accessibilityRole="button"
+        disabled={deleting}
+        onPress={remove}
+        style={({ pressed }) => [styles.deleteBtn, (pressed || deleting) && { opacity: 0.7 }]}
+      >
+        {deleting ? <ActivityIndicator color={colors.danger} /> : <Text style={styles.deleteText}>Hesabımı sil</Text>}
+      </Pressable>
+      {msg ? <Text style={styles.desc}>{msg}</Text> : null}
+      <Text style={[styles.desc, styles.divider, { paddingTop: space(3) }]}>
+        Sürüm {Constants.expoConfig?.version ?? '—'}
+        {Updates.channel ? ` · ${Updates.channel}` : ''}
+        {Updates.isEmbeddedLaunch || !Updates.createdAt ? ' · APK içi kod' : ` · güncelleme ${Updates.createdAt.toLocaleDateString('tr-TR')}`}
+      </Text>
+    </Card>
   );
 }
 
@@ -97,6 +184,10 @@ function FollowedTeams() {
 }
 
 const styles = StyleSheet.create({
+  linkRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: space(3) },
+  chev: { color: colors.textDim, fontSize: 22, fontWeight: '700' },
+  deleteBtn: { marginTop: space(2), borderWidth: 1, borderColor: colors.danger, borderRadius: 12, paddingVertical: space(3), alignItems: 'center' },
+  deleteText: { color: colors.danger, fontWeight: '800', fontSize: 14 },
   remove: { color: colors.danger, fontWeight: '800', fontSize: 13 },
   content: { padding: space(4), gap: space(4), width: '100%', maxWidth: 720, alignSelf: 'center' },
   intro: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },

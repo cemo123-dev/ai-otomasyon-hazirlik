@@ -260,6 +260,25 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
       };
     },
 
+    async isTestUser() {
+      if (!(await ensureSession())) return false;
+      const { data, error } = await sb.rpc('is_test_user');
+      if (error) return false; // 0012 kurulmadıysa test aboneliği kapalı sayılır
+      return data === true;
+    },
+
+    async getAccountId() {
+      return ensureSession();
+    },
+
+    async deleteAccount() {
+      if (!(await ensureSession())) return;
+      const { error } = await sb.rpc('delete_my_account');
+      if (error) throw error;
+      // Silinen hesabın oturumu geçersiz: yerel oturumu temizle, sonraki istekte yeni anonim oturum açılır
+      await sb.auth.signOut({ scope: 'local' });
+    },
+
     async getPremium() {
       const uid = await ensureSession();
       if (!uid) return false;

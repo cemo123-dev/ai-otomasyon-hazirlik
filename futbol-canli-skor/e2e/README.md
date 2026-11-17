@@ -19,6 +19,7 @@ npm run e2e
 | alerts_ui.mjs | Bildirim ayarları, kırmızı kart / canlı baskı alarmı, Pro analiz |
 | nba_ui.mjs | NBA seri alarmı |
 | chat_ui.mjs | Taktik Asistan: çip, yazılı soru, 3 soru limiti |
+| account_ui.mjs | Test aboneliği, gizlilik/KVKK metinleri, hesap silme |
 | teams_ui.mjs | Takım takibi, ★ Takip filtresi, ayarlarda takım listesi |
 
 Her test ayrı tarayıcı oturumunda çalışır; ekran görüntüleri `e2e/shots/` altına yazılır.

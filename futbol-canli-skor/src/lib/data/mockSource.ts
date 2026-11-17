@@ -374,6 +374,22 @@ export function createMockSource(): DataSource {
       };
     },
 
+    async isTestUser() {
+      return true; // önizlemede test aboneliği açık
+    },
+
+    async getAccountId() {
+      return '00000000-0000-0000-0000-000000000000';
+    },
+
+    async deleteAccount() {
+      premium = false;
+      follows.clear();
+      teamFollows.clear();
+      chat.length = 0;
+      prefs = { ...DEFAULT_PREFS };
+    },
+
     async getNotificationPrefs() {
       return { ...prefs };
     },

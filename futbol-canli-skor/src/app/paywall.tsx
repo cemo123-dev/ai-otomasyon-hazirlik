@@ -18,13 +18,36 @@ const FEATURES = [
 ];
 
 export default function PaywallModal() {
-  const { isPremium, loading, setPlan } = usePremium();
+  const { isPremium, loading, setPlan, isTestUser, error } = usePremium();
   const [plan, setSelected] = useState<SubscriptionPlan>('yearly');
 
   const subscribe = async () => {
     await setPlan(plan);
     if (router.canGoBack()) router.back();
   };
+
+  // Gerçek ödeme (RevenueCat) gelene kadar abonelik yalnız test hesaplarında açık
+  if (!isTestUser) {
+    return (
+      <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={styles.content}>
+        <Text style={styles.kicker}>✦ SKOR+ PRO</Text>
+        <Text style={styles.title}>Pro abonelik çok yakında</Text>
+        <Text style={styles.sub}>
+          Maç sonu AI taktik analizleri, maç önü eşleşmeler, devre arası raporu ve taktik asistan Pro üyelere özel olacak.
+          Abonelik satışı Google Play üzerinden başladığında bu ekrandan katılabileceksin.
+        </Text>
+        <View style={{ gap: space(2) }}>
+          {FEATURES.map((f) => (
+            <Text key={f} style={styles.feature}>
+              <Text style={{ color: colors.live }}>✓ </Text>
+              {f}
+            </Text>
+          ))}
+        </View>
+      </ScrollView>
+    );
+  }
+
 
   return (
     <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={styles.content}>
@@ -69,6 +92,7 @@ export default function PaywallModal() {
       <Pressable onPress={subscribe} disabled={loading} style={({ pressed }) => [styles.cta, pressed && { opacity: 0.85 }]}>
         {loading ? <ActivityIndicator color={colors.bg} /> : <Text style={styles.ctaText}>Aboneliği Başlat (Simülasyon)</Text>}
       </Pressable>
+      {error ? <Text style={styles.legal}>{error}</Text> : null}
 
       {isPremium ? (
         <Pressable onPress={() => setPlan(null)} disabled={loading} style={styles.cancel}>
@@ -77,8 +101,8 @@ export default function PaywallModal() {
       ) : null}
 
       <Text style={styles.legal}>
-        Test modu: bu buton gerçek ödeme almaz, yalnızca profiles.is_premium değerini günceller. Yayına çıkmadan önce
-        App Store / Google Play abonelikleriyle değiştirilmelidir.
+        Test hesabı: bu buton gerçek ödeme almaz, yalnızca bu hesabın Pro durumunu değiştirir. Diğer kullanıcılar bu
+        butonu görmez.
       </Text>
     </ScrollView>
   );

@@ -5,15 +5,16 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.119.0",
-    "expo": "~58.0.25",
+    "expo": "~58.0.26",
     "expo-blur": "~58.0.6",
     "expo-constants": "~58.0.16",
-    "expo-dev-client": "~58.0.20",
+    "expo-dev-client": "~58.0.21",
     "expo-device": "~58.0.5",
     "expo-linking": "~58.0.17",
     "expo-notifications": "~58.1.9",
-    "expo-router": "~58.0.31",
+    "expo-router": "~58.0.32",
     "expo-status-bar": "~58.0.5",
+    "expo-updates": "~58.0.22",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
@@ -36,9 +37,11 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "e2e": "node e2e/ht_ui.mjs && node e2e/alerts_ui.mjs && node e2e/nba_ui.mjs && node e2e/chat_ui.mjs && node e2e/teams_ui.mjs",
+    "e2e": "node e2e/ht_ui.mjs && node e2e/alerts_ui.mjs && node e2e/nba_ui.mjs && node e2e/chat_ui.mjs && node e2e/teams_ui.mjs && node e2e/account_ui.mjs",
     "test:functions": "cd supabase/functions && npx -y deno test --allow-read tests/",
-    "deploy:functions": "npx supabase functions deploy sync-matches sync-nba generate-analysis generate-preview generate-halftime process-alert ask-assistant --project-ref hcihjovckgojhtoemkpc --no-verify-jwt --use-api"
+    "deploy:functions": "npx supabase functions deploy sync-matches sync-nba generate-analysis generate-preview generate-halftime process-alert ask-assistant --project-ref hcihjovckgojhtoemkpc --no-verify-jwt --use-api",
+    "build:apk": "npx eas-cli@latest build --platform android --profile preview",
+    "update:apk": "npx eas-cli@latest update --channel preview --environment preview"
   },
   "private": true
 }
