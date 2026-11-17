@@ -316,3 +316,76 @@ google-services.json           Firebase (Android FCM) yapılandırması
 - Takım adları için Türkçe sözlük.
 - EAS Build ile mağaza (production) sürümü; iOS için Apple Developer
   hesabı ve APNs anahtarı.
+
+
+8. YAPILACAKLAR VE İNCELEME NOTLARI (genel gözden geçirme)
+--------------------------------------------------------------------------
+A) ÖNCELİKLİ SORUN — Taktik Asistan çok "kuru" yanıt veriyor
+   Gerçek test (Yunanistan 1-0 Sırbistan): soruların çoğunda "Bu maçın
+   verisinde bu bilgi yok" diyor; "Rövanş için kim avantajlı?" sorusu sayı
+   doğrulamasına takılıp iade edildi.
+   Yapılacaklar:
+   - Sistem talimatını "yorumcu" moduna çevir: veride doğrudan cevap yoksa
+     verideki olaylardan çıkarım yapsın (ör. 69' gol + 73' forvet değişikliği
+     → "skoru korumak için savunma hamlesi"), çıkarımı "yorum" olarak
+     belirtsin; "bilgi yok" yalnız gerçekten ilgisiz sorularda.
+   - Sayı doğrulamasını gevşet: yorum cümlelerinde sayısız ifadeye izin ver,
+     yalnız istatistik iddiası taşıyan sayıları (%, xG, ondalık) denetle;
+     başarısızlıkta iade yerine sayıları çıkarıp tekrar dene (1 yeniden
+     deneme).
+   - Dosyaya yorum için türetilmiş sinyaller ekle (skor durumuna göre
+     değişiklikler, gol öncesi/sonrası şut ve xG dağılımı, kart sonrası
+     denge) — çıkarımı LLM değil kod yapsın.
+   - Çip değişikliği: "Hakem kararları skoru etkiledi mi?" verisi zayıf
+     (yalnız kart/penaltı/VAR); yerine "Teknik direktör hamleleri işe
+     yaradı mı?" önerilir.
+   - LLM yazım hatası görüldü ("Mapın"): kısa son kontrol veya düşük
+     sıcaklık ayarı.
+
+B) YAYIN ÖNCESİ ZORUNLU
+   - Gerçek ödeme: simulate_subscription yalnız test; RevenueCat / Google
+     Play Billing / App Store IAP entegrasyonu ve sunucu doğrulaması.
+   - Gerçek hesap: şu an anonim oturum; uygulama silinince Pro abonelik ve
+     takipler kaybolur. Google/Apple ile giriş + anonim hesabı bağlama.
+   - Mağaza gereksinimleri: gizlilik politikası ve KVKK metni, hesap silme
+     (Google Play şartı), Data Safety formu, uygulama ikonu/splash.
+   - iOS: Apple Developer hesabı + APNs anahtarı (push için).
+   - Ücretli API-Sports planı: dakikalık canlı skor, canlı istatistik, akıllı
+     alarm ve otomatik devre arası raporu için şart. Geçince: secret
+     API_FOOTBALL_PAID=1, 0006/0007 sonundaki cron.alter_job satırları,
+     sync-matches ve sync-nba deploy.
+   - API-Sports kullanım koşulları ticari kullanım için kontrol edilmeli.
+
+C) TEKNİK BORÇ
+   - Edge Function deploy'ları MCP ile kırpılmış _shared kopyalarıyla
+     yapıldı; repo ile birebir aynı değil. Supabase CLI (access token) ile
+     "supabase functions deploy" düzenine geçilmeli.
+   - expo lint: eski hook ve bileşenlerde ~27 react-hooks kural hatası
+     (set-state-in-effect, refs); davranışı bozmuyor ama temizlenmeli.
+   - Otomatik test yok: _shared motorları (alerts, halftime, preview,
+     nbaMetrics, dossier) için Deno birim testleri; Playwright UI
+     senaryoları (şu an geçici klasörde) repoya taşınmalı.
+   - Supabase güvenlik/performans danışmanı (advisors) çalıştırılıp RLS ve
+     indeksler gözden geçirilmeli.
+   - Büyüyen tablolar için temizlik cron'u: match_alerts, match_chat,
+     match_dossiers, analysis/preview/halftime job tabloları.
+   - Hata/çökme izleme (ör. Sentry) ve Gemini maliyet panosu (token
+     kolonları zaten tutuluyor).
+   - setup_dashboard.sql (0001+0002 kopyası) güncel değil; kaldırılmalı veya
+     tüm migration'ları kapsayacak şekilde yeniden üretilmeli.
+
+D) EKLENMESİ ÖNERİLEN ÖZELLİKLER
+   - "Takip ettiklerim" filtresi / sekmesi (zil ile takip edilen maçlar).
+   - Takımı takip et (her maçında otomatik takip) + "maç başladı" bildirimi.
+   - Takım adları için Türkçe sözlük (API İngilizce veriyor).
+   - Maç sonu analizinin paylaşılabilir kartı (görsel) — büyüme için.
+   - Ayarlar ekranına abonelik yönetimi, hesap, dil seçenekleri.
+   - Maç önü AI'ın gerçek ilk 11 ile canlı testi (henüz yapılmadı).
+
+E) ÇIKARILMASI / SADELEŞTİRİLMESİ ÖNERİLENLER
+   - GeneratingLoader'daki sahte aşama metinleri (gerçek ilerlemeyi
+     yansıtmıyor) daha sade bir yükleniyor durumuna indirilebilir.
+   - Ücretsiz planda devre arası "45-75 dk" tahmin penceresi gerçek durumla
+     uyuşmayabilir; ücretli plana geçince yalnız HT durumuna bağlanmalı.
+   - Önizleme (mock) verisi büyüdü; yayın derlemesinden çıkarılmalı
+     (yalnız EXPO_PUBLIC_PREVIEW_MODE ile).
