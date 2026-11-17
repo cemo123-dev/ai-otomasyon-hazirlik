@@ -59,6 +59,11 @@ export type Match = {
   halftime_status?: AnalysisStatus;
   /** Ücretsiz tek cümle (push metniyle aynı) */
   halftime_teaser?: string | null;
+  /** Takım kimliği ve logo (bkz. 0010_teams.sql) */
+  home_team_id?: number | null;
+  away_team_id?: number | null;
+  home_logo?: string | null;
+  away_logo?: string | null;
 };
 
 export type ShotQualityVerdict =
@@ -392,9 +397,12 @@ export type RedCardAnalysis = {
 };
 
 /** Bildirim türleri (notification_prefs). Satır yoksa hepsi açık. */
-export type NotificationPrefs = { halftime: boolean; pressure: boolean; nba_run: boolean; red_card: boolean };
+export type NotificationPrefs = { kickoff: boolean; halftime: boolean; pressure: boolean; nba_run: boolean; red_card: boolean };
 
-export const DEFAULT_PREFS: NotificationPrefs = { halftime: true, pressure: true, nba_run: true, red_card: true };
+export const DEFAULT_PREFS: NotificationPrefs = { kickoff: true, halftime: true, pressure: true, nba_run: true, red_card: true };
+
+/** Takip edilen takım (bkz. 0010_teams.sql) */
+export type FollowedTeam = { sport_type: Sport; team_id: number; team_name: string; team_logo: string | null };
 
 // ═══════════════════════════════════════════════ TAKTİK ASİSTANA SOR (bkz. 0008_assistant.sql)
 

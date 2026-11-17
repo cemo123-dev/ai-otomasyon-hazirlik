@@ -5,6 +5,7 @@ import { useFollows } from '@/hooks/useFollows';
 import { isFinished, isLive, type Match } from '@/lib/types';
 import { colors, space } from '@/theme';
 import { QuarterTable } from './nba/QuarterTable';
+import { TeamLogo } from './TeamLogo';
 import { Badge, LiveMinute } from './ui';
 
 const kickoffTime = (iso: string) =>
@@ -50,8 +51,14 @@ function MatchRowBase({ match: m }: { match: Match }) {
         </View>
 
         <View style={styles.teams}>
-          <Text style={[styles.team, awayWin && styles.loser]} numberOfLines={1}>{m.home_team}</Text>
-          <Text style={[styles.team, homeWin && styles.loser]} numberOfLines={1}>{m.away_team}</Text>
+          <View style={styles.teamLine}>
+            <TeamLogo uri={m.home_logo} name={m.home_team} size={18} />
+            <Text style={[styles.team, awayWin && styles.loser]} numberOfLines={1}>{m.home_team}</Text>
+          </View>
+          <View style={styles.teamLine}>
+            <TeamLogo uri={m.away_logo} name={m.away_team} size={18} />
+            <Text style={[styles.team, homeWin && styles.loser]} numberOfLines={1}>{m.away_team}</Text>
+          </View>
           {nba && (live || done) ? <QuarterTable match={m} compact /> : null}
           {done && m.analysis_status === 'completed' ? (
             <View style={{ marginTop: 4 }}>
@@ -96,7 +103,8 @@ const styles = StyleSheet.create({
   statusNba: { width: 76 },
   statusText: { color: colors.textMuted, fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] },
   teams: { flex: 1, gap: 4 },
-  team: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  teamLine: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  team: { flexShrink: 1, color: colors.text, fontSize: 15, fontWeight: '600' },
   loser: { color: colors.textMuted, fontWeight: '500' },
   scores: { alignItems: 'flex-end', gap: 4, minWidth: 22 },
   bell: { paddingLeft: space(1) },

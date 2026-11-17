@@ -6,6 +6,7 @@ import {
   type HalftimePayload,
   type Match,
   type ChatMessage,
+  type FollowedTeam,
   type MatchAlert,
   type MatchEvent,
   type NotificationPrefs,
@@ -34,6 +35,10 @@ const TICK_MS = 4000;
 const GENERATION_MS = 6500;
 const NBA_TICK_SECONDS = 37;
 
+/** Önizleme: takım kimliği isimden türetilir (gerçek sistemde API kimliği) */
+const teamId = (name: string) => [...name].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % 1_000_000;
+const withTeamIds = (m: Match): Match => ({ ...m, home_team_id: teamId(m.home_team), away_team_id: teamId(m.away_team), home_logo: null, away_logo: null });
+
 const allMatches: Match[] = [
   ...initialMatches.map((m) => ({
     ...m,
@@ -45,7 +50,7 @@ const allMatches: Match[] = [
     halftime_teaser: null,
   })),
   ...nbaMatches,
-];
+].map(withTeamIds);
 
 /** "Q3 04:12" → { period: 3, seconds: 252 } */
 const parseClock = (detail: string | null) => {
@@ -61,6 +66,7 @@ export function createMockSource(): DataSource {
   const previews = new Map<number, PreviewPayload>();
   const halftimes = new Map<number, HalftimePayload>();
   const follows = new Set<number>();
+  const teamFollows = new Map<string, FollowedTeam>();
   const alerts: MatchAlert[] = seedAlerts.map((a) => ({ ...a }));
   const alertListeners = new Set<(a: MatchAlert) => void>();
   let prefs: NotificationPrefs = { ...DEFAULT_PREFS };
@@ -291,6 +297,23 @@ export function createMockSource(): DataSource {
 
     async listFollowedIds() {
       return [...follows];
+    },
+
+    // toggle_team_follow taklidi: takip edilince takımın başlamamış maçları da takibe alınır
+    async toggleTeamFollow(t) {
+      const key = `${t.sport_type}:${t.team_id}`;
+      if (teamFollows.delete(key)) return false;
+      teamFollows.set(key, { ...t });
+      for (const m of matches.values()) {
+        if (m.sport_type === t.sport_type && m.status_short === 'NS' && (m.home_team_id === t.team_id || m.away_team_id === t.team_id)) {
+          follows.add(m.fixture_id);
+        }
+      }
+      return true;
+    },
+
+    async listFollowedTeams() {
+      return [...teamFollows.values()];
     },
 
     async registerPushToken() {

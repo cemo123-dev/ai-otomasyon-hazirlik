@@ -14,6 +14,7 @@ import {
 } from '../_shared/apiFootball.ts';
 import { runFootballAlerts } from '../_shared/alertStore.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
+import { followTeamFixtures, notifyKickoffs } from '../_shared/teamEvents.ts';
 import { buildTeaser } from '../_shared/teaser.ts';
 import { FINISHED, LIVE, type MatchRow } from '../_shared/types.ts';
 
@@ -63,6 +64,8 @@ async function syncSchedule() {
       if (error) throw error;
     }
     count += rows.length;
+    // Takımı takip edenler yeni maçlara otomatik bağlanır
+    await followTeamFixtures(rows.filter((r) => r.status_short === 'NS').map((r) => r.fixture_id!));
     finishedIds.push(...rows.filter((r) => FINISHED.includes(r.status_short!)).map((r) => r.fixture_id!));
   }
 
@@ -104,6 +107,13 @@ async function syncLive() {
     if (coreErr) throw coreErr;
   }
 
+  // 1a) "Maç başladı" bildirimi (senkron 30 dk'da bir olabildiğinden ilk 35 dk'da yakalananlar)
+  const kickoffs = await notifyKickoffs(
+    coreRows.filter((r) => r.status_short === '1H') as { fixture_id: number; home_team: string; away_team: string; elapsed_minute: number | null }[],
+    'football',
+    35,
+  );
+
   // 1b) Devre arası tespiti → "Soyunma Odası Reçetesi" otomatik kuyruğa (singleflight; her rapor 1 istek).
   //     Ücretli planda cron dakikalık olduğundan HT ~1 dk içinde yakalanır.
   let halftimeQueued = 0;
@@ -130,7 +140,7 @@ async function syncLive() {
   // 3) Detaylar (olay, istatistik, kadro). Ücretsiz planda kotayı korumak için yalnızca
   //    yeni biten maçlar; ücretli planda canlı maçlar da (20 maç = 1 istek).
   const ids = PAID ? [...new Set([...liveIds, ...gone])] : gone;
-  if (!ids.length) return { live: liveIds.size, finished: 0, halftime_queued: halftimeQueued, quota: lastQuotaRemaining() };
+  if (!ids.length) return { live: liveIds.size, finished: 0, halftime_queued: halftimeQueued, kickoffs, quota: lastQuotaRemaining() };
   const fixtures = await getFixturesByIds(ids, KEY);
   let finished = 0;
   const rows: Partial<MatchRow>[] = fixtures.map((f) => {
@@ -151,7 +161,7 @@ async function syncLive() {
 
   // 4) Akıllı alarm (yalnız ücretli plan: canlı istatistik + dakikalık senkron gerekir)
   const alerts = PAID ? await runFootballAlerts(rows, LIVE) : 0;
-  return { live: liveIds.size, finished, halftime_queued: halftimeQueued, alerts, quota: lastQuotaRemaining() };
+  return { live: liveIds.size, finished, halftime_queued: halftimeQueued, alerts, kickoffs, quota: lastQuotaRemaining() };
 }
 
 /**

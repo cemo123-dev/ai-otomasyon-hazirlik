@@ -58,6 +58,11 @@ export type MatchRow = {
   home_coach: string | null;
   away_coach: string | null;
   top_players: TopPlayer[] | null;
+  /** 0010_teams.sql: takım kimliği ve logo */
+  home_team_id?: number | null;
+  away_team_id?: number | null;
+  home_logo?: string | null;
+  away_logo?: string | null;
 };
 
 export type ShotQualityVerdict = 'sterile_dominance' | 'clinical_transition' | 'balanced_exchange' | 'chance_wastage';

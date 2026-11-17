@@ -9,6 +9,7 @@ import { hasNbaQuota, lastNbaQuota, mapGame, mapPlayers, mapTeamBoxes, nbaGet, t
 import { computeNbaMetrics } from '../_shared/nbaMetrics.ts';
 import { runNbaAlerts } from '../_shared/alertStore.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
+import { followTeamFixtures, notifyKickoffs } from '../_shared/teamEvents.ts';
 
 const KEY = Deno.env.get('API_FOOTBALL_KEY')!; // api-sports anahtarı NBA için de geçerli
 /** Seri alarmı dakikalık skor görüntüsü ister: yalnız ücretli planda (dakikalık cron) */
@@ -52,6 +53,7 @@ async function syncSchedule() {
       const rows = (await nbaGet(`/games?date=${date}`, KEY)).map(mapGame);
       await upsert(rows);
       count += rows.length;
+      await followTeamFixtures(rows.filter((r) => r.status_short === 'NS').map((r) => r.fixture_id));
     } catch (e) {
       skipped.push(`${date}: ${e instanceof Error ? e.message : e}`);
     }
@@ -70,6 +72,8 @@ async function syncLive() {
   }
   const live = games.map(mapGame);
   await upsert(live);
+  // "Maç başladı": yalnız 1. çeyrekte yakalanan maçlar
+  const kickoffs = await notifyKickoffs(live.filter((r) => r.status_short === 'LIVE'), 'nba', 1);
 
   // 2) DB'de canlı görünen ama listeden düşen maçlar → bitmiş olabilir.
   //    Maç başına 1 istek yerine, başlama tarihine göre gün başına 1 istekle güncellenir.
@@ -89,7 +93,7 @@ async function syncLive() {
   }
   // Akıllı alarm: NBA seri alarmı (ek istek yok, canlı skorlar zaten çekildi)
   const alerts = PAID ? await runNbaAlerts(live as Parameters<typeof runNbaAlerts>[0]) : 0;
-  return { live: live.length, refreshed: gone.length, date_requests: dates.length, alerts };
+  return { live: live.length, refreshed: gone.length, date_requests: dates.length, alerts, kickoffs };
 }
 
 /** Biten ama istatistiği olmayan maçlar: kutu skoru + ön-hesaplama + şablon teaser */

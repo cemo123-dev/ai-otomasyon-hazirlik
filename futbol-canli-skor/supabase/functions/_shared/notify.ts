@@ -2,7 +2,7 @@ import { sendExpoPush } from './push.ts';
 import { admin } from './supabaseAdmin.ts';
 
 /** notification_prefs kolonları (bkz. 0007_alerts.sql). Satırı olmayan kullanıcıda hepsi açık. */
-export type NotifyKind = 'halftime' | 'pressure' | 'nba_run' | 'red_card';
+export type NotifyKind = 'halftime' | 'pressure' | 'nba_run' | 'red_card' | 'kickoff';
 
 /**
  * Maçı takip eden ve bu bildirim türünü kapatmamış kullanıcılara push gönderir.

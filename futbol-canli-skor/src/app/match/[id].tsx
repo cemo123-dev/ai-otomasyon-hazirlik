@@ -14,10 +14,11 @@ import { NbaStatsBars } from '@/components/nba/NbaStatsBars';
 import { QuarterTable } from '@/components/nba/QuarterTable';
 import { PreviewLocked, PreviewReport, PreviewTooEarly } from '@/components/preview/PreviewCards';
 import { SegmentedTabs } from '@/components/SegmentedTabs';
+import { TeamLogo } from '@/components/TeamLogo';
 import { Badge, Card, CardTitle, LiveMinute } from '@/components/ui';
 import { useAlerts } from '@/hooks/useAlerts';
 import { useAnalysis } from '@/hooks/useAnalysis';
-import { useFollows } from '@/hooks/useFollows';
+import { teamKey, useFollows } from '@/hooks/useFollows';
 import { useHalftime, type HalftimeState } from '@/hooks/useHalftime';
 import { useMatch } from '@/hooks/useMatch';
 import { usePreview, type PreviewState } from '@/hooks/usePreview';
@@ -196,7 +197,7 @@ function ScoreHeader({ m }: { m: Match }) {
   const done = isFinished(m.status_short);
   return (
     <View style={styles.scoreCard}>
-      <Text style={styles.team} numberOfLines={2}>{m.home_team}</Text>
+      <TeamSide m={m} side="home" />
       <View style={styles.scoreMid}>
         <Text style={[styles.score, live && { color: colors.live }]}>
           {m.home_score ?? '–'} <Text style={styles.dash}>:</Text> {m.away_score ?? '–'}
@@ -211,7 +212,33 @@ function ScoreHeader({ m }: { m: Match }) {
           </Text>
         )}
       </View>
-      <Text style={[styles.team, { textAlign: 'right' }]} numberOfLines={2}>{m.away_team}</Text>
+      <TeamSide m={m} side="away" />
+    </View>
+  );
+}
+
+/** Logo + ad + takım takip yıldızı (takımın maçları otomatik takibe alınır) */
+function TeamSide({ m, side }: { m: Match; side: 'home' | 'away' }) {
+  const { teams, toggleTeam } = useFollows();
+  const name = side === 'home' ? m.home_team : m.away_team;
+  const logo = side === 'home' ? m.home_logo : m.away_logo;
+  const id = side === 'home' ? m.home_team_id : m.away_team_id;
+  const on = id != null && teams.has(teamKey(m.sport_type, id));
+  return (
+    <View style={styles.side}>
+      <TeamLogo uri={logo} name={name} size={44} />
+      <Text style={styles.team} numberOfLines={2}>{name}</Text>
+      {id != null ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={on ? `${name} takibini bırak` : `${name} takımını takip et`}
+          hitSlop={8}
+          onPress={() => toggleTeam({ sport_type: m.sport_type, team_id: id, team_name: name, team_logo: logo ?? null }).catch(() => {})}
+          style={[styles.star, on && styles.starOn]}
+        >
+          <Text style={[styles.starText, on && { color: colors.pro }]}>{on ? '★ Takipte' : '☆ Takip et'}</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -259,7 +286,11 @@ const styles = StyleSheet.create({
     padding: space(5),
     gap: space(2),
   },
-  team: { flex: 1, color: colors.text, fontSize: 16, fontWeight: '800' },
+  side: { flex: 1, alignItems: 'center', gap: space(1.5) },
+  team: { color: colors.text, fontSize: 15, fontWeight: '800', textAlign: 'center' },
+  star: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: space(2.5), paddingVertical: space(1) },
+  starOn: { borderColor: colors.pro, backgroundColor: colors.proGlow },
+  starText: { color: colors.textMuted, fontSize: 11, fontWeight: '800' },
   scoreMid: { alignItems: 'center', gap: space(1) },
   score: { color: colors.text, fontSize: 34, fontWeight: '900', fontVariant: ['tabular-nums'] },
   dash: { color: colors.textDim },

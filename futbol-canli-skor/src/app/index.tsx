@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MatchRow } from '@/components/MatchRow';
 import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { Badge } from '@/components/ui';
 import { usePremium } from '@/hooks/usePremium';
+import { useFollows } from '@/hooks/useFollows';
 import { useMatches, type MatchFilter } from '@/hooks/useMatches';
 import { PREVIEW_MODE } from '@/lib/supabase';
 import type { Sport } from '@/lib/types';
@@ -20,12 +21,15 @@ const FILTERS: { key: MatchFilter; label: string }[] = [
   { key: 'all', label: 'Tümü' },
   { key: 'live', label: 'Canlı' },
   { key: 'finished', label: 'Biten' },
+  { key: 'followed', label: '★ Takip' },
 ];
 
 export default function MatchesScreen() {
   const [sport, setSport] = useState<Sport>('football');
   const [filter, setFilter] = useState<MatchFilter>('all');
-  const { groups, liveCount, loading, error, reload } = useMatches(sport, filter);
+  const { followed, teams } = useFollows();
+  const followSets = useMemo(() => ({ fixtures: followed, teams: new Set(teams.keys()) }), [followed, teams]);
+  const { groups, liveCount, loading, error, reload } = useMatches(sport, filter, followSets);
   const { isPremium } = usePremium();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -112,7 +116,13 @@ export default function MatchesScreen() {
           renderSectionFooter={() => <View style={{ height: space(3) }} />}
           stickySectionHeadersEnabled={false}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={styles.empty}>Bu filtrede maç yok.</Text>}
+          ListEmptyComponent={
+            <Text style={styles.empty}>
+              {filter === 'followed'
+                ? 'Takip ettiğin maç yok. Maçlardaki 🔔 zil veya maç ekranındaki ☆ ile takım takip edebilirsin.'
+                : 'Bu filtrede maç yok.'}
+            </Text>
+          }
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.live} />}
         />
       )}
@@ -152,7 +162,7 @@ const styles = StyleSheet.create({
   leagueName: { color: colors.text, fontWeight: '800', fontSize: 14 },
   leagueCountry: { color: colors.textMuted, fontSize: 12 },
   sep: { height: 1, backgroundColor: colors.border },
-  empty: { color: colors.textMuted, textAlign: 'center', marginTop: space(10) },
+  empty: { color: colors.textMuted, textAlign: 'center', marginTop: space(10), paddingHorizontal: space(6), lineHeight: 20 },
   previewBanner: {
     marginHorizontal: space(4),
     marginBottom: space(3),

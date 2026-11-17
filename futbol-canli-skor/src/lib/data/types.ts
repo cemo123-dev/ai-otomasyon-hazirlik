@@ -7,6 +7,7 @@ import type {
   HalftimeRequestResult,
   Match,
   MatchAlert,
+  FollowedTeam,
   NotificationPrefs,
   PreviewPayload,
   RedCardAnalysis,
@@ -37,6 +38,9 @@ export interface DataSource {
   toggleFollow(fixtureId: number): Promise<boolean>;
   listFollowedIds(): Promise<number[]>;
   registerPushToken(token: string, platform: string): Promise<void>;
+  /** Takım takibi: takımın başlamamış maçları da otomatik takibe alınır. Dönüş: yeni durum */
+  toggleTeamFollow(t: FollowedTeam): Promise<boolean>;
+  listFollowedTeams(): Promise<FollowedTeam[]>;
   /** Akıllı alarm: maçın alarm geçmişi (yeniden eskiye) ve canlı akış */
   listAlerts(fixtureId: number): Promise<MatchAlert[]>;
   subscribeAlerts(fixtureId: number, onAlert: (a: MatchAlert) => void): () => void;

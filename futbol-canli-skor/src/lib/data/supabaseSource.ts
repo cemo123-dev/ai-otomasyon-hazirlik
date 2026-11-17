@@ -1,27 +1,30 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ensureSession } from '../supabase';
-import type {
-  AnalysisRequestResult,
-  AnyTacticalPayload,
-  AskResult,
-  ChatMessage,
-  HalftimePayload,
-  HalftimeRequestResult,
-  Match,
-  MatchAlert,
-  NotificationPrefs,
-  PreviewPayload,
-  PreviewRequestResult,
-  RedCardAnalysis,
+import {
+  type AnalysisRequestResult,
+  type AnyTacticalPayload,
+  type AskResult,
+  type ChatMessage,
+  type HalftimePayload,
+  type HalftimeRequestResult,
+  type Match,
+  type MatchAlert,
+  type NotificationPrefs,
+  type PreviewPayload,
+  type PreviewRequestResult,
+  type RedCardAnalysis,
+  DEFAULT_PREFS,
+  type FollowedTeam,
 } from '../types';
-import { DEFAULT_PREFS } from '../types';
+import { localizeTeams } from '../teamNames';
 import type { DataSource } from './types';
 
 // preview_status/lineups 0005_prematch.sql, halftime_* 0006_halftime.sql ile gelir
 const MATCH_COLUMNS =
   'fixture_id, sport_type, league_name, league_country, league_priority, kickoff_at, home_team, away_team, ' +
   'home_score, away_score, status_short, elapsed_minute, status_detail, period_scores, summary_teaser, ' +
-  'analysis_status, events, stats, preview_status, lineups, halftime_status, halftime_teaser';
+  'analysis_status, events, stats, preview_status, lineups, halftime_status, halftime_teaser, ' +
+  'home_team_id, away_team_id, home_logo, away_logo';
 
 let channelSeq = 0;
 
@@ -34,7 +37,7 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
         { event: '*', schema: 'public', table: 'matches', ...(filter ? { filter } : {}) },
         (payload) => {
           if (payload.eventType === 'DELETE') return;
-          onChange(payload.new as Match);
+          onChange(localizeTeams(payload.new as Match));
         },
       )
       .subscribe();
@@ -57,7 +60,7 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
         .order('league_priority')
         .order('kickoff_at');
       if (error) throw error;
-      return (data ?? []) as unknown as Match[];
+      return ((data ?? []) as unknown as Match[]).map(localizeTeams);
     },
 
     async getMatch(fixtureId) {
@@ -67,7 +70,7 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
         .eq('fixture_id', fixtureId)
         .maybeSingle();
       if (error) throw error;
-      return data as unknown as Match | null;
+      return data ? localizeTeams(data as unknown as Match) : null;
     },
 
     // Realtime filtre: yalnızca seçili sporun satırları gelir
@@ -149,6 +152,25 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
       if (error) throw error;
     },
 
+    async toggleTeamFollow(t) {
+      await ensureSession();
+      const { data, error } = await sb.rpc('toggle_team_follow', {
+        p_sport: t.sport_type,
+        p_team_id: t.team_id,
+        p_team_name: t.team_name,
+        p_team_logo: t.team_logo,
+      });
+      if (error) throw error;
+      return data === true;
+    },
+
+    async listFollowedTeams() {
+      if (!(await ensureSession())) return [];
+      const { data, error } = await sb.from('team_follows').select('sport_type, team_id, team_name, team_logo').order('created_at');
+      if (error) throw error;
+      return (data ?? []) as FollowedTeam[];
+    },
+
     async listAlerts(fixtureId) {
       const { data, error } = await sb
         .from('match_alerts')
@@ -186,9 +208,9 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
 
     async getNotificationPrefs() {
       if (!(await ensureSession())) return DEFAULT_PREFS;
-      const { data, error } = await sb.from('notification_prefs').select('halftime, pressure, nba_run, red_card').maybeSingle();
+      const { data, error } = await sb.from('notification_prefs').select('kickoff, halftime, pressure, nba_run, red_card').maybeSingle();
       if (error) throw error;
-      return (data as NotificationPrefs | null) ?? DEFAULT_PREFS;
+      return { ...DEFAULT_PREFS, ...((data as Partial<NotificationPrefs> | null) ?? {}) };
     },
 
     async setNotificationPrefs(p) {
@@ -198,6 +220,7 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
         p_pressure: p.pressure,
         p_nba_run: p.nba_run,
         p_red_card: p.red_card,
+        p_kickoff: p.kickoff,
       });
       if (error) throw error;
     },

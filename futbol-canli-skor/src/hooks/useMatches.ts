@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { dataSource } from '@/lib/data';
 import { isFinished, isLive, type Match, type Sport } from '@/lib/types';
 
-export type MatchFilter = 'all' | 'live' | 'finished';
+export type MatchFilter = 'all' | 'live' | 'finished' | 'followed';
+
+/** "Takip" filtresi: takip edilen maçlar + takip edilen takımların maçları */
+export type FollowSets = { fixtures: Set<number>; teams: Set<string> };
 
 export type LeagueGroup = {
   key: string;
@@ -14,7 +17,7 @@ export type LeagueGroup = {
 
 const stateRank = (m: Match) => (isLive(m.status_short) ? 0 : isFinished(m.status_short) ? 1 : 2);
 
-export function useMatches(sport: Sport, filter: MatchFilter) {
+export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSets) {
   // Liste ve hata, yüklendikleri spora göre anahtarlanır: spor değişince eski liste
   // effect içinde temizlenmez, render sırasında türetilerek gizlenir
   const [data, setData] = useState<{ sport: Sport; map: Map<number, Match> } | null>(null);
@@ -52,6 +55,15 @@ export function useMatches(sport: Sport, filter: MatchFilter) {
     for (const m of matches.values()) {
       if (filter === 'live' && !isLive(m.status_short)) continue;
       if (filter === 'finished' && !isFinished(m.status_short)) continue;
+      if (
+        filter === 'followed' &&
+        !(
+          follows?.fixtures.has(m.fixture_id) ||
+          (m.home_team_id != null && follows?.teams.has(`${m.sport_type}:${m.home_team_id}`)) ||
+          (m.away_team_id != null && follows?.teams.has(`${m.sport_type}:${m.away_team_id}`))
+        )
+      )
+        continue;
       const key = `${m.league_country ?? ''}|${m.league_name}`;
       let g = byLeague.get(key);
       if (!g) {
@@ -68,7 +80,7 @@ export function useMatches(sport: Sport, filter: MatchFilter) {
       g.data.sort((a, b) => stateRank(a) - stateRank(b) || a.kickoff_at.localeCompare(b.kickoff_at));
     }
     return out;
-  }, [matches, filter]);
+  }, [matches, filter, follows]);
 
   const liveCount = useMemo(() => [...matches.values()].filter((m) => isLive(m.status_short)).length, [matches]);
 
