@@ -45,3 +45,12 @@ export function normalizeNbaLogo(url: unknown): string | null {
 /** 0014 kurulmadan deploy edildiyse: PostgREST PGRST204 / Postgres 42703 */
 export const isMissingBoxColumn = (e: { code?: string; message?: string } | null): boolean =>
   !!e && (e.code === 'PGRST204' || e.code === '42703' || /box_score/.test(e.message ?? ''));
+
+/** Dosya adı: .../thumb/x/xy/Ad.svg/120px-Ad.svg.png veya .../x/xy/Ad.png → "Ad.svg" / "Ad.png" */
+export function wikiFileName(url: string): string | null {
+  const m = url.match(/\/thumb\/[0-9a-f]\/[0-9a-f]{2}\/([^/]+)\/[^/]+$/i) ?? url.match(/\/[0-9a-f]\/[0-9a-f]{2}\/([^/]+)$/i);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+/** Thumb boyutunu 120 px'e sabitler (1200px gibi boyutlar 400/429 dönebiliyor) */
+export const thumb120 = (url: string) => url.replace(/\/(\d+)px-([^/]+)$/, '/120px-$2');

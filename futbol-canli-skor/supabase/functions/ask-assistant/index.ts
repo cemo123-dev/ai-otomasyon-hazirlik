@@ -4,7 +4,7 @@
 // geriye anlamlı yanıt kalmazsa soru hakkı iade edilir (status=failed).
 import {
   ASSISTANT_SCHEMA,
-  ASSISTANT_SYSTEM_INSTRUCTION,
+  assistantInstruction,
   buildAssistantInput,
   buildDossier,
   isCurrentDossier,
@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     const { data, usage } = await generateJson<{ a: string }>({
       apiKey: Deno.env.get('GEMINI_API_KEY')!,
       model: MODEL,
-      system: ASSISTANT_SYSTEM_INSTRUCTION,
+      system: assistantInstruction(dossier),
       input,
       schema: ASSISTANT_SCHEMA,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
@@ -71,11 +71,12 @@ async function getDossier(fixtureId: number): Promise<string | null> {
   // Eski sürüm dosya (çıkarımsız) yeniden derlenir
   if (cached?.dossier && isCurrentDossier(cached.dossier as string)) return cached.dossier as string;
 
-  const { data: m } = await admin
-    .from('matches')
-    .select('fixture_id, sport_type, league_name, home_team, away_team, home_score, away_score, status_short, period_scores, home_coach, away_coach, stats, events, top_players')
-    .eq('fixture_id', fixtureId)
-    .maybeSingle();
+  const base = 'fixture_id, sport_type, league_name, home_team, away_team, home_score, away_score, status_short, period_scores, home_coach, away_coach, stats, events, top_players';
+  // deno-lint-ignore no-explicit-any
+  const sel = (cols: string) => admin.from('matches').select(cols).eq('fixture_id', fixtureId).maybeSingle<any>();
+  // box_score (0014) yoksa onsuz derlenir
+  let { data: m, error } = await sel(`${base}, box_score`);
+  if (error) ({ data: m } = await sel(base));
   if (!m) return null;
   const [{ data: an }, { data: ht }, { data: al }] = await Promise.all([
     admin.from('match_analyses').select('tactical_payload').eq('fixture_id', fixtureId).maybeSingle(),
@@ -88,7 +89,9 @@ async function getDossier(fixtureId: number): Promise<string | null> {
     halftime: ht?.report_payload ?? null,
     alerts: (al ?? []) as { minute: number | null; title: string; body: string }[],
   });
-  if (FINISHED.includes(m.status_short)) {
+  // NBA box score henüz gelmediyse önbelleğe alınmaz (geldiğinde dosyaya girsin)
+  const boxPending = m.sport_type === 'nba' && !m.box_score;
+  if (FINISHED.includes(m.status_short) && !boxPending) {
     await admin.from('match_dossiers').upsert({ fixture_id: fixtureId, dossier, built_at: new Date().toISOString() });
   }
   return dossier;

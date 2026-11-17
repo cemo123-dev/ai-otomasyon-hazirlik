@@ -131,7 +131,8 @@ export function mapTeamBoxes(stats: Json[], homeTeamName: string): { home: NbaTe
   return home && away ? { home: box(home), away: box(away) } : null;
 }
 
-const POS: Record<string, string> = { G: 'Guard', F: 'Forvet', C: 'Pivot', 'G-F': 'Guard-Forvet', 'F-C': 'Forvet-Pivot' };
+// Basketbol mevkileri (futbol terimi "forvet" yerine NBA yayınlarındaki adlar)
+const POS: Record<string, string> = { G: 'Guard', F: 'Forward', C: 'Pivot', 'G-F': 'Guard-Forward', 'F-C': 'Forward-Pivot' };
 
 /**
  * /players/statistics?game= → oyuncu satırları.

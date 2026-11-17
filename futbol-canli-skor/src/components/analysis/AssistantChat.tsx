@@ -7,10 +7,15 @@ import { Card, CardTitle } from '../ui';
 
 const CHIPS: Record<Match['sport_type'], string[]> = {
   football: ['Maçın kırılma anı neydi?', 'Teknik direktör hamleleri işe yaradı mı?', 'Rövanş için kim avantajlı?'],
-  nba: ['Maçın kırılma anı neydi?', 'Bench farkı nasıl oluştu?', 'Rövanş için kim avantajlı?'],
+  nba: ['Maç hangi çeyrekte koptu?', 'Bench farkı nasıl oluştu?', 'Şut verimliliği sonucu nasıl etkiledi?'],
 };
 
 const MAX_LEN = 200;
+
+const PLACEHOLDER: Record<Match['sport_type'], string> = {
+  football: 'Örn: Neden 70. dakikada forvet çıktı?',
+  nba: 'Örn: Son çeyrekte fark neden kapanmadı?',
+};
 
 /** Pro analiz ekranının altında: yalnız bu maça kilitli, 3 soruluk mini sohbet */
 export function AssistantChat({ match }: { match: Match }) {
@@ -73,7 +78,7 @@ export function AssistantChat({ match }: { match: Match }) {
             <TextInput
               value={text}
               onChangeText={setText}
-              placeholder="Örn: Neden 70. dakikada forvet çıktı?"
+              placeholder={PLACEHOLDER[match.sport_type]}
               placeholderTextColor={colors.textDim}
               maxLength={MAX_LEN}
               editable={!disabled}

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnalysisReport } from '@/components/analysis/AnalysisCards';
 import { AssistantChat } from '@/components/analysis/AssistantChat';
-import { GeneratingLoader, HALFTIME_STEPS, PREVIEW_STEPS } from '@/components/analysis/GeneratingLoader';
+import { GeneratingLoader, HALFTIME_STEPS, NBA_STEPS, PREVIEW_STEPS } from '@/components/analysis/GeneratingLoader';
 import { AlertsFeed } from '@/components/alerts/AlertsFeed';
 import { HalftimeLocked, HalftimeReport } from '@/components/halftime/HalftimeCards';
 import { PaywallGate } from '@/components/analysis/PaywallGate';
@@ -84,13 +84,13 @@ export default function MatchDetailScreen() {
             <Card>
               <Text style={styles.cardTitle}>Analiz maç bitince hazırlanır</Text>
               <Text style={styles.muted}>
-                AI taktik raporu, son düdükten sonra maçın tüm verisiyle bir kez üretilir ve tüm Pro üyelerle paylaşılır.
+                AI taktik raporu, maç bittikten sonra maçın tüm verisiyle bir kez üretilir ve tüm Pro üyelerle paylaşılır.
               </Text>
             </Card>
           ) : state.kind === 'paywall' ? (
             <PaywallGate match={match} />
           ) : state.kind === 'generating' ? (
-            <GeneratingLoader />
+            <GeneratingLoader steps={match.sport_type === 'nba' ? NBA_STEPS : undefined} />
           ) : state.kind === 'completed' ? (
             <View style={{ gap: space(3) }}>
               {isNbaPayload(state.payload) ? (
@@ -134,7 +134,7 @@ function PreviewSection({ state, retry, match }: { state: PreviewState; retry: (
         <Card>
           <Text style={styles.cardTitle}>Analiz maç bitince hazırlanır</Text>
           <Text style={styles.muted}>
-            Bu maç için maç önü analizi üretilmedi. AI taktik raporu son düdükten sonra maçın tüm verisiyle bir kez üretilir.
+            Bu maç için maç önü analizi üretilmedi. AI taktik raporu maç bittikten sonra maçın tüm verisiyle bir kez üretilir.
           </Text>
         </Card>
       );

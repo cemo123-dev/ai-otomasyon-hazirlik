@@ -10,6 +10,9 @@ import { Card, useNativeDriver } from '../ui';
  */
 const HINTS = ['Maç olayları ve istatistikler', 'xG ve şut kalitesi', 'Skor durumu ve kırılma anları', 'Teknik direktör hamleleri'];
 
+/** NBA maç sonu analizinin baktıkları (futbol terimi yok) */
+export const NBA_STEPS = ['Kutu skoru ve periyot skorları', 'Şut verimliliği (TS%, üçlük)', 'Kırılma periyodu ve son çeyrek', 'Bench ve rotasyon etkisi'];
+
 /** Maç öncesi AI'ın baktıkları */
 export const PREVIEW_STEPS = ["İlk 11'ler ve dizilişler", 'Son 5 maç formu ve xG trendi', 'Bek ↔ kanat eşleşmeleri', 'Eksik oyuncular'];
 

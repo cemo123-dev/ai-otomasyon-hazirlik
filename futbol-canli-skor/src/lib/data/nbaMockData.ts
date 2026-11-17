@@ -159,7 +159,7 @@ export const nbaScenarioPayload: NbaTacticalPayload = {
   player_performance_spotlight: {
     player: 'Marcus Vale',
     team: 'away',
-    position: 'Forvet',
+    position: 'Forward',
     rating: 31,
     headline: 'Boyalı alanda durdurulamadı: 31 sayı, 11 ribaund',
     key_stats: [

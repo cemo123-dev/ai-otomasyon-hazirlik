@@ -550,6 +550,30 @@ google-services.json           Firebase (Android FCM) yapılandırması
      - Not: daha önce üretilmiş raporlar değişmez; yeni maçlarda geçerli.
      - Sıra: npm run deploy:functions → npm run update:apk.
 
+3.26 NBA düzeltmeleri: logolar, box score, basketbol dili
+     - Logolar: Wikimedia, Android'in HTTP istemcisine (okhttp) 403 dönüyordu.
+       sync-nba artık her takımın 120 px PNG logosunu sunucudan, kendini tanıtan
+       User-Agent ile bir kez indirip herkese açık 'team-logos' Storage kovasına
+       (nba/{takımId}.png) yazıyor; maç ve takip satırları bu adresi kullanıyor
+       (_shared/logoMirror.ts). Kova ilk çalıştırmada kodla oluşturulur, migration yok.
+       API kotası harcamaz.
+     - Box score: sync-nba geri doldurmayı ayrı limitle yapıyor (NBA_MAX_BOX_BACKFILL,
+       varsayılan 5 maç, son 3 gün, maç başına 1 istek, kota bekçisine tabi).
+     - Basketbol dili:
+       * Mevkiler: Forvet → Forward (Guard / Forward / Pivot); kayıtlı veriler de düzeltildi.
+       * _shared/sportTerms.ts: futbol terimi bekçisi (gol, forvet, kaleci, penaltı,
+         VAR, xG, teknik direktör, rövanş, devre arası…; "Golden State" hariç).
+       * NBA analizi: talimata basketbol terimleri kuralı; futbol terimi içeren
+         metin basketbol diliyle deterministik cümleye düşer.
+       * Taktik asistan: NBA'ye ayrı talimat, dosyaya basketbol çıkarımları
+         (kırılma periyodu, TS%, bench, ekstra hücum hakkı, son çeyrek) ve box score
+         eklendi (DOSSIER_VERSION 3). NBA yanıtında futbol terimi geçen cümle atılır.
+         Box score gelmeden NBA dosyası önbelleğe alınmaz.
+       * Arayüz: NBA bekleme adımları, paywall metni, sohbet önerileri ve örnek
+         soru basketbola uygun (xG / teknik direktör / rövanş / "70. dakika forvet" yok).
+     - Testler: tests/sportTerms.test.ts (5).
+     - Sıra: npm run deploy:functions → npm run update:apk.
+
 8. YAPILACAKLAR VE İNCELEME NOTLARI (genel gözden geçirme)
 --------------------------------------------------------------------------
 A) [ÇÖZÜLDÜ — bkz. 3.17] Taktik Asistan çok "kuru" yanıt veriyordu

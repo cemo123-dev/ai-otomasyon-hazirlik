@@ -7,6 +7,7 @@
 import { buildNbaTeaser, pickTopPlayers, type NbaMatchRow } from '../_shared/nbaAnalysis.ts';
 import { hasNbaQuota, lastNbaQuota, mapGame, mapPlayers, mapTeamBoxes, nbaGet, toGameId } from '../_shared/nbaApi.ts';
 import { isMissingBoxColumn, toBoxScore } from '../_shared/nbaBox.ts';
+import { mirrorNbaLogos, withMirroredLogos } from '../_shared/logoMirror.ts';
 import { computeNbaMetrics, type NbaPlayerLine } from '../_shared/nbaMetrics.ts';
 import { runNbaAlerts } from '../_shared/alertStore.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
@@ -17,6 +18,8 @@ const KEY = Deno.env.get('API_FOOTBALL_KEY')!; // api-sports anahtarı NBA için
 const PAID = Deno.env.get('API_FOOTBALL_PAID') === '1';
 /** Tek çalıştırmada kutu skoru çekilecek en fazla maç (maç başına 2 istek) */
 const MAX_ENRICH = Number(Deno.env.get('NBA_MAX_ENRICH') ?? 3);
+/** Tek çalıştırmada box score'u geri doldurulacak en fazla maç (maç başına 1 istek) */
+const MAX_BOX_BACKFILL = Number(Deno.env.get('NBA_MAX_BOX_BACKFILL') ?? 5);
 
 const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
 
@@ -25,7 +28,7 @@ Deno.serve(async (req) => {
   const { mode = 'live' } = await req.json().catch(() => ({}));
 
   const task = (mode === 'schedule' ? syncSchedule() : syncLive())
-    .then(async (r) => ({ ...r, enriched: await enrichFinished(), quota: lastNbaQuota() }))
+    .then(async (r) => ({ ...r, enriched: await enrichFinished(), logos: await mirrorLogosSafe(), quota: lastNbaQuota() }))
     .then((r) => console.log(`[sync-nba] ${mode} ok`, JSON.stringify(r)))
     .catch((e) => console.error(`[sync-nba] ${mode} HATA`, e instanceof Error ? e.message : e));
 
@@ -43,8 +46,18 @@ async function upsert(rows: Record<string, unknown>[]) {
   const now = new Date().toISOString();
   const { error } = await admin
     .from('matches')
-    .upsert(rows.map((r) => ({ ...r, updated_at: now })), { onConflict: 'fixture_id' });
+    .upsert((await withMirroredLogos(rows)).map((r) => ({ ...r, updated_at: now })), { onConflict: 'fixture_id' });
   if (error) throw error;
+}
+
+/** Logo kopyalama API kotası harcamaz; hata senkronu durdurmaz */
+async function mirrorLogosSafe() {
+  try {
+    return await mirrorNbaLogos();
+  } catch (e) {
+    console.warn('[sync-nba] logo kopyalama atlandı:', e instanceof Error ? e.message : e);
+    return null;
+  }
 }
 
 const utcDate = (iso: string | Date) => new Date(iso).toISOString().slice(0, 10);
@@ -153,7 +166,7 @@ async function enrichFinished() {
       console.warn(`[sync-nba] ${m.fixture_id} istatistik atlandı:`, e instanceof Error ? e.message : e);
     }
   }
-  return done + (await backfillBoxScores(MAX_ENRICH - done));
+  return done + (await backfillBoxScores(MAX_BOX_BACKFILL));
 }
 
 /** Box score ayrı yazılır: 0014 yoksa yalnız uyarı (senkron durmaz). Dönüş: false = kolon yok */
@@ -170,12 +183,12 @@ async function storeBoxScore(fixtureId: number, players: NbaPlayerLine[]): Promi
 }
 
 /**
- * Önceden işlenmiş (istatistiği olan) ama box score'u olmayan son 2 günün maçları:
+ * Önceden işlenmiş (istatistiği olan) ama box score'u olmayan son 3 günün maçları:
  * yalnız oyuncu istatistiği çekilir (maç başına 1 istek, kota bekçisine tabi).
  */
 async function backfillBoxScores(limit: number): Promise<number> {
   if (limit <= 0) return 0;
-  const since = new Date(Date.now() - 2 * 86400_000).toISOString();
+  const since = new Date(Date.now() - 3 * 86400_000).toISOString();
   const { data, error } = await admin
     .from('matches')
     .select('fixture_id, home_team')

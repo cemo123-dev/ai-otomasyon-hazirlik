@@ -100,7 +100,9 @@ export function PaywallGate({ match }: { match: Match }) {
             <Text style={styles.lock}>🔒</Text>
             <Text style={styles.ctaTitle}>Derin taktik rapor Pro üyelere özel</Text>
             <Text style={styles.ctaSub}>
-              xG denetimi, momentum kırılmaları, teknik direktör etki deltası ve maçın yıldızı.
+              {match.sport_type === 'nba'
+                ? 'Şut verimliliği (TS%), kırılma periyodu, bench etkisi ve maçın yıldızı.'
+                : 'xG denetimi, momentum kırılmaları, teknik direktör etki deltası ve maçın yıldızı.'}
             </Text>
             <Pressable
               accessibilityRole="button"

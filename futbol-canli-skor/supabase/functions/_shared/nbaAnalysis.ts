@@ -1,3 +1,4 @@
+import { basketballOr, hasFootballTerm } from './sportTerms.ts';
 import type { NbaMetrics, NbaPlayerLine, NbaTeamBox } from './nbaMetrics.ts';
 
 /** matches.stats (NBA): ham kutu skoru + ön-hesaplanmış metrikler */
@@ -262,7 +263,10 @@ export const NBA_SYSTEM_INSTRUCTION =
   'savunmada çalma/blok/ribaund katkısını, hücumda verimi (şut/top kaybı) öne çıkar. 6) Faul probleminde (fp) ' +
   'faulların ne zaman yapıldığı bilinmiyor: "erken faul", "ilk yarıda faul" gibi zaman iddiası kurma; faul sayısını ' +
   'tekrar yazma (kartta gösteriliyor); oyuncunun süresi, +/- değeri ve oyundan atılıp atılmadığı üzerinden takıma ' +
-  'etkisini yorumla. pi ve fp içinde yalnızca satırlarda yazan sayıları aynen kullan.';
+  'etkisini yorumla. pi ve fp içinde yalnızca satırlarda yazan sayıları aynen kullan. ' +
+  '7) YALNIZCA basketbol terimleri kullan (çeyrek/periyot, sayı, üçlük, ribaund, asist, top kaybı, pota, boya alanı, ilk 5, bench, koç); ' +
+  'futbol terimi ASLA kullanma: gol, kaleci, forvet, orta saha, kanat beki, penaltı, ofsayt, korner, kart, VAR, xG, ' +
+  'teknik direktör, devre arası, rövanş, son düdük. Mevki adları: guard, forward, pivot.';
 
 // ─────────────────────────────────────────────── birleştirme (0 token)
 const side = (s: 'E' | 'D' | 'N') => (s === 'E' ? 'home' : s === 'D' ? 'away' : 'neutral');
@@ -307,23 +311,37 @@ export function assembleNbaPayload(m: NbaMatchRow, o: NbaLlmOut): NbaTacticalPay
     players.find((p) => p.name.toLocaleLowerCase('tr').includes(n) || n.includes(p.name.toLocaleLowerCase('tr'))) ??
     players[0];
 
+  // Futbol terimi içeren LLM metni basketbol diliyle deterministik cümleye düşer
+  const hs = m.home_score ?? 0;
+  const as = m.away_score ?? 0;
+  const [W, L, ws, ls] = hs >= as ? [m.home_team, m.away_team, hs, as] : [m.away_team, m.home_team, as, hs];
+  const benchText = (t: 'home' | 'away') =>
+    `${t === 'home' ? m.home_team : m.away_team} bench'i ${mt.bench[t].bench_points} sayı üretti.`;
+  const lgFallback =
+    mt.late_game.q4_home != null && mt.late_game.q4_away != null
+      ? `Son çeyrek ${mt.late_game.q4_home}-${mt.late_game.q4_away} oynandı, final farkı ${mt.late_game.final_margin} sayı.`
+      : `Final farkı ${mt.late_game.final_margin} sayı.`;
+
   return {
     sport: 'nba',
-    headline_title: o.h,
-    executive_tactical_verdict: o.v,
+    headline_title: basketballOr(o.h, `${W}, ${L} karşısında ${ws}-${ls} kazandı`),
+    executive_tactical_verdict: basketballOr(
+      o.v,
+      `${W}, ${L} karşısında ${ws}-${ls} kazandı.${mt.decisive?.text ? ` Kırılma: ${mt.decisive.text}.` : ''}`,
+    ),
     efficiency_audit: {
       verdict_type: o.et,
       verdict_label: o.el,
       home: eff('home'),
       away: eff('away'),
       volume_trap_team: mt.volume_trap?.team ?? null,
-      commentary: o.ec,
+      commentary: basketballOr(o.ec, `TS%: ${m.home_team} ${mt.ts.home}, ${m.away_team} ${mt.ts.away}.`),
     },
-    quarter_runs: runs,
-    late_game: { ...mt.late_game, commentary: o.lg },
+    quarter_runs: runs.filter((r) => !hasFootballTerm(r.title) && !hasFootballTerm(r.description)),
+    late_game: { ...mt.late_game, commentary: basketballOr(o.lg, lgFallback) },
     bench_impact: {
-      home: { starters_pm_avg: mt.bench.home.starters_pm_avg, bench_pm_avg: mt.bench.home.bench_pm_avg, bench_points: mt.bench.home.bench_points, commentary: o.bh },
-      away: { starters_pm_avg: mt.bench.away.starters_pm_avg, bench_pm_avg: mt.bench.away.bench_pm_avg, bench_points: mt.bench.away.bench_points, commentary: o.ba },
+      home: { starters_pm_avg: mt.bench.home.starters_pm_avg, bench_pm_avg: mt.bench.home.bench_pm_avg, bench_points: mt.bench.home.bench_points, commentary: basketballOr(o.bh, benchText('home')) },
+      away: { starters_pm_avg: mt.bench.away.starters_pm_avg, bench_pm_avg: mt.bench.away.bench_pm_avg, bench_points: mt.bench.away.bench_points, commentary: basketballOr(o.ba, benchText('away')) },
     },
     possession_battle: mt.possession,
     // Oyuncu listeleri ve faul sayıları koddan; LLM yalnızca yorum (pi, fp) verir.
@@ -331,8 +349,8 @@ export function assembleNbaPayload(m: NbaMatchRow, o: NbaLlmOut): NbaTacticalPay
     player_impact: mt.player_impact
       ? {
           ...mt.player_impact,
-          commentary: verifiedImpactText(o.pi ?? '', mt.player_impact),
-          foul_commentary: verifiedFoulText(o.fp ?? '', mt.player_impact.foul_trouble),
+          commentary: verifiedImpactText(hasFootballTerm(o.pi) ? '' : (o.pi ?? ''), mt.player_impact),
+          foul_commentary: verifiedFoulText(hasFootballTerm(o.fp) ? '' : (o.fp ?? ''), mt.player_impact.foul_trouble),
         }
       : null,
     player_performance_spotlight: {
@@ -340,7 +358,10 @@ export function assembleNbaPayload(m: NbaMatchRow, o: NbaLlmOut): NbaTacticalPay
       team: star?.team ?? 'home',
       position: star?.position ?? '—',
       rating: star?.points ?? 0,
-      headline: o.y.l,
+      headline: basketballOr(
+        o.y.l,
+        star ? `${star.name} ${star.points} sayı, ${star.rebounds} ribaund ve ${star.assists} asistle öne çıktı.` : '',
+      ),
       key_stats: star
         ? [
             { label: 'Sayı', value: String(star.points) },
