@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "89336048702",
+    "project_id": "com-skorplus-app",
+    "storage_bucket": "com-skorplus-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:89336048702:android:58e4e5019ea2d0ee4db56f",
+        "android_client_info": {
+          "package_name": "com.skorplus.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDrTIKrN85pL-gjeXKPpzTRbGQvPVZm5Xw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -42,3 +42,8 @@ yarn-error.*
 
 # Supabase anahtarları
 .env
+
+# Firebase service account (FCM V1) — GİZLİ ANAHTAR, asla commit etme
+*-firebase-adminsdk-*.json
+service-account*.json
+firebase-service-account*.json
