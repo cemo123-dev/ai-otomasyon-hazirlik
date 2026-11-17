@@ -1,4 +1,5 @@
-import { isFinished, type AnyTacticalPayload, type Match, type MatchEvent } from '../types';
+import { isFinished, type AnyTacticalPayload, type Match, type MatchEvent, type PreviewPayload } from '../types';
+import { PREVIEW_MOCK_ID, previewMockPayload } from './previewMockData';
 import {
   buildFallbackPayload,
   initialMatches,
@@ -19,7 +20,13 @@ const GENERATION_MS = 6500;
 const NBA_TICK_SECONDS = 37;
 
 const allMatches: Match[] = [
-  ...initialMatches.map((m) => ({ ...m, sport_type: 'football' as const, period_scores: null, status_detail: null })),
+  ...initialMatches.map((m) => ({
+    ...m,
+    sport_type: 'football' as const,
+    period_scores: null,
+    status_detail: null,
+    preview_status: 'none' as const,
+  })),
   ...nbaMatches,
 ];
 
@@ -34,6 +41,7 @@ const fmtClock = (period: number, seconds: number) =>
 export function createMockSource(): DataSource {
   const matches = new Map<number, Match>(allMatches.map((m) => [m.fixture_id, structuredClone(m)]));
   const analyses = new Map<number, AnyTacticalPayload>([[9004, lombardiaPayload]]);
+  const previews = new Map<number, PreviewPayload>();
   const listeners = new Set<(m: Match) => void>();
   let premium = false;
   let timer: ReturnType<typeof setInterval> | null = null;
@@ -186,6 +194,30 @@ export function createMockSource(): DataSource {
     async getAnalysis(id) {
       if (!premium) return null; // RLS taklidi
       return analyses.get(id) ?? null;
+    },
+
+    // Maç öncesi AI: request_match_preview kurallarının taklidi (≤45 dk, singleflight)
+    async requestPreview(id) {
+      const m = matches.get(id);
+      if (!m) return 'not_found';
+      if (m.sport_type !== 'football') return 'not_supported';
+      if (m.preview_status === 'completed') return premium ? 'completed' : 'paywall_blocked';
+      if (m.status_short !== 'NS') return 'not_prematch';
+      if (new Date(m.kickoff_at).getTime() > Date.now() + 45 * 60_000) return 'too_early';
+      if (!premium) return 'paywall_blocked';
+      if (m.preview_status === 'generating') return 'generating';
+      update(id, { preview_status: 'generating' });
+      setTimeout(() => {
+        // Örnek rapor yalnızca senaryo maçı için hazır; diğerlerinde aynı yapı gösterilir
+        previews.set(id, id === PREVIEW_MOCK_ID ? previewMockPayload : { ...previewMockPayload, headline: `${m.home_team} - ${m.away_team}: Taktik Eşleşme` });
+        update(id, { preview_status: 'completed', lineups: previewMockPayload.lineups });
+      }, GENERATION_MS);
+      return 'generating';
+    },
+
+    async getPreview(id) {
+      if (!premium) return null; // RLS taklidi
+      return previews.get(id) ?? null;
     },
 
     async getPremium() {

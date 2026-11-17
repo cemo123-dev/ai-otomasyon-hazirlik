@@ -248,3 +248,87 @@ function mapTopPlayers(players: Json[], side: (id: number) => 'home' | 'away'): 
   }
   return all.sort((a, b) => b.rating - a.rating).slice(0, 6);
 }
+
+// ═══════════════════════════════════════════════ Maç öncesi (Pre-Match AI) yardımcıları
+
+/** player_match_stats satırı (bkz. 0005_prematch.sql) */
+export type PlayerMatchRow = {
+  fixture_id: number;
+  player_id: number;
+  team_id: number;
+  team_name: string;
+  name: string;
+  position: string | null;
+  kickoff_at: string;
+  started: boolean;
+  minutes: number;
+  rating: number | null;
+  duels_total: number;
+  duels_won: number;
+  dribbles_att: number;
+  dribbles_succ: number;
+  dribbled_past: number;
+  tackles: number;
+  interceptions: number;
+  key_passes: number;
+  shots: number;
+  goals: number;
+  assists: number;
+};
+
+const n0 = (v: unknown) => {
+  const x = typeof v === 'string' ? parseFloat(v) : Number(v);
+  return Number.isFinite(x) ? x : 0;
+};
+
+/** Maç detayındaki TÜM oyuncular → player_match_stats satırları (sahaya çıkmayanlar hariç) */
+export function mapPlayerMatchRows(f: Json): PlayerMatchRow[] {
+  const out: PlayerMatchRow[] = [];
+  const starters = new Set<number>();
+  for (const l of f.lineups ?? []) for (const s of l.startXI ?? []) if (s.player?.id) starters.add(s.player.id);
+  for (const t of f.players ?? []) {
+    for (const p of t.players ?? []) {
+      const st = p.statistics?.[0];
+      const minutes = n0(st?.games?.minutes);
+      if (!st || !p.player?.id || minutes <= 0) continue;
+      const rating = parseFloat(st.games?.rating ?? '');
+      out.push({
+        fixture_id: f.fixture.id,
+        player_id: p.player.id,
+        team_id: t.team.id,
+        team_name: t.team.name,
+        name: p.player.name,
+        position: st.games?.position ?? null,
+        kickoff_at: f.fixture.date,
+        // İlk 11 kadrodan; kadro yoksa "oyuna sonradan girmedi" varsayımı
+        started: starters.size ? starters.has(p.player.id) : !st.games?.substitute,
+        minutes,
+        rating: Number.isFinite(rating) && rating > 0 ? rating : null,
+        duels_total: n0(st.duels?.total),
+        duels_won: n0(st.duels?.won),
+        dribbles_att: n0(st.dribbles?.attempts),
+        dribbles_succ: n0(st.dribbles?.success),
+        dribbled_past: n0(st.dribbles?.past),
+        tackles: n0(st.tackles?.total),
+        interceptions: n0(st.tackles?.interceptions),
+        key_passes: n0(st.passes?.key),
+        shots: n0(st.shots?.total),
+        goals: n0(st.goals?.total),
+        assists: n0(st.goals?.assists),
+      });
+    }
+  }
+  return out;
+}
+
+/** İlk 11'ler (ücretsiz planda açık). Boş dizi = henüz açıklanmadı. */
+export const getLineups = (fixtureId: number, key: string) => apiGet(`/fixtures/lineups?fixture=${fixtureId}`, key);
+
+/** Sakat/cezalı listesi (kapsama lige göre değişir) */
+export const getInjuries = (fixtureId: number, key: string) => apiGet(`/injuries?fixture=${fixtureId}`, key);
+
+/** Takımın son N bitmiş maçının id'leri — "last" parametresi yalnızca ÜCRETLİ planda */
+export async function getTeamLastFixtureIds(teamId: number, n: number, key: string): Promise<number[]> {
+  if (!PAID) return [];
+  return (await apiGet(`/fixtures?team=${teamId}&last=${n}&status=FT`, key)).map((f) => f.fixture.id as number);
+}

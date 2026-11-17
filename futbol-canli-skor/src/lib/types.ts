@@ -52,6 +52,9 @@ export type Match = {
   events: MatchEvent[] | null;
   /** Futbol: MatchStats. NBA satırlarında aynı kolon NbaStats tutar (bkz. getNbaStats). */
   stats: MatchStats | null;
+  /** Maç öncesi AI (bkz. 0005_prematch.sql) */
+  preview_status?: AnalysisStatus;
+  lineups?: PreviewPayload['lineups'] | null;
 };
 
 export type ShotQualityVerdict =
@@ -241,3 +244,68 @@ export const isNbaPayload = (p: AnyTacticalPayload): p is NbaTacticalPayload => 
 /** NBA satırlarında stats kolonu NbaStats tutar */
 export const getNbaStats = (m: Match): NbaStats | null =>
   m.sport_type === 'nba' && m.stats ? (m.stats as unknown as NbaStats) : null;
+
+// ═══════════════════════════════════════════════ MAÇ ÖNCESİ AI
+// Sunucudaki supabase/functions/_shared/preview.ts ile aynı sözleşme
+
+export type PlayerForm = {
+  player_id: number;
+  name: string;
+  matches: number;
+  minutes: number;
+  duel_pct: number | null;
+  dribble_pct: number | null;
+  dribbles_90: number;
+  tkl_int_90: number;
+  dribbled_past_90: number;
+  key_passes_90: number;
+  rating: number | null;
+};
+
+export type TeamForm = {
+  n: number;
+  xg_for: number | null;
+  xg_against: number | null;
+  shots: number | null;
+  possession: number | null;
+  results: string;
+  trend: { recent: number; earlier: number; dir: 'up' | 'down' | 'flat' } | null;
+};
+
+export type PreviewMatchup = {
+  zone: 'sol kanat' | 'sağ kanat';
+  attacking_side: 'home' | 'away';
+  attacker: { name: string; pos: string; form: PlayerForm | null };
+  defender: { name: string; pos: string; form: PlayerForm | null };
+  edge: number | null;
+};
+
+export type PreviewAbsence = { side: 'home' | 'away'; name: string; reason: string; regular_starter: boolean };
+
+export type PreviewPayload = {
+  kind: 'preview';
+  headline: string;
+  overview: string;
+  lineups: Record<'home' | 'away', { formation: string; coach: string | null; xi: { name: string; pos: string }[] }>;
+  form: Record<'home' | 'away', TeamForm>;
+  matchups: PreviewMatchup[];
+  key_matchup_index: number | null;
+  key_matchup_commentary: string;
+  breaking_scenario: string;
+  watch_list: string[];
+  absences: PreviewAbsence[];
+  absences_commentary: string;
+  data_basis: 'api_last5' | 'db_history' | 'mixed' | 'lineups_only';
+  generated_at: string;
+};
+
+export type PreviewRequestResult =
+  | 'unauthenticated'
+  | 'not_found'
+  | 'not_supported'
+  | 'not_prematch'
+  | 'too_early'
+  | 'paywall_blocked'
+  | 'completed'
+  | 'generating'
+  | 'failed';

@@ -2,17 +2,19 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnalysisReport } from '@/components/analysis/AnalysisCards';
-import { GeneratingLoader } from '@/components/analysis/GeneratingLoader';
+import { GeneratingLoader, PREVIEW_STEPS } from '@/components/analysis/GeneratingLoader';
 import { PaywallGate } from '@/components/analysis/PaywallGate';
 import { StatsBars } from '@/components/match/StatsBars';
 import { Timeline } from '@/components/match/Timeline';
 import { NbaAnalysisReport } from '@/components/nba/NbaAnalysisCards';
 import { NbaStatsBars } from '@/components/nba/NbaStatsBars';
 import { QuarterTable } from '@/components/nba/QuarterTable';
+import { PreviewLocked, PreviewReport, PreviewTooEarly } from '@/components/preview/PreviewCards';
 import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { Badge, Card, CardTitle, LiveMinute } from '@/components/ui';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { useMatch } from '@/hooks/useMatch';
+import { usePreview, type PreviewState } from '@/hooks/usePreview';
 import { getNbaStats, isFinished, isLive, isNbaPayload, type Match } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
 
@@ -28,7 +30,10 @@ export default function MatchDetailScreen() {
   const fixtureId = Number(id);
   const { match, loading } = useMatch(fixtureId);
   const [tab, setTab] = useState<TabKey>('summary');
-  const { state, retry } = useAnalysis(match, tab === 'ai');
+  // Futbolda maç bitene kadar AI sekmesi "maç önü" analizini, bittikten sonra maç sonu analizini gösterir
+  const previewMode = match?.sport_type === 'football' && !isFinished(match.status_short);
+  const { state, retry } = useAnalysis(match, tab === 'ai' && !previewMode);
+  const preview = usePreview(match, tab === 'ai' && previewMode);
 
   if (loading) return <ActivityIndicator color={colors.live} style={{ flex: 1, backgroundColor: colors.bg }} />;
   if (!match) return <Text style={styles.empty}>Maç bulunamadı.</Text>;
@@ -43,7 +48,9 @@ export default function MatchDetailScreen() {
 
         {tab === 'summary' ? nba ? <NbaSummary match={match} /> : <Timeline match={match} /> : null}
         {tab === 'stats' ? nba ? <NbaStatsBars match={match} /> : <StatsBars match={match} /> : null}
-        {tab === 'ai' ? (
+        {tab === 'ai' && previewMode ? (
+          <PreviewSection state={preview.state} retry={preview.retry} match={match} />
+        ) : tab === 'ai' ? (
           state.kind === 'idle' || state.kind === 'loading' ? (
             <ActivityIndicator color={colors.pro} style={{ marginTop: space(8) }} />
           ) : state.kind === 'not_finished' ? (
@@ -75,6 +82,42 @@ export default function MatchDetailScreen() {
       </ScrollView>
     </>
   );
+}
+
+/** Maç öncesi "Taktiksel Eşleşme & Kırılma Senaryosu" durumları */
+function PreviewSection({ state, retry, match }: { state: PreviewState; retry: () => void; match: Match }) {
+  switch (state.kind) {
+    case 'idle':
+    case 'loading':
+      return <ActivityIndicator color={colors.pro} style={{ marginTop: space(8) }} />;
+    case 'too_early':
+      return <PreviewTooEarly match={match} />;
+    case 'paywall':
+      return <PreviewLocked match={match} />;
+    case 'generating':
+      return <GeneratingLoader steps={PREVIEW_STEPS} title="Maç önü taktik analizi hazırlanıyor" />;
+    case 'completed':
+      return <PreviewReport p={state.payload} match={match} />;
+    case 'not_prematch':
+    case 'not_supported':
+      return (
+        <Card>
+          <Text style={styles.cardTitle}>Analiz maç bitince hazırlanır</Text>
+          <Text style={styles.muted}>
+            Bu maç için maç önü analizi üretilmedi. AI taktik raporu son düdükten sonra maçın tüm verisiyle bir kez üretilir.
+          </Text>
+        </Card>
+      );
+    default:
+      return (
+        <Card>
+          <Text style={styles.cardTitle}>{state.message}</Text>
+          <Pressable onPress={retry} style={styles.retry}>
+            <Text style={styles.retryText}>Tekrar dene</Text>
+          </Pressable>
+        </Card>
+      );
+  }
 }
 
 function ScoreHeader({ m }: { m: Match }) {

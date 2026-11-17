@@ -12,8 +12,18 @@ const STEPS = [
 ];
 const STEP_MS = 1600;
 
+/** Maç öncesi AI için adımlar */
+export const PREVIEW_STEPS = [
+  'İlk 11\'ler ve dizilişler okunuyor…',
+  'Son 5 maç formu ve xG trendi taranıyor…',
+  'Bek ↔ kanat eşleşmeleri hesaplanıyor…',
+  'Eksik oyuncular kontrol ediliyor…',
+  'Kırılma senaryosu kuruluyor…',
+];
+
 /** Aşamalı yükleme animasyonu; son adımda Realtime "completed" sinyalini bekler */
-export function GeneratingLoader() {
+export function GeneratingLoader({ steps = STEPS, title = 'AI taktik analizi hazırlanıyor' }: { steps?: string[]; title?: string } = {}) {
+  const STEPS = steps;
   const [step, setStep] = useState(0);
   const pulse = useRef(new Animated.Value(0)).current;
 
@@ -27,7 +37,7 @@ export function GeneratingLoader() {
       clearInterval(t);
       loop.stop();
     };
-  }, [pulse]);
+  }, [pulse, STEPS.length]);
 
   const scale = pulse.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1.25, 1] });
   const progress = ((step + 1) / STEPS.length) * 100;
@@ -37,7 +47,7 @@ export function GeneratingLoader() {
       <View style={styles.head}>
         <Animated.View style={[styles.orb, { transform: [{ scale }] }]} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>AI taktik analizi hazırlanıyor</Text>
+          <Text style={styles.title}>{title}</Text>
           <Text style={styles.sub}>Bu maç için ilk kez üretiliyor. Hazır olunca otomatik açılacak.</Text>
         </View>
       </View>

@@ -43,6 +43,10 @@ function MatchRowBase({ match: m }: { match: Match }) {
             <View style={{ marginTop: 4 }}>
               <Badge label="AI analiz hazırlanıyor…" color={colors.textMuted} />
             </View>
+          ) : !done && m.preview_status === 'completed' ? (
+            <View style={{ marginTop: 4 }}>
+              <Badge label="✦ Maç Önü AI Hazır" color={colors.pro} />
+            </View>
           ) : null}
         </View>
 

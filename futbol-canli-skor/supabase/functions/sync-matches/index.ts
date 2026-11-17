@@ -1,7 +1,7 @@
 // pg_cron ile çağrılır (bkz. 0002_pipeline.sql):
 //   mode=live     → canlı maçların skor/dakika/olay/istatistikleri + yeni bitenler
 //   mode=schedule → dün/bugün/yarın fikstürü + biten maçların istatistikleri
-import { apiGet, getFixturesByIds, isTracked, lastQuotaRemaining, mapCore, mapDetails, PAID } from '../_shared/apiFootball.ts';
+import { apiGet, getFixturesByIds, isTracked, lastQuotaRemaining, mapCore, mapDetails, mapPlayerMatchRows, PAID } from '../_shared/apiFootball.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 import { buildTeaser } from '../_shared/teaser.ts';
 import { FINISHED, LIVE, type MatchRow } from '../_shared/types.ts';
@@ -66,17 +66,21 @@ async function syncSchedule() {
     if (error) throw error;
     const ids = (missing ?? []).map((r) => r.fixture_id as number);
     if (ids.length) {
-      const details = (await getFixturesByIds(ids, KEY)).map((f) => {
+      const fetched = await getFixturesByIds(ids, KEY);
+      const details = fetched.map((f) => {
         const row: Partial<MatchRow> = { ...mapCore(f), ...mapDetails(f) };
         row.summary_teaser = buildTeaser(row as MatchRow);
         return row;
       });
-      const { error: upErr } = await admin.from('matches').upsert(details, { onConflict: 'fixture_id' });
-      if (upErr) throw upErr;
+      if (details.length) {
+        const { error: upErr } = await admin.from('matches').upsert(details, { onConflict: 'fixture_id' });
+        if (upErr) throw upErr;
+      }
+      await storePlayerRows(fetched);
       enriched = details.length;
     }
   }
-  return { scheduled: count, enriched, skipped };
+  return { scheduled: count, enriched, skipped, quota: lastQuotaRemaining() };
 }
 
 async function syncLive() {
@@ -118,5 +122,19 @@ async function syncLive() {
     const { error: upErr } = await admin.from('matches').upsert(rows, { onConflict: 'fixture_id' });
     if (upErr) throw upErr;
   }
+  // Yalnızca biten maçların oyuncu verisi form hafızasına yazılır (canlı veri eksik olabilir)
+  await storePlayerRows(fixtures.filter((f) => FINISHED.includes(f.fixture?.status?.short)));
   return { live: liveIds.size, finished, quota: lastQuotaRemaining() };
+}
+
+/**
+ * Maç öncesi AI'ın "son 5 maç" formu için tüm oyuncu istatistiklerini saklar (bkz. 0005_prematch.sql).
+ * Veri zaten çekilmiş maç detayından gelir: ek API isteği yoktur.
+ * Tablo henüz kurulmadıysa senkronu bozmaz, yalnızca uyarı loglar.
+ */
+async function storePlayerRows(fixtures: unknown[]) {
+  const rows = fixtures.flatMap((f) => mapPlayerMatchRows(f));
+  if (!rows.length) return;
+  const { error } = await admin.from('player_match_stats').upsert(rows, { onConflict: 'fixture_id,player_id' });
+  if (error) console.warn('[sync-matches] player_match_stats yazılamadı:', error.message);
 }

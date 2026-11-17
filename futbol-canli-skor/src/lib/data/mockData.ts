@@ -164,7 +164,7 @@ export const initialMatches: FootballMock[] = [
     league_name: 'Bundesliga',
     league_country: 'Almanya',
     league_priority: 15,
-    kickoff_at: hoursFromNow(1.5),
+    kickoff_at: hoursFromNow(0.6), // ilk 11 açıklandı: maç öncesi AI denenebilir (≤45 dk kuralı)
     home_team: 'FC Rheinstadt',
     away_team: 'Borussia Nordheim',
     home_score: null,

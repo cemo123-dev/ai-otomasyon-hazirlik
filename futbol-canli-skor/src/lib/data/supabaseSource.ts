@@ -1,12 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { ensureSession } from '../supabase';
-import type { AnalysisRequestResult, AnyTacticalPayload, Match } from '../types';
+import type { AnalysisRequestResult, AnyTacticalPayload, Match, PreviewPayload, PreviewRequestResult } from '../types';
 import type { DataSource } from './types';
 
+// preview_status ve lineups kolonları 0005_prematch.sql ile gelir
 const MATCH_COLUMNS =
   'fixture_id, sport_type, league_name, league_country, league_priority, kickoff_at, home_team, away_team, ' +
   'home_score, away_score, status_short, elapsed_minute, status_detail, period_scores, summary_teaser, ' +
-  'analysis_status, events, stats';
+  'analysis_status, events, stats, preview_status, lineups';
 
 let channelSeq = 0;
 
@@ -76,6 +77,24 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
         .maybeSingle();
       if (error) throw error;
       return (data?.tactical_payload as AnyTacticalPayload | undefined) ?? null;
+    },
+
+    async requestPreview(fixtureId) {
+      if (!(await ensureSession())) return 'unauthenticated';
+      const { data, error } = await sb.rpc('request_match_preview', { p_fixture_id: fixtureId });
+      if (error) throw error;
+      return data as PreviewRequestResult;
+    },
+
+    async getPreview(fixtureId) {
+      // RLS: yalnızca aktif abonelikli kullanıcılar okuyabilir
+      const { data, error } = await sb
+        .from('match_previews')
+        .select('preview_payload')
+        .eq('fixture_id', fixtureId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.preview_payload as PreviewPayload | undefined) ?? null;
     },
 
     async getPremium() {
