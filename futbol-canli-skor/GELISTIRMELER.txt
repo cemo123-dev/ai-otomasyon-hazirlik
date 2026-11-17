@@ -143,6 +143,38 @@ Temel kurallar:
        "5 faul" yerine "4 faul" yazdığı yakalandı).
      - Uygulamada yeni "Oyuncu Etkisi" kartı.
 
+3.12 Maç öncesi AI: "Taktiksel Eşleşme & Kırılma Senaryosu" (0005_prematch.sql)
+     - İlk 11'ler açıklanınca (başlamaya ≤45 dk) Pro kullanıcı isteğiyle
+       maç başına bir kez üretilir (request_match_preview, singleflight).
+     - Kod: dizilişten bek ↔ kanat eşleşmeleri, son 5 maç oyuncu formu
+       (player_match_stats), takım formu / xG trendi, eksik oyuncular.
+     - LLM yalnız kilit eşleşme yorumu, kırılma senaryosu ve izleme listesini
+       yazar; sayılar doğrulanır.
+
+3.13 Canlı devre arası: "Soyunma Odası Reçetesi" (0006_halftime.sql)
+     - Devre arasında ilk yarı verisiyle ~150 kelimelik "İkinci Yarıda Ne
+       Olmalı?" raporu: durum tespiti, iki takım için 2-4 hamle, ikinci
+       yarının kilidi. Maç başına 1 API isteği + 1 Gemini çağrısı.
+     - Tetikleme: (a) sync-matches canlı senkronu maçı HT'de görünce otomatik
+       kuyruğa atar (ücretli planda cron dakikalık → ~1 dk içinde);
+       (b) ücretsiz planda Pro kullanıcı devre arasında AI sekmesini açınca
+       request_halftime_report RPC'si. İkisi de claim_halftime_job kilidini
+       kullanır (singleflight). Fonksiyon gerçek durumu API'den doğrular.
+     - Kod sinyalleri: kırmızı kart, kısır top hakimiyeti (top ≥%60, xG <0,5),
+       xG üstünlüğü skora yansımadı, uzaktan şut ağırlığı.
+     - Push bildirimi: başlık "Devre Arası AI Raporu", gövde koddan üretilir
+       (0 token), ör. "X %65 topla oynadı ama 0.18 xG'de kaldı. İkinci yarıda
+       kilidi açacak hamle uygulamada!". Yalnız maçı takip edenlere gider.
+     - Sıkı doğrulama: hamle metninde sayı yasak; gerekçede yalnız girdideki
+       yüzde ve ondalık değerler (testte uydurma "3 oyuncu / 12 kez" elendi).
+     - Uygulama: maç satırında ve maç ekranında takip zili (🔔), AI
+       sekmesinde devre arası raporu, ücretsiz kullanıcıya tek cümle teaser,
+       "✦ Devre Arası AI Hazır" rozeti, bildirime dokununca maç açılır.
+     - Tablolar: match_halftime_reports (yalnız aboneler), halftime_jobs,
+       match_follows (kullanıcı kendi takibini görür), push_tokens.
+     - Push için development build gerekir (Expo Go Android SDK 53+ uzak
+       bildirimi desteklemez): EAS projectId + Android FCM / iOS APNs.
+
 
 4. DOSYA HARİTASI
 --------------------------------------------------------------------------
@@ -198,4 +230,4 @@ supabase/functions/
 - Gerçek abonelik altyapısı (RevenueCat) ve simulate_subscription'ın
   kaldırılması.
 - Takım adları için Türkçe sözlük.
-- EAS Build ile mağaza sürümü.
+- EAS Build ile mağaza sürümü (devre arası push bildirimi için şart).

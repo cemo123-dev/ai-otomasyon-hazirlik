@@ -1,6 +1,8 @@
 import type {
   AnalysisRequestResult,
   AnyTacticalPayload,
+  HalftimePayload,
+  HalftimeRequestResult,
   Match,
   PreviewPayload,
   PreviewRequestResult,
@@ -23,6 +25,13 @@ export interface DataSource {
   /** Maç öncesi AI: request_match_preview RPC (singleflight) */
   requestPreview(fixtureId: number): Promise<PreviewRequestResult>;
   getPreview(fixtureId: number): Promise<PreviewPayload | null>;
+  /** Canlı devre arası "Soyunma Odası Reçetesi": request_halftime_report RPC */
+  requestHalftime(fixtureId: number): Promise<HalftimeRequestResult>;
+  getHalftime(fixtureId: number): Promise<HalftimePayload | null>;
+  /** Maç takibi: devre arası bildirimi yalnız takip edenlere gider. Dönüş: yeni durum */
+  toggleFollow(fixtureId: number): Promise<boolean>;
+  listFollowedIds(): Promise<number[]>;
+  registerPushToken(token: string, platform: string): Promise<void>;
   getPremium(): Promise<boolean>;
   /** YALNIZCA TEST: gerçek ödeme entegrasyonu (RevenueCat / IAP) gelene kadar */
   simulateSubscription(plan: SubscriptionPlan | null): Promise<boolean>;

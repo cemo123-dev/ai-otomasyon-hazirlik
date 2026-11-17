@@ -1,4 +1,5 @@
-import { isFinished, type AnyTacticalPayload, type Match, type MatchEvent, type PreviewPayload } from '../types';
+import { isFinished, type AnyTacticalPayload, type HalftimePayload, type Match, type MatchEvent, type PreviewPayload } from '../types';
+import { buildMockHalftime } from './halftimeMockData';
 import { PREVIEW_MOCK_ID, previewMockPayload } from './previewMockData';
 import {
   buildFallbackPayload,
@@ -26,6 +27,8 @@ const allMatches: Match[] = [
     period_scores: null,
     status_detail: null,
     preview_status: 'none' as const,
+    halftime_status: 'none' as const,
+    halftime_teaser: null,
   })),
   ...nbaMatches,
 ];
@@ -42,6 +45,8 @@ export function createMockSource(): DataSource {
   const matches = new Map<number, Match>(allMatches.map((m) => [m.fixture_id, structuredClone(m)]));
   const analyses = new Map<number, AnyTacticalPayload>([[9004, lombardiaPayload]]);
   const previews = new Map<number, PreviewPayload>();
+  const halftimes = new Map<number, HalftimePayload>();
+  const follows = new Set<number>();
   const listeners = new Set<(m: Match) => void>();
   let premium = false;
   let timer: ReturnType<typeof setInterval> | null = null;
@@ -55,6 +60,18 @@ export function createMockSource(): DataSource {
     const next = { ...cur, ...patch };
     matches.set(id, next);
     emit(next);
+  };
+
+  /** Devre arası raporu (singleflight taklidi); gerçek sistemde takipçilere push da gider */
+  const startHalftime = (id: number) => {
+    const m = matches.get(id);
+    if (!m || m.sport_type !== 'football' || m.halftime_status === 'generating' || m.halftime_status === 'completed') return;
+    update(id, { halftime_status: 'generating' });
+    setTimeout(() => {
+      const report = buildMockHalftime(matches.get(id)!);
+      halftimes.set(id, report);
+      update(id, { halftime_status: 'completed', halftime_teaser: report.teaser });
+    }, GENERATION_MS);
   };
 
   const tickNba = (m: Match) => {
@@ -100,13 +117,15 @@ export function createMockSource(): DataSource {
       if (m.status_short === 'HT') {
         const t = (htTicks.get(m.fixture_id) ?? 0) + 1;
         htTicks.set(m.fixture_id, t);
-        if (t >= 3) update(m.fixture_id, { status_short: '2H', elapsed_minute: 46 });
+        // Devre arası önizlemede ~40 sn sürer (raporu görecek kadar)
+        if (t >= 10) update(m.fixture_id, { status_short: '2H', elapsed_minute: 46 });
         continue;
       }
       if (m.status_short !== '1H' && m.status_short !== '2H') continue;
       const minute = (m.elapsed_minute ?? 0) + 1;
       if (m.status_short === '1H' && minute > 45) {
         update(m.fixture_id, { status_short: 'HT', elapsed_minute: 45 });
+        startHalftime(m.fixture_id); // sync-matches'teki otomatik HT tespitinin taklidi
         continue;
       }
       if (m.status_short === '2H' && minute > 90) {
@@ -218,6 +237,39 @@ export function createMockSource(): DataSource {
     async getPreview(id) {
       if (!premium) return null; // RLS taklidi
       return previews.get(id) ?? null;
+    },
+
+    // request_halftime_report kurallarının taklidi
+    async requestHalftime(id) {
+      const m = matches.get(id);
+      if (!m) return 'not_found';
+      if (m.sport_type !== 'football') return 'not_supported';
+      if (m.halftime_status === 'completed' || m.halftime_status === 'generating') {
+        return premium ? (m.halftime_status as 'completed' | 'generating') : 'paywall_blocked';
+      }
+      if (m.status_short !== 'HT') return 'not_halftime';
+      if (!premium) return 'paywall_blocked';
+      startHalftime(id);
+      return 'generating';
+    },
+
+    async getHalftime(id) {
+      if (!premium) return null; // RLS taklidi
+      return halftimes.get(id) ?? null;
+    },
+
+    async toggleFollow(id) {
+      if (follows.has(id)) follows.delete(id);
+      else follows.add(id);
+      return follows.has(id);
+    },
+
+    async listFollowedIds() {
+      return [...follows];
+    },
+
+    async registerPushToken() {
+      // Önizlemede push yok
     },
 
     async getPremium() {

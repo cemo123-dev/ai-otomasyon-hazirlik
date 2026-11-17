@@ -1,7 +1,17 @@
 // pg_cron ile çağrılır (bkz. 0002_pipeline.sql):
 //   mode=live     → canlı maçların skor/dakika/olay/istatistikleri + yeni bitenler
 //   mode=schedule → dün/bugün/yarın fikstürü + biten maçların istatistikleri
-import { apiGet, getFixturesByIds, isTracked, lastQuotaRemaining, mapCore, mapDetails, mapPlayerMatchRows, PAID } from '../_shared/apiFootball.ts';
+import {
+  apiGet,
+  getFixturesByIds,
+  hasQuotaForOptional,
+  isTracked,
+  lastQuotaRemaining,
+  mapCore,
+  mapDetails,
+  mapPlayerMatchRows,
+  PAID,
+} from '../_shared/apiFootball.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 import { buildTeaser } from '../_shared/teaser.ts';
 import { FINISHED, LIVE, type MatchRow } from '../_shared/types.ts';
@@ -93,6 +103,19 @@ async function syncLive() {
     if (coreErr) throw coreErr;
   }
 
+  // 1b) Devre arası tespiti → "Soyunma Odası Reçetesi" otomatik kuyruğa (singleflight; her rapor 1 istek).
+  //     Ücretli planda cron dakikalık olduğundan HT ~1 dk içinde yakalanır.
+  let halftimeQueued = 0;
+  for (const r of coreRows.filter((x) => x.status_short === 'HT')) {
+    if (!hasQuotaForOptional()) break;
+    const { data: claimed, error: cErr } = await admin.rpc('claim_halftime_job', { p_fixture_id: r.fixture_id });
+    if (cErr) {
+      console.warn('[sync-matches] claim_halftime_job:', cErr.message); // 0006 kurulmadıysa senkronu bozmaz
+      break;
+    }
+    if (claimed) halftimeQueued++;
+  }
+
   // 2) DB'de hâlâ canlı görünen ama listeden düşen FUTBOL maçları = yeni bitenler
   //    (sport_type filtresi şart: aksi halde canlı NBA maçları futbol API'sine sorulur)
   const { data: dbLive, error } = await admin
@@ -106,7 +129,7 @@ async function syncLive() {
   // 3) Detaylar (olay, istatistik, kadro). Ücretsiz planda kotayı korumak için yalnızca
   //    yeni biten maçlar; ücretli planda canlı maçlar da (20 maç = 1 istek).
   const ids = PAID ? [...new Set([...liveIds, ...gone])] : gone;
-  if (!ids.length) return { live: liveIds.size, finished: 0, quota: lastQuotaRemaining() };
+  if (!ids.length) return { live: liveIds.size, finished: 0, halftime_queued: halftimeQueued, quota: lastQuotaRemaining() };
   const fixtures = await getFixturesByIds(ids, KEY);
   let finished = 0;
   const rows: Partial<MatchRow>[] = fixtures.map((f) => {
@@ -124,7 +147,7 @@ async function syncLive() {
   }
   // Yalnızca biten maçların oyuncu verisi form hafızasına yazılır (canlı veri eksik olabilir)
   await storePlayerRows(fixtures.filter((f) => FINISHED.includes(f.fixture?.status?.short)));
-  return { live: liveIds.size, finished, quota: lastQuotaRemaining() };
+  return { live: liveIds.size, finished, halftime_queued: halftimeQueued, quota: lastQuotaRemaining() };
 }
 
 /**

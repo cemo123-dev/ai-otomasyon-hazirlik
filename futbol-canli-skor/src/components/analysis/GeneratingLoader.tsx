@@ -21,6 +21,13 @@ export const PREVIEW_STEPS = [
   'Kırılma senaryosu kuruluyor…',
 ];
 
+export const HALFTIME_STEPS = [
+  'İlk yarı istatistikleri alınıyor…',
+  'Topla oynama ve xG dengesi okunuyor…',
+  'Şut kalitesi ve kritik olaylar taranıyor…',
+  'İkinci yarı reçetesi yazılıyor…',
+];
+
 /** Aşamalı yükleme animasyonu; son adımda Realtime "completed" sinyalini bekler */
 export function GeneratingLoader({ steps = STEPS, title = 'AI taktik analizi hazırlanıyor' }: { steps?: string[]; title?: string } = {}) {
   const STEPS = steps;

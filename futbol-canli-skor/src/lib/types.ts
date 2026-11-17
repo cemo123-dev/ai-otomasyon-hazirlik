@@ -55,6 +55,10 @@ export type Match = {
   /** Maç öncesi AI (bkz. 0005_prematch.sql) */
   preview_status?: AnalysisStatus;
   lineups?: PreviewPayload['lineups'] | null;
+  /** Canlı devre arası raporu (bkz. 0006_halftime.sql) */
+  halftime_status?: AnalysisStatus;
+  /** Ücretsiz tek cümle (push metniyle aynı) */
+  halftime_teaser?: string | null;
 };
 
 export type ShotQualityVerdict =
@@ -305,6 +309,52 @@ export type PreviewRequestResult =
   | 'not_supported'
   | 'not_prematch'
   | 'too_early'
+  | 'paywall_blocked'
+  | 'completed'
+  | 'generating'
+  | 'failed';
+
+// ═══════════════════════════════════════════════ DEVRE ARASI "SOYUNMA ODASI REÇETESİ"
+// Sunucudaki supabase/functions/_shared/halftime.ts ile aynı sözleşme
+
+export type HalfStats = {
+  possession: number | null;
+  xg: number | null;
+  shots: number;
+  on_target: number;
+  inside_box: number;
+  outside_box: number;
+  corners: number;
+  fouls: number;
+  pass_pct: number | null;
+};
+
+export type HalftimeSignal =
+  | { kind: 'red_card'; side: 'home' | 'away'; minute: number; player: string }
+  | { kind: 'sterile_possession'; side: 'home' | 'away'; possession: number; xg: number }
+  | { kind: 'xg_score_mismatch'; side: 'home' | 'away'; xg: number; opp_xg: number }
+  | { kind: 'long_range'; side: 'home' | 'away'; outside: number; shots: number };
+
+export type HalftimePayload = {
+  kind: 'halftime';
+  headline: string;
+  situation: string;
+  prescriptions: { side: 'home' | 'away'; move: string; why: string }[];
+  key: string;
+  score: { home: number; away: number };
+  formations: Record<'home' | 'away', string | null>;
+  first_half: Record<'home' | 'away', HalfStats>;
+  events: { minute: number; side: 'home' | 'away'; type: 'goal' | 'red_card' | 'substitution'; player: string; detail?: string | null }[];
+  signals: HalftimeSignal[];
+  teaser: string;
+  generated_at: string;
+};
+
+export type HalftimeRequestResult =
+  | 'unauthenticated'
+  | 'not_found'
+  | 'not_supported'
+  | 'not_halftime'
   | 'paywall_blocked'
   | 'completed'
   | 'generating'

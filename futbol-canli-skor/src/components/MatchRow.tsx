@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useFollows } from '@/hooks/useFollows';
 import { isFinished, isLive, type Match } from '@/lib/types';
 import { colors, space } from '@/theme';
 import { QuarterTable } from './nba/QuarterTable';
@@ -8,6 +9,23 @@ import { Badge, LiveMinute } from './ui';
 
 const kickoffTime = (iso: string) =>
   new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+
+/** Zil: maçı takip et → devre arası AI bildirimi (yalnız futbol, bitmemiş maç) */
+function FollowBell({ fixtureId }: { fixtureId: number }) {
+  const { followed, toggle } = useFollows();
+  const on = followed.has(fixtureId);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={on ? 'Maç takibini bırak' : 'Maçı takip et'}
+      hitSlop={10}
+      onPress={() => toggle(fixtureId).catch(() => {})}
+      style={styles.bell}
+    >
+      <Text style={[styles.bellIcon, !on && styles.bellOff]}>{on ? '🔔' : '🔕'}</Text>
+    </Pressable>
+  );
+}
 
 function MatchRowBase({ match: m }: { match: Match }) {
   const live = isLive(m.status_short);
@@ -43,6 +61,10 @@ function MatchRowBase({ match: m }: { match: Match }) {
             <View style={{ marginTop: 4 }}>
               <Badge label="AI analiz hazırlanıyor…" color={colors.textMuted} />
             </View>
+          ) : live && m.halftime_status === 'completed' ? (
+            <View style={{ marginTop: 4 }}>
+              <Badge label="✦ Devre Arası AI Hazır" color={colors.pro} />
+            </View>
           ) : !done && m.preview_status === 'completed' ? (
             <View style={{ marginTop: 4 }}>
               <Badge label="✦ Maç Önü AI Hazır" color={colors.pro} />
@@ -54,6 +76,7 @@ function MatchRowBase({ match: m }: { match: Match }) {
           <Text style={[styles.score, live && { color: colors.live }, awayWin && styles.loser]}>{m.home_score ?? '–'}</Text>
           <Text style={[styles.score, live && { color: colors.live }, homeWin && styles.loser]}>{m.away_score ?? '–'}</Text>
         </View>
+        {!nba && !done ? <FollowBell fixtureId={m.fixture_id} /> : null}
     </Pressable>
   );
 }
@@ -76,5 +99,8 @@ const styles = StyleSheet.create({
   team: { color: colors.text, fontSize: 15, fontWeight: '600' },
   loser: { color: colors.textMuted, fontWeight: '500' },
   scores: { alignItems: 'flex-end', gap: 4, minWidth: 22 },
+  bell: { paddingLeft: space(1) },
+  bellIcon: { fontSize: 16 },
+  bellOff: { opacity: 0.45 },
   score: { color: colors.text, fontSize: 15, fontWeight: '800', fontVariant: ['tabular-nums'] },
 });

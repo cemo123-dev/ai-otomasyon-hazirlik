@@ -2,7 +2,8 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AnalysisReport } from '@/components/analysis/AnalysisCards';
-import { GeneratingLoader, PREVIEW_STEPS } from '@/components/analysis/GeneratingLoader';
+import { GeneratingLoader, HALFTIME_STEPS, PREVIEW_STEPS } from '@/components/analysis/GeneratingLoader';
+import { HalftimeLocked, HalftimeReport } from '@/components/halftime/HalftimeCards';
 import { PaywallGate } from '@/components/analysis/PaywallGate';
 import { StatsBars } from '@/components/match/StatsBars';
 import { Timeline } from '@/components/match/Timeline';
@@ -13,6 +14,8 @@ import { PreviewLocked, PreviewReport, PreviewTooEarly } from '@/components/prev
 import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { Badge, Card, CardTitle, LiveMinute } from '@/components/ui';
 import { useAnalysis } from '@/hooks/useAnalysis';
+import { useFollows } from '@/hooks/useFollows';
+import { useHalftime, type HalftimeState } from '@/hooks/useHalftime';
 import { useMatch } from '@/hooks/useMatch';
 import { usePreview, type PreviewState } from '@/hooks/usePreview';
 import { getNbaStats, isFinished, isLive, isNbaPayload, type Match } from '@/lib/types';
@@ -31,9 +34,15 @@ export default function MatchDetailScreen() {
   const { match, loading } = useMatch(fixtureId);
   const [tab, setTab] = useState<TabKey>('summary');
   // Futbolda maç bitene kadar AI sekmesi "maç önü" analizini, bittikten sonra maç sonu analizini gösterir
-  const previewMode = match?.sport_type === 'football' && !isFinished(match.status_short);
-  const { state, retry } = useAnalysis(match, tab === 'ai' && !previewMode);
+  // Devre arasında (ve rapor hazırsa ikinci yarı boyunca) AI sekmesi "Soyunma Odası Reçetesi"ni gösterir
+  const halftimeMode =
+    match?.sport_type === 'football' &&
+    isLive(match.status_short) &&
+    (match.status_short === 'HT' || match.halftime_status === 'completed' || match.halftime_status === 'generating');
+  const previewMode = match?.sport_type === 'football' && !isFinished(match.status_short) && !halftimeMode;
+  const { state, retry } = useAnalysis(match, tab === 'ai' && !previewMode && !halftimeMode);
   const preview = usePreview(match, tab === 'ai' && previewMode);
+  const halftime = useHalftime(match, tab === 'ai' && halftimeMode);
 
   if (loading) return <ActivityIndicator color={colors.live} style={{ flex: 1, backgroundColor: colors.bg }} />;
   if (!match) return <Text style={styles.empty}>Maç bulunamadı.</Text>;
@@ -44,11 +53,14 @@ export default function MatchDetailScreen() {
       <Stack.Screen options={{ title: match.league_name }} />
       <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={styles.content}>
         <ScoreHeader m={match} />
+        {!nba && !isFinished(match.status_short) ? <FollowBar fixtureId={match.fixture_id} /> : null}
         <SegmentedTabs items={TABS} value={tab} onChange={setTab} />
 
         {tab === 'summary' ? nba ? <NbaSummary match={match} /> : <Timeline match={match} /> : null}
         {tab === 'stats' ? nba ? <NbaStatsBars match={match} /> : <StatsBars match={match} /> : null}
-        {tab === 'ai' && previewMode ? (
+        {tab === 'ai' && halftimeMode ? (
+          <HalftimeSection state={halftime.state} retry={halftime.retry} match={match} />
+        ) : tab === 'ai' && previewMode ? (
           <PreviewSection state={preview.state} retry={preview.retry} match={match} />
         ) : tab === 'ai' ? (
           state.kind === 'idle' || state.kind === 'loading' ? (
@@ -118,6 +130,57 @@ function PreviewSection({ state, retry, match }: { state: PreviewState; retry: (
         </Card>
       );
   }
+}
+
+/** Canlı devre arası "Soyunma Odası Reçetesi" durumları */
+function HalftimeSection({ state, retry, match }: { state: HalftimeState; retry: () => void; match: Match }) {
+  switch (state.kind) {
+    case 'idle':
+    case 'loading':
+      return <ActivityIndicator color={colors.pro} style={{ marginTop: space(8) }} />;
+    case 'paywall':
+      return <HalftimeLocked match={match} />;
+    case 'generating':
+      return <GeneratingLoader steps={HALFTIME_STEPS} title="Devre arası raporu hazırlanıyor" />;
+    case 'completed':
+      return <HalftimeReport p={state.payload} match={match} />;
+    case 'not_halftime':
+      return (
+        <Card>
+          <Text style={styles.cardTitle}>Rapor devre arasında hazırlanır</Text>
+          <Text style={styles.muted}>Hakem ilk yarıyı bitirince ilk yarı verisiyle ikinci yarı reçetesi üretilir.</Text>
+        </Card>
+      );
+    default:
+      return (
+        <Card>
+          <Text style={styles.cardTitle}>{state.message}</Text>
+          <Pressable onPress={retry} style={styles.retry}>
+            <Text style={styles.retryText}>Tekrar dene</Text>
+          </Pressable>
+        </Card>
+      );
+  }
+}
+
+/** Takip: devre arası AI bildirimi yalnız takip edilen maçlar için gönderilir */
+function FollowBar({ fixtureId }: { fixtureId: number }) {
+  const { followed, toggle, pushNotice } = useFollows();
+  const on = followed.has(fixtureId);
+  return (
+    <View style={{ gap: space(1.5) }}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => toggle(fixtureId).catch(() => {})}
+        style={({ pressed }) => [styles.follow, on && styles.followOn, pressed && { opacity: 0.85 }]}
+      >
+        <Text style={[styles.followText, on && { color: colors.pro }]}>
+          {on ? '🔔 Takip ediliyor · devre arası raporu bildirilecek' : '🔕 Maçı takip et · devre arası AI bildirimi al'}
+        </Text>
+      </Pressable>
+      {on && pushNotice ? <Text style={styles.notice}>{pushNotice}</Text> : null}
+    </View>
+  );
 }
 
 function ScoreHeader({ m }: { m: Match }) {
@@ -196,4 +259,8 @@ const styles = StyleSheet.create({
   cardTitle: { color: colors.text, fontWeight: '800', fontSize: 16 },
   retry: { alignSelf: 'flex-start', backgroundColor: colors.surfaceAlt, borderRadius: radius.sm, paddingHorizontal: space(4), paddingVertical: space(2) },
   retryText: { color: colors.text, fontWeight: '700' },
+  follow: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingVertical: space(2.5), paddingHorizontal: space(3), backgroundColor: colors.surface },
+  followOn: { borderColor: colors.pro, backgroundColor: colors.proGlow },
+  followText: { color: colors.textMuted, fontWeight: '700', fontSize: 13, textAlign: 'center' },
+  notice: { color: colors.textDim, fontSize: 11, lineHeight: 15, textAlign: 'center' },
 });

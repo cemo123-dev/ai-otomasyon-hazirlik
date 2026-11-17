@@ -1,13 +1,20 @@
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { FollowsProvider } from '@/hooks/useFollows';
 import { PremiumProvider } from '@/hooks/usePremium';
+import { onNotificationOpen } from '@/lib/notifications';
 import { colors } from '@/theme';
 
 export default function RootLayout() {
+  // Devre arası bildirimine dokununca maç ekranı açılır
+  useEffect(() => onNotificationOpen((id) => router.push(`/match/${id}`)), []);
+
   return (
     <SafeAreaProvider>
       <PremiumProvider>
+        <FollowsProvider>
         <StatusBar style="light" />
         <Stack
           screenOptions={{
@@ -22,6 +29,7 @@ export default function RootLayout() {
           <Stack.Screen name="match/[id]" options={{ title: '' }} />
           <Stack.Screen name="paywall" options={{ presentation: 'modal', title: 'Skor+ Pro' }} />
         </Stack>
+        </FollowsProvider>
       </PremiumProvider>
     </SafeAreaProvider>
   );
