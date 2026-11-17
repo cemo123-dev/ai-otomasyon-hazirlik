@@ -175,29 +175,58 @@ Temel kurallar:
      - Push için development build gerekir (Expo Go Android SDK 53+ uzak
        bildirimi desteklemez): EAS projectId + Android FCM / iOS APNs.
 
+3.14 Android development build ve push bildirimi kurulumu
+     - expo-dev-client eklendi; eas.json profilleri: development (dev client,
+       .apk), preview (dahili .apk), production.
+     - app.json: android.package = com.skorplus.app, googleServicesFile,
+       EAS projectId (eas init ile, hesap: cemo123).
+     - Firebase projesi com-skorplus-app (Spark, ücretsiz); Android uygulaması
+       com.skorplus.app; google-services.json proje kökünde (commit edilebilir).
+     - FCM V1 service account anahtarı "eas credentials" ile EAS'e yüklendi;
+       anahtar dosyası .gitignore ile dışlandı (asla commit edilmez).
+     - "eas build -p android --profile development" ile bulut build alındı
+       (Free plan: aylık sınırlı düşük öncelikli build, aşım ücreti yok).
+     - Telefonda Metro'ya bağlanma: dev client'ta "IP:8081" (http:// alanı
+       zaten dolu) veya skorplus://expo-development-client/?url=... QR kodu.
+     - Uçtan uca doğrulandı: zil → izin → push_tokens kaydı → Expo push →
+       FCM → telefonda bildirim, Türkçe karakterler düzgün.
+     - Not: Windows komut satırından elle gönderilen test bildiriminde
+       Türkçe karakterler bozuldu (yerel kod sayfası); Edge Function UTF-8
+       gönderdiği için gerçek bildirimler etkilenmez.
+
 
 4. DOSYA HARİTASI
 --------------------------------------------------------------------------
 src/app/                       Ekranlar (liste, maç detayı, paywall)
 src/components/                Ortak bileşenler, analiz kartları
 src/components/nba/            Çeyrek tablosu, NBA istatistik ve AI kartları
-src/hooks/                     useMatches, useMatch, useAnalysis, usePremium
+src/hooks/                     useMatches, useMatch, useAnalysis, usePremium,
+                               usePreview, useHalftime, useFollows
+src/components/preview/        Maç önü AI kartları
+src/components/halftime/       Devre arası rapor kartları
+src/lib/notifications.ts       Push izni, Expo token kaydı, bildirime dokunma
 src/lib/supabase.ts            Supabase istemcisi, önizleme modu
 src/lib/data/                  DataSource (Supabase + mock), örnek veriler
-supabase/migrations/           0001_init, 0002_pipeline, 0003_nba, 0004_quota
+supabase/migrations/           0001_init, 0002_pipeline, 0003_nba, 0004_quota,
+                               0005_prematch, 0006_halftime
 supabase/setup_dashboard.sql   0001+0002 tek parça (SQL Editor için)
 supabase/functions/
   sync-matches/                Futbol senkronu
   sync-nba/                    NBA senkronu
   generate-analysis/           Gemini analizi (futbol + NBA)
+  generate-preview/            Maç önü AI
+  generate-halftime/           Devre arası raporu + push
   _shared/                     apiFootball, nbaApi, nbaMetrics, nbaAnalysis,
-                               analysis, gemini, teaser, supabaseAdmin
+                               analysis, preview, halftime, push, gemini,
+                               teaser, supabaseAdmin
+eas.json                       EAS Build profilleri
+google-services.json           Firebase (Android FCM) yapılandırması
 
 
 5. KURULUM ÖZETİ
 --------------------------------------------------------------------------
 1) Supabase SQL Editor'de sırayla: setup_dashboard.sql (veya 0001 + 0002),
-   0003_nba.sql, 0004_quota.sql.
+   0003_nba.sql, 0004_quota.sql, 0005_prematch.sql, 0006_halftime.sql.
 2) Authentication → Allow anonymous sign-ins: AÇIK (Save changes).
 3) Edge Functions → Secrets: API_FOOTBALL_KEY, GEMINI_API_KEY.
    İsteğe bağlı: GEMINI_MODEL, API_FOOTBALL_PAID=1 (ücretli plan),
@@ -205,6 +234,10 @@ supabase/functions/
 4) Uygulama: .env içinde EXPO_PUBLIC_SUPABASE_URL ve
    EXPO_PUBLIC_SUPABASE_ANON_KEY; ardından "npx expo start".
    .env yoksa uygulama önizleme (örnek veri) modunda açılır.
+5) Push bildirimi (Android): eas login → eas init → Firebase'den
+   google-services.json → service account anahtarını "eas credentials"
+   ile yükle → eas build -p android --profile development → .apk'yı
+   telefona kur → npx expo start ile bağlan.
 
 
 6. BİLİNEN SINIRLAMALAR
@@ -230,4 +263,5 @@ supabase/functions/
 - Gerçek abonelik altyapısı (RevenueCat) ve simulate_subscription'ın
   kaldırılması.
 - Takım adları için Türkçe sözlük.
-- EAS Build ile mağaza sürümü (devre arası push bildirimi için şart).
+- EAS Build ile mağaza (production) sürümü; iOS için Apple Developer
+  hesabı ve APNs anahtarı.
