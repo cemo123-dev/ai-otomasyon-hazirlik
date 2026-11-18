@@ -29,5 +29,24 @@ await p.getByText('✦ Canlı taktik analizi gör').click();
 await p.getByText('İskoçya 10 Kişi: Kanatlar Açıldı').waitFor({ timeout: 10000 }); console.log('Pro analiz: OK');
 await p.waitForTimeout(300);
 await p.screenshot({ path: OUT + 'a3-analiz.png', fullPage: true });
+// 0018: Pro futbol + ücretsiz NBA (?paid=1&nbapaid=0): baskı / kırmızı kart açık, NBA seri alarmı "yakında"
+{
+  const q = await b.newPage({ viewport: { width: 390, height: 844 } });
+  q.on('pageerror', (e) => errs.push('PAGEERROR ' + e.message));
+  await q.goto(`${BASE}/settings?paid=1&nbapaid=0`, { timeout: 180000 });
+  await q.getByText('🚨 Baskı Alarmı').waitFor({ timeout: 60000 });
+  if (await q.getByRole('switch', { name: '🚨 Baskı Alarmı' }).isDisabled()) throw new Error('Pro futbolda baskı alarmı kapalı');
+  if (await q.getByRole('switch', { name: '⚡ Kırmızı Kart Kırılması' }).isDisabled()) throw new Error('Pro futbolda kırmızı kart kapalı');
+  const nba = q.getByRole('switch', { name: '🔥 NBA Seri Alarmı (yakında)' });
+  await nba.waitFor({ timeout: 5000 });
+  if (!(await nba.isDisabled())) throw new Error('ücretsiz NBA seri alarmı açılabilir görünüyor');
+  console.log('?paid=1&nbapaid=0: futbol alarmları açık, NBA seri alarmı yakında: OK');
+  // ?paid=0: üçü de yakında
+  await q.goto(`${BASE}/settings?paid=0`, { timeout: 180000 });
+  await q.getByRole('switch', { name: '🚨 Baskı Alarmı (yakında)' }).waitFor({ timeout: 60000 });
+  await q.getByRole('switch', { name: '🔥 NBA Seri Alarmı (yakında)' }).waitFor({ timeout: 5000 });
+  console.log('?paid=0: alarmlar yakında: OK');
+  await q.close();
+}
 // NBA seri alarmı: nba_ui.mjs
 console.log('hatalar:', errs.length ? errs : 'yok'); await b.close(); if (errs.length) process.exit(1);

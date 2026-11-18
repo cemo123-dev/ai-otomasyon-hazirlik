@@ -3,10 +3,11 @@
 //   mode=schedule → günde 1 kez dün/bugün/yarın fikstürü
 // Her iki modda da biten ve istatistiği olmayan maçlar için kutu skoru çekilip
 // ön-hesaplama motoru (nbaMetrics.ts) çalıştırılır; teaser şablonla yazılır (0 token).
-// Kota API-Football ile ortaktır: isteğe bağlı çekimler kota bekçisine (hasNbaQuota) tabidir.
+// API-NBA kotası futboldan ayrıdır (her biri 100/gün): isteğe bağlı çekimler NBA'in kendi kota bekçisine (hasNbaQuota) tabidir.
 import { buildNbaTeaser, pickTopPlayers, type NbaMatchRow } from '../_shared/nbaAnalysis.ts';
-import { hasNbaQuota, lastNbaQuota, mapGame, mapPlayers, mapTeamBoxes, nbaGet, toGameId } from '../_shared/nbaApi.ts';
+import { hasNbaQuota, lastNbaQuota, mapGame, mapPlayers, mapTeamBoxes, NBA_PAID, nbaGet, toGameId } from '../_shared/nbaApi.ts';
 import { boxScoreToStore, isMissingBoxColumn } from '../_shared/nbaBox.ts';
+import { DEFAULT_RESERVES, envNumber } from '../_shared/quota.ts';
 import { mirrorNbaLogos, withMirroredLogos } from '../_shared/logoMirror.ts';
 import { computeNbaMetrics, type NbaPlayerLine } from '../_shared/nbaMetrics.ts';
 import { runNbaAlerts } from '../_shared/alertStore.ts';
@@ -14,14 +15,17 @@ import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 import { followTeamFixtures, notifyKickoffs } from '../_shared/teamEvents.ts';
 
 const KEY = Deno.env.get('API_FOOTBALL_KEY')!; // api-sports anahtarı NBA için de geçerli
-/** Seri alarmı dakikalık skor görüntüsü ister: yalnız ücretli planda (dakikalık cron) */
-const PAID = Deno.env.get('API_FOOTBALL_PAID') === '1';
+/**
+ * Seri alarmı dakikalık skor görüntüsü ister: yalnız API_NBA_PAID=1 (NBA'in kendi planı; futbol
+ * bayrağı API_FOOTBALL_PAID burada okunmaz — Pro futbol NBA kota bekçisini kapatmasın, bkz. paidFlags.ts)
+ */
+const PAID = NBA_PAID;
 /** Tek çalıştırmada kutu skoru çekilecek en fazla maç (maç başına 2 istek) */
 const MAX_ENRICH = Number(Deno.env.get('NBA_MAX_ENRICH') ?? 3);
 /** Tek çalıştırmada box score'u geri doldurulacak en fazla maç (maç başına 1 istek) */
 const MAX_BOX_BACKFILL = Number(Deno.env.get('NBA_MAX_BOX_BACKFILL') ?? 3);
-/** Geri doldurma isteğe bağlı: NBA_QUOTA_RESERVE'e ek olarak futbol için bu kadar istek bırakılır */
-const BOX_BACKFILL_RESERVE = Number(Deno.env.get('NBA_BOX_BACKFILL_RESERVE') ?? 20);
+/** Geri doldurma isteğe bağlı: NBA_QUOTA_RESERVE'e ek olarak NBA günlük sabit işleri (fikstür, canlı) için bu kadar istek bırakılır */
+const BOX_BACKFILL_RESERVE = envNumber(Deno.env.get('NBA_BOX_BACKFILL_RESERVE'), DEFAULT_RESERVES.nbaBoxBackfill);
 
 const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
 
@@ -134,7 +138,7 @@ async function enrichFinished() {
   // Bu çalıştırmada oyuncu verisi zaten istenen maçlar geri doldurmada tekrar istenmez
   const tried = new Set<number>();
   for (const m of data ?? []) {
-    // Her maç 2 istek ister; ortak kota rezervinin altına inilecekse dur
+    // Her maç 2 istek ister; NBA kota rezervinin altına inilecekse dur
     if (!hasNbaQuota(2)) {
       console.warn('[sync-nba] kota rezervi korunuyor; kalan maç istatistikleri sonraki çalıştırmaya kaldı');
       break;
@@ -194,8 +198,8 @@ async function storeBoxScore(fixtureId: number, players: NbaPlayerLine[], markEm
 
 /**
  * Önceden işlenmiş (istatistiği olan) ama box score'u olmayan son 3 günün maçları:
- * yalnız oyuncu istatistiği çekilir (maç başına 1 istek). Kota bekçisi futbol için geniş pay bırakır
- * (BOX_BACKFILL_RESERVE); boş yanıt [] ile işaretlenir ve sayaca katılmaz.
+ * yalnız oyuncu istatistiği çekilir (maç başına 1 istek). Kota bekçisi NBA'in kendi sabit işleri için
+ * küçük bir pay bırakır (BOX_BACKFILL_RESERVE); boş yanıt [] ile işaretlenir ve sayaca katılmaz.
  */
 async function backfillBoxScores(limit: number, skip: Set<number>): Promise<number> {
   if (limit <= 0) return 0;

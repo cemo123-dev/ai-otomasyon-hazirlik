@@ -5,7 +5,7 @@
 --   NBA canlı     : TSİ 02:00-09:30, 30 dk'da bir           ~16 + biten maç kutu skorları
 --   NBA fikstür   : günde 1 (TSİ 23:00)                     ~3
 -- Edge Function'lardaki kota bekçisi ayrıca futbolun gece NBA için 45 istek bırakmasını sağlar.
--- Ücretli plana geçince: API_FOOTBALL_PAID=1 secret'ı + daha sık zamanlama.
+-- Ücretli geçiş: yalnız 0018 prosedürü (docs/ucretli-gecis.md; 0019 gerekir); nba-sync-live'a dokunmayın.
 
 select cron.unschedule(jobid) from cron.job
  where jobname in ('skor-sync-live', 'skor-sync-schedule', 'nba-sync-live', 'nba-sync-schedule');

@@ -6,7 +6,7 @@
 --   nba_run  : NBA seri alarmı (rakip sayı bulamadan 12+ sayılık seri)
 --   red_card : kırmızı kart kırılması (+ Gemini ile kısa canlı taktik analiz, Pro)
 -- Tespit sync-matches / sync-nba içinde dakikalık anlık görüntülerle yapılır
--- (ÜCRETLİ API PLANI: API_FOOTBALL_PAID=1 + dakikalık cron; aşağıdaki nota bakın).
+-- (ÜCRETLİ API PLANI; aşağıdaki nota bakın).
 
 -- ─────────────────────────────────────────────── anlık görüntüler (yalnız service_role)
 create table if not exists public.match_snapshots (
@@ -120,8 +120,4 @@ revoke execute on function public.set_notification_prefs(boolean, boolean, boole
 grant execute on function public.set_notification_prefs(boolean, boolean, boolean, boolean) to authenticated;
 
 -- ─────────────────────────────────────────────── NOT: ücretli planda dakikalık senkron
--- API_FOOTBALL_PAID=1 secret'ını ekledikten sonra canlı senkronları dakikalık yapın:
---   select cron.alter_job((select jobid from cron.job where jobname = 'skor-sync-live'),
---                         schedule := '* 12-22 * * *');
---   select cron.alter_job((select jobid from cron.job where jobname = 'nba-sync-live'),
---                         schedule := '* 23,0-6 * * *');
+-- Ücretli geçiş: yalnız 0018 prosedürü (docs/ucretli-gecis.md; 0019 gerekir); nba-sync-live'a dokunmayın.

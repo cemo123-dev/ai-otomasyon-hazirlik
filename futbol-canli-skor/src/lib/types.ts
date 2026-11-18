@@ -156,6 +156,8 @@ export type TacticalPayload = {
 
 export type AnalysisRequestResult =
   | 'paywall_blocked'
+  /** 0015: istatistik henüz yok (deneme sayılmaz) */
+  | 'not_ready'
   | 'generating'
   | 'completed'
   | 'not_finished'
@@ -165,11 +167,8 @@ export type AnalysisRequestResult =
 
 export type SubscriptionPlan = 'monthly' | 'yearly';
 
-export const LIVE_STATUSES = ['1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT'] as const;
-export const FINISHED_STATUSES = ['FT', 'AET', 'PEN'] as const;
-
-export const isLive = (s: string) => (LIVE_STATUSES as readonly string[]).includes(s);
-export const isFinished = (s: string) => (FINISHED_STATUSES as readonly string[]).includes(s);
+// Durum kodları saf modülde (Deno testleri); SUSP sunucuyla tutarlı olarak canlı sayılır
+export { FINISHED_STATUSES, isFinished, isLive, isOff, LIVE_STATUSES, liveLabel, offLabel, statusSpeech } from './status';
 
 // ═══════════════════════════════════════════════ NBA
 // Sunucudaki supabase/functions/_shared/nbaMetrics.ts + nbaAnalysis.ts ile aynı sözleşme
@@ -374,6 +373,8 @@ export type PreviewRequestResult =
   | 'not_prematch'
   | 'too_early'
   | 'paywall_blocked'
+  /** 0015: ilk 11 son 5 dk içinde denendi, henüz açıklanmadı */
+  | 'not_ready'
   | 'completed'
   | 'generating'
   | 'failed';

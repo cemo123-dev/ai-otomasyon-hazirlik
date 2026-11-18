@@ -211,6 +211,4 @@ revoke execute on function public.register_push_token(text, text) from public, a
 grant execute on function public.register_push_token(text, text) to authenticated;
 
 -- ─────────────────────────────────────────────── NOT: ücretli planda dakikalık HT tespiti
--- API_FOOTBALL_PAID=1 secret'ını ekledikten sonra futbol canlı senkronunu dakikalık yapın:
---   select cron.alter_job((select jobid from cron.job where jobname = 'skor-sync-live'),
---                         schedule := '* 12-22 * * *');
+-- Ücretli geçiş: yalnız 0018 prosedürü (docs/ucretli-gecis.md; 0019 gerekir); nba-sync-live'a dokunmayın.

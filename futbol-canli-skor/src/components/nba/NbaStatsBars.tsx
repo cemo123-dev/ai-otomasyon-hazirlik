@@ -36,7 +36,7 @@ export function NbaStatsBars({ match }: { match: Match }) {
       </View>
 
       <Card>
-        <CardTitle kicker="Şut Verimliliği" title="İsabet & TS%" />
+        <CardTitle kicker="ŞUT VERİMLİLİĞİ" title="İsabet & TS%" />
         <CompareBar label="Saha içi (FG%)" home={pct(h.fgm, h.fga)} away={pct(a.fgm, a.fga)} fmt={f1} />
         <CompareBar label="Üçlük (3P%)" home={pct(h.tpm, h.tpa)} away={pct(a.tpm, a.tpa)} fmt={f1} />
         <CompareBar label="Gerçek şut (TS%)" home={ts(h)} away={ts(a)} fmt={f1} />
@@ -44,7 +44,7 @@ export function NbaStatsBars({ match }: { match: Match }) {
       </Card>
 
       <Card>
-        <CardTitle kicker="Top Mücadelesi" title="Ribaund, Asist, Kayıp" />
+        <CardTitle kicker="TOP MÜCADELESİ" title="Ribaund, Asist, Kayıp" />
         <CompareBar label="Toplam ribaund" home={h.tot_reb} away={a.tot_reb} />
         <CompareBar label="Hücum ribaundu" home={h.off_reb} away={a.off_reb} />
         <CompareBar label="Asist" home={h.assists} away={a.assists} />
@@ -53,7 +53,7 @@ export function NbaStatsBars({ match }: { match: Match }) {
 
       {paint ? (
         <Card>
-          <CardTitle kicker="Sayı Kaynakları" title="Boyalı Alan & Geçiş" />
+          <CardTitle kicker="SAYI KAYNAKLARI" title="Boyalı Alan & Geçiş" />
           <CompareBar label="Boyalı alan sayısı" home={h.points_in_paint!} away={a.points_in_paint!} />
           {h.points_off_turnovers != null && a.points_off_turnovers != null ? (
             <CompareBar label="Top kaybından sayı" home={h.points_off_turnovers} away={a.points_off_turnovers} />

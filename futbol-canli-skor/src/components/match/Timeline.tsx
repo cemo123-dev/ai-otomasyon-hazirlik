@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { isFinished, isLive } from '@/lib/status';
 import type { Match, MatchEvent } from '@/lib/types';
-import { colors, space } from '@/theme';
+import { colors, space, type } from '@/theme';
 import { Card, CardTitle } from '../ui';
 
 const ICON: Record<MatchEvent['type'], string> = {
@@ -36,22 +37,35 @@ const label = (e: MatchEvent) => {
 export function Timeline({ match }: { match: Match }) {
   const events = [...(match.events ?? [])].sort((a, b) => a.minute - b.minute || (a.extra ?? 0) - (b.extra ?? 0));
   const keyMoments = events.filter((e) => e.type !== 'yellow_card');
+  // Tasarım tur 2 R-1: başlamamış maçta "0 kritik olay" yerine açıklayıcı boş durum; "0 kritik olay" hiç yazılmaz
+  const started = isLive(match.status_short) || isFinished(match.status_short);
+  const title = !started
+    ? 'Maç başlamadı'
+    : keyMoments.length > 0
+      ? `${keyMoments.length} kritik olay`
+      : isFinished(match.status_short)
+        ? 'Olay kaydı yok'
+        : 'Henüz olay yok';
 
   return (
     <View style={{ gap: space(3) }}>
       {match.summary_teaser ? (
         <Card>
-          <CardTitle kicker="Maç Özeti" title="Kısa bakış" />
+          <CardTitle kicker="MAÇ ÖZETİ" title="Kısa bakış" />
           <Text style={styles.teaser}>{match.summary_teaser}</Text>
         </Card>
       ) : null}
 
       <Card style={{ paddingHorizontal: 0 }}>
         <View style={{ paddingHorizontal: space(4) }}>
-          <CardTitle kicker="Kırılma Anları" title={`${keyMoments.length} kritik olay`} />
+          <CardTitle kicker="KIRILMA ANLARI" title={title} />
         </View>
         {events.length === 0 ? (
-          <Text style={[styles.empty, { paddingHorizontal: space(4) }]}>Henüz olay yok.</Text>
+          !started ? (
+            <Text style={[styles.empty, { paddingHorizontal: space(4) }]}>
+              Goller, kartlar ve değişiklikler maç başlayınca burada görünür.
+            </Text>
+          ) : null
         ) : (
           events.map((e, i) => {
             const home = e.team === 'home';
@@ -81,10 +95,11 @@ export function Timeline({ match }: { match: Match }) {
 function EventText({ e, align }: { e: MatchEvent; align: 'left' | 'right' }) {
   return (
     <>
-      <Text style={[styles.player, { textAlign: align }]} numberOfLines={1}>
+      {/* Büyük yazıda bilgi (oyuncu adı) kırpılmasın: 2 satıra kadar (Döngü 5, bulgu 5) */}
+      <Text style={[styles.player, { textAlign: align }]} numberOfLines={2}>
         {e.player}
       </Text>
-      <Text style={[styles.detail, { textAlign: align }]} numberOfLines={1}>
+      <Text style={[styles.detail, { textAlign: align }]} numberOfLines={2}>
         {label(e)}
       </Text>
     </>
@@ -93,7 +108,7 @@ function EventText({ e, align }: { e: MatchEvent; align: 'left' | 'right' }) {
 
 const styles = StyleSheet.create({
   teaser: { color: colors.text, fontSize: 14, lineHeight: 21 },
-  empty: { color: colors.textMuted },
+  empty: { ...type.bodySm, color: colors.textMuted },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(2), paddingHorizontal: space(4) },
   goalRow: { backgroundColor: colors.liveGlow },
   side: { flex: 1 },

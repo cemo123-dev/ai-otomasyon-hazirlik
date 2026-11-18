@@ -10,7 +10,7 @@ import { Card, CardTitle } from '../ui';
 const KIND_COLOR: Record<MatchAlert['kind'], string> = {
   pressure: colors.danger,
   nba_run: colors.warning,
-  red_card: colors.pro,
+  red_card: colors.danger, // altın yalnız Pro / AI
 };
 
 const timeLabel = (m: Match, a: MatchAlert) =>
@@ -21,7 +21,7 @@ export function AlertsFeed({ match, alerts }: { match: Match; alerts: MatchAlert
   if (!alerts.length) return null;
   return (
     <Card>
-      <CardTitle kicker="Akıllı Alarm" title="Maçın kritik anları" />
+      <CardTitle kicker="AKILLI ALARM" title="Maçın kritik anları" />
       {alerts.map((a) => (
         <AlertRow key={a.id} match={match} a={a} />
       ))}

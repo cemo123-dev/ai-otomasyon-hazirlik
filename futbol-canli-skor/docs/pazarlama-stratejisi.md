@@ -1,323 +1,411 @@
-# Skor+ — Sıfır Bütçe Pazarlama Stratejisi (Türkiye)
+# Skor+ — Google Play Lansman Pazarlama Stratejisi (Türkiye)
 
-> Sürüm 2 — 18 Kasım 2026. Bütçe: ~0 TL (en fazla birkaç yüz TL). Ekip: tek geliştirici. Dağıtım: yalnız APK (EAS). Play Store hesabı (25 $) şimdilik açılmıyor.
-> **İşaret kuralı:** "⚠ doğrulanmalı" yazan her madde, platform kuralı / tarih / ücret gibi güncel bilgi içerir. Uygulamadan önce resmî kaynaktan kontrol edilmeli. Bu belgede uydurma istatistik yoktur. Hedef rakamlar "hedef"tir, tahmin değildir.
+> Sürüm 3 — 18 Kasım 2026. Bütçe: sıfır / düşük (Play geliştirici hesabı 25 $ hariç). Ekip: tek geliştirici. Dağıtım: **Google Play** (APK dağıtımı sona eriyor). Pro: Play Billing (RevenueCat planlı).
+> **İşaret kuralı:** "⚠ doğrulanmalı" yazan her madde, platform kuralı / tarih / ücret gibi güncel bilgi içerir; uygulamadan önce resmî kaynaktan kontrol edilir. Uydurma istatistik yoktur. Hedef rakamlar hedeftir, tahmin değildir.
 
-## Değişiklik notu (Sürüm 1 → Sürüm 2)
+## Değişiklik notu
 
-- **Ürün gerçekleri güncellendi** (GELISTIRMELER.txt 3.20–3.27): NBA Box Score (ESPN/NBA yayın düzeninde tam kutu skoru), NBA logoları, basketbola özel AI dili, maç önü "yorumcu modu", açılışta otomatik OTA güncelleme, futbolda Kadro sekmesi ve Dün/Bugün/Yarın şeridi eklendi.
-- **Dürüstlük düzeltmeleri:** Ücretsiz veri planında canlı skor ~30 dk aralıkla güncellenir. "Anlık skor", "en hızlı skor" dili tamamen yasaklandı. Akıllı alarm (baskı alarmı, kırmızı kart analizi) kodda var ama ücretli veri planına bağlı, bugün kapalı. Önceki sürümdeki "baskı alarmı ekran kaydı" içerik fikirleri ertelendi.
-- **Konumlandırma yenilendi:** Hız değil, "Türkçe anlam" ön planda. NBA tarafı ayrı bir segment ve ayrı bir mesaj setiyle birincil hedeflerden biri oldu.
-- **Play Store artık kısa vadeli hedef değil.** "25 $'ı kazanma" kampanyası ve bağış sayfası çıkarıldı. Yerine APK'ya özel büyüme taktikleri geldi: indirme sayfası, QR, WhatsApp paylaşımı, elle yürütülen davet (referral) sistemi, Telegram/Discord/Reddit Türkiye toplulukları.
-- **30 günlük takvim, 4 haftalık lansman planına** dönüştü: hafta hafta somut çıktılar, sıfır/düşük bütçe.
-- **Ölçüm bölümü KPI'lara** dönüştü: her KPI için tanım, kaynak ve 4. hafta hedefi.
-- Paywall kodunda fiyat taslakları bulunsa da Pro satışta değil. Fiyat hiçbir pazarlama içeriğinde kullanılmaz.
+**Sürüm 3 (18 Kasım 2026) — Play Store'a geçiş (büyük değişiklik):**
+- APK güven stratejisi kaldırıldı: indirme sayfası, SHA-256 / VirusTotal, "bilinmeyen kaynak" SSS'i, APK paylaşım bağlantıları. Eski indirme sayfası küçük bir **destek sitesine** dönüşür: gizlilik politikası, KVKK, hesap silme, iletişim, Play bağlantısı.
+- **Kapalı test şartı doğrulandı** (Google Play Console Yardım): 13 Kasım 2023'ten sonra açılan kişisel hesaplar, üretime çıkmadan önce **en az 12 test kullanıcısıyla, kesintisiz 14 gün** kapalı test yapmalı; sonra üretim erişimi başvurusu incelenir (genellikle ≤ 7 gün). Ön kayıt (pre-registration) bu şart karşılanana kadar kapalıdır. Sonuç: hesap alındıktan sonra **halka açık lansman en erken ~3-4 hafta sonra.** "2-3 hafta içinde lansman" hedefi, hesap bugün alınmazsa tutmaz (bkz. §0.3).
+- Yeni bölümler: ASO (§3), Play politika korkulukları ve Data Safety (§4), kapalı test ve ön kayıt (§5), −2…+4 haftalık zaman çizelgesi (§6), Pro fiyatı ve deneme (§8).
+- Tazelik mesajı spora göre ayrıldı: futbol API-Football Pro planına (7.500 istek/gün, dakikalık senkron) geçiyor; NBA ücretsiz planda (100/gün) kalıyor (§7).
+- Paylaşım ve davet artık Play Store bağlantısına ve **Play install referrer UTM**'ine gidiyor (§9).
+- Futbolda Akıllı Alarm (baskı alarmı, kırmızı kart) ücretli planla açılır; mesajları ve yasaklı ifadeler güncellendi (§11).
+- KPI'lar Play Console metriklerine göre yenilendi (§10).
+- İnovasyon belgesindeki yapım sırası korunur, ancak iki madde **lansman şartına** dönüşür: F7 "Hata bildir" (Play AI içerik politikası) ve hesap silme web bağlantısı (§4).
 
----
-
-## 0. Durum özeti ve temel kararlar
-
-### 0.1 Bugün gerçekten çalışan (ücretsiz)
-- **Futbol:** canlı skor (ücretsiz veri planı: ~30 dk aralıkla güncellenir, her maçta "Son güncelleme HH:MM" yazar), Türkçe takım adları, logolar, Dün / Bugün / Yarın tarih şeridi, Tümü / Canlı / Biten / Takip filtreleri, maç ekranında Özet, İstatistik ve **Kadro** (saha dizilişi, yedekler, teknik direktör; maç bitince oyuncu puanları ve "Maçın oyuncusu").
-- **NBA:** canlı skor, çeyrek tablosu, takım istatistikleri, NBA logoları, **Box Score** (biten maçlarda): iki takım alt alta; DK, FGM, FGA, FG%, 3PM, 3PA, 3P%, FTM, FTA, FT%, OREB, DREB, REB, AST, STL, BLK, TO, PF, PTS, +/-; ilk 5'te mevki harfi (G/F/C), en skorer vurgulu, TOPLAM satırı.
-- **Takip ve bildirim:** takım takibi (her maçında otomatik), maç takibi, "maç başladı" bildirimi.
-- **Güncelleme:** JS değişiklikleri uygulama açılışında otomatik iner ve uygulanır (EAS Update). Kullanıcının her küçük düzeltmede yeni APK kurması gerekmez. Native değişiklikte yeni APK gerekir.
-- Uygulamada reklam SDK'sı yok (kod taramasında bulunmadı). "Reklamsız" ifadesi bugün doğru; reklam eklenirse kaldırılır.
-
-### 0.2 Kodda var, kullanıcıya bugün açık değil (Pro)
-- Pro satın alınamıyor; test hesabı dışındaki kullanıcı paywall'da "Pro abonelik çok yakında" görür.
-- **Futbol AI:** maç sonu taktik rapor (xG denetimi, momentum kırılma anları, teknik direktör etkisi, maçın yıldızı), maç önü "Taktiksel Eşleşme" (veri yokken dizilişten yorum yapan yorumcu modu), devre arası "Soyunma Odası Reçetesi".
-- **NBA AI:** şut verimliliği (TS%), momentumun el değiştirdiği periyotlar, bench etkisi, oyuncu +/- etkisi, hücum/savunmada en etkili; futbol terimi kullanmayan basketbol dili.
-- **Taktik Asistan:** maça kilitli mini sohbet, maç başına 3 soru.
-- **Akıllı alarm** (baskı alarmı, kırmızı kart analizi): ücretli veri planı gerektirir; bugün kapalı.
-
-### 0.3 Üç stratejik karar
-1. **Ücretsiz ürünü pazarla, Pro'yu "bekleme listesi" olarak göster.** "Şimdi abone ol" yok, fiyat yok.
-2. **AI çıktısını uygulama dışına taşı.** Geliştirici test hesabıyla ürettiği gerçek AI raporlarını (maç sonu, devre arası, NBA analizi) paylaşım kartı yapar. Bu hem içerik maliyetini sıfırlar hem de Pro talebini ölçer.
-3. **APK'yı bir dezavantaj değil, "erken erişim" hikâyesi olarak anlat.** Play Store yok; güven, şeffaflık ve kolay kurulumla telafi edilir. Büyüme kişiden kişiye (WhatsApp, grup, davet) tasarlanır, mağaza keşfi beklenmez.
+**Sürüm 2.2 ve öncesi:** APK dağıtımı varsayımıyla yazıldı. Geçerliliğini koruyan kısımlar bu sürüme taşındı: konumlandırma, segmentler, yasaklı ifadeler, F12 tazelik aşamaları (NBA için), F2/F3 ifade kuralları.
 
 ---
 
-## 1. Konumlandırma
+## 0. Durum özeti ve kritik yol
 
-**Ana cümle:** "Skoru herkes görür, nedenini sen gör."
-**Kısa varyant:** "Skor değil, sebebi."
-**NBA varyantı:** "Box score İngilizce, yorum Türkçe."
+### 0.1 Lansmanda ürün (gerçekler)
+- **Ücretsiz:** futbol ve NBA skorları, Türkçe takım adları, logolar, Dün/Bugün/Yarın şeridi, filtreler, futbolda Kadro (diziliş, yedekler, oyuncu puanları), NBA'de çeyrek tablosu ve Box Score (biten maçlarda), takım ve maç takibi, "maç başladı" bildirimi. Reklam yok (kodda reklam SDK'sı yok).
+- **Ücretli plana bağlı, lansmanla açılan (futbol):** dakikalık canlı senkron, canlı istatistik, Akıllı Alarm (baskı alarmı; kırmızı kart analizi Pro), otomatik devre arası raporu. ⚠ Geliştirici `API_FOOTBALL_PAID=1`, `app_config.api_paid=true` ve cron değişikliklerini yaptıktan ve 1 maç günü doğruladıktan sonra pazarlamada kullanılır.
+- **NBA ücretsiz planda kalır:** ~30 dk aralık (F12b yayındaysa maç saatlerinde daha sık), box score yalnız biten maçta, NBA seri alarmı kapalı.
+- **Pro (Play Billing):** futbolda maç sonu taktik rapor (xG denetimi, momentum, teknik direktör etkisi), maç önü eşleşme, devre arası "Soyunma Odası Reçetesi", kırmızı kart analizi; NBA'de TS%, kırılma periyodu, bench ve +/- etkisi; Taktik Asistan (maç başına 3 soru).
 
-**Ne olduğumuz:** Türkçe, sade, takip ettiğin takıma odaklı skor uygulaması. Futbolda kadro ve istatistik; NBA'de tam box score. Yakında: maçı Türkçe açıklayan AI analiz.
+### 0.2 Konum değişmedi
+"Skoru herkes görür, nedenini sen gör." Fark hız değil, **Türkçe AI analiz**. Box score temel özelliktir, farklılaştırıcı değildir (rakip araştırması §5).
 
-**Ne olmadığımız (ve söylemediğimiz):**
-- En hızlı canlı skor değiliz. Ücretsiz veri planında güncelleme ~30 dk aralıkla.
-- Tahmin / bahis uygulaması değiliz.
-- Haber, video, transfer dedikodusu uygulaması değiliz.
-
-**Farklılaştırıcılar (bugün kanıtlanabilir olanlar önce):**
-1. NBA box score, Türkçe arayüzle, ESPN/NBA yayın düzeninde. Türkiye'de NBA'i Türkçe arayüzle takip edenler için nadir bir kombinasyon (⚠ doğrulanmalı: rakiplerin Türkçe NBA box score sunup sunmadığı; "tek" / "ilk" iddiası kullanılmaz).
-2. Türkçe takım adları, sade arayüz, reklam yok.
-3. Takım takibi + "maç başladı" bildirimi: sadece senin takımın.
-4. (Yakında, bekleme listesi) Futbol ve NBA için Türkçe AI taktik analiz. NBA analizi basketbol diliyle yazılır: TS%, kırılma periyodu, bench, +/-.
+### 0.3 Kritik yol ve kullanıcının hemen yapması gerekenler
+1. **Play geliştirici hesabını şimdi al.** Her gün gecikme lansmanı bir gün öteler. Kimlik doğrulaması birkaç gün sürebilir ⚠.
+2. **12 değil 20-25 kapalı test gönüllüsü** topla (bırakanlar olur; Google kesintisiz 14 gün ve kullanım ister). Kaynak: mevcut APK kullanıcıları, Telegram kanalı, çevre.
+3. **İmza anahtarı kararı:** Play App Signing'de mevcut EAS anahtarı imza anahtarı olarak kullanılmazsa APK kullanıcıları Play sürümüne güncelleyemez; kaldırıp yeniden kurmak zorunda kalır ve anonim hesap nedeniyle takipleri kaybolur ⚠ geliştirici doğrulamalı.
+4. **Gizlilik politikası ve KVKK metnindeki yer tutucular** ([VERİ SORUMLUSU ADI], [İLETİŞİM E-POSTASI], [ADRES], [YAYIN TARİHİ]) doldurulmalı ve herkese açık bir URL'de yayımlanmalı. Play Console bunu ister.
+5. **Vergi:** Play gelirinde GVK mük. 20/B istisnası için Türkiye'de ayrı banka hesabı gerekir (rakip araştırması §12.2). İlk ödemeden önce mali müşavirle kontrol ⚠.
 
 ---
 
-## 2. Hedef kitle segmentleri (öncelik sırasıyla)
+## 1. Hedef kitle segmentleri (öncelik sırasıyla)
 
-### S1 — Türk NBA takipçisi (birincil, yeni)
-- **Kim:** Gece/sabah NBA maçlarını takip eden, sabah sonucu ve istatistiği kontrol eden Türk basketbol izleyicisi. Türk oyuncuların (ör. Alperen Şengün) maçlarına özel ilgi. ⚠ doğrulanmalı: Türk oyuncuların güncel takımları ve maç takvimi.
-- **Neden önce:** Türkçe NBA kaynağı az, bağlılık yüksek. Box score bugün çalışıyor; Pro olmadan da güçlü değer var. Kitle Android ağırlıklı ve topluluklarda (Reddit, Discord, X) aktif.
-- **Mesajlar:**
-  - "Gece maçı kaçırdın mı? Sabah tam box score Türkçe arayüzde: FG%, 3P%, +/-, hepsi bir ekranda."
-  - "İki takım alt alta, ilk 5 ve yedekler, en skorer vurgulu."
-  - Bekleme listesi için: "Yakında Türkçe NBA analizi: maç hangi çeyrekte koptu, bench fark yarattı mı, kim verimliydi (TS%)."
-- **Kanıt biçimi:** Gerçek bir maçın Box Score ekran görüntüsü (yatay kaydırılmış istatistik sütunlarıyla).
-- **Dikkat:** Box score yalnız biten maçlarda var. "Canlı box score" denmez.
+### S1 — Türk NBA takipçisi
+- Gece maçlarını sabah kontrol eder. Mesaj: "Gece maçının box score'u ve Türkçe AI yorumu: maç hangi çeyrekte koptu, bench fark yarattı mı."
+- Dikkat: NBA box score yalnız biten maçta; NBA tazeliği ücretsiz planda (§7).
 
 ### S2 — Taktik/veri meraklısı futbol takipçisi
-- **Kim:** xG ve taktik analiz paylaşan hesapları takip eden; r/superlig ve Ekşi maç başlıklarında yazan; 18-35 yaş, Android ağırlıklı.
-- **Mesaj:** "Skoru herkes görür, nedenini sen gör. Kadro, diziliş, oyuncu puanları bugün; maç sonu xG ve momentum analizi yakında."
-- **Kanıt biçimi:** Kadro sekmesi (saha dizilişi + puanlar) ve gerçek AI maç sonu raporundan kart.
+- Mesaj: "Maç sonu xG denetimi, momentum kırılma anları ve teknik direktör hamleleri — Türkçe." Pro'nun ana alıcısı.
 
 ### S3 — Bildirim yorgunu, tek takım taraftarı
-- **Kim:** Kendi takımını takip eden, reklamlı ve gürültülü skor uygulamalarından sıkılmış kullanıcı.
-- **Mesaj:** "Takımını seç, maç başladığında haberin olsun. Reklam yok."
-- **Kanıt biçimi:** Takım takibi + "maç başladı" bildirimi kısa ekran kaydı.
-- **Dikkat:** Gol bildirimi iddiası kullanılmaz; bugün çalışan bildirim "maç başladı"dır.
+- Mesaj: "Takımını seç; maç başlayınca ve maçta veriyle anlamlı bir an olduğunda haber ver. Reklam yok."
+- Akıllı Alarm yalnız takip edilen maçlara ve açık bırakılan türlere gider; bu "gürültüsüz" iddiasının dayanağıdır.
 
 ### S4 — Avrupa gecesi ve milli maç izleyicisi (geniş, düşük öncelik)
-- **Mesaj:** "Avrupa gecesinde Türk takımlarının maçları tek listede, Türkçe."
-- Sadakati düşük; sadece maç günü içerikleriyle hedeflenir.
-
 ### S5 — İçerik üreticileri ve topluluk yöneticileri (çarpan)
-- **Kim:** Küçük/orta futbol ve NBA YouTube/X/TikTok hesapları; Telegram/Discord sunucu yöneticileri.
-- **Mesaj:** "Maç sonu Türkçe analiz kartları hazır. Kaynak göstererek kullanabilirsin."
 
 ---
 
-## 3. Genel kurallar (tüm kanallar)
-
-- Önce katkı, sonra tanıtım. Kabaca 4 değerli paylaşım : 1 bağlantı (alışkanlık, platform kuralı değil).
-- Tek kişi, tek gerçek hesap. Her tanıtımda "Bu uygulamayı ben geliştiriyorum" açıkça yazılır.
-- **Yasak taktikler:** sahte hesap, bot, satın alınmış takipçi/etkileşim, sahte yorum, başkası gibi yazmak, toplu DM, aynı metni onlarca gruba yapıştırmak, izinsiz grup paylaşımı.
-- Kulüp, lig ve NBA takım logoları **pazarlama görsellerinde öne çıkarılmaz**. Uygulama içi ekran görüntüsünde küçük görünmeleri ayrı bir konudur (⚠ doğrulanmalı: logo kullanım hakları).
-- Bahisle ilişkilendirme yok: "tahmin", "kupon", "kesin", "oran", "iddaa" kullanılmaz.
-- Maç yayın görüntüsü kullanılmaz (telif). Sadece uygulama arayüzü, metin, grafik.
+## 2. Genel kurallar (tüm kanallar)
+- Önce katkı, sonra tanıtım. Geliştirici kendini her tanıtımda açıkça belirtir.
+- Yasak: sahte hesap, bot, satın alınmış etkileşim, **sahte veya teşvikli Play yorumu**, izinsiz grup paylaşımı, toplu DM, telifli maç görüntüsü.
+- Kulüp, lig ve NBA logoları pazarlama görsellerinde ve mağaza grafiklerinde öne çıkarılmaz.
+- Bahis çağrışımı yok (§11).
+- **Play yorumu karşılığında hiçbir ödül verilmez** (Pro süresi dahil). Yorum istemek serbesttir; ödüllendirmek politika ihlalidir ⚠ (Play "Ratings, Reviews and Installs" politikası).
 
 ---
 
-## 4. APK'ya özel büyüme taktikleri
+## 3. ASO (Play Store sayfası)
 
-### 4.1 İndirme sayfası (tek sayfa, ücretsiz statik barındırma: GitHub Pages vb.)
-APK kalıcı bir adreste barındırılır (EAS build bağlantıları süreli; GitHub Releases önerilir). İçerik sırası:
-1. Başlık + konum cümlesi. Altında iki büyük düğme: **"APK'yı indir"** ve **"WhatsApp'ta paylaş"**.
-2. 4-6 gerçek ekran görüntüsü: maç listesi (Dün/Bugün/Yarın), futbol Kadro, NBA Box Score, takım takibi, Ayarlar. Pro ekranı gösterilecekse "yakında" etiketiyle.
-3. **"Neden Play Store'da değil?"** — dürüst dille: "Tek kişilik bağımsız bir projeyim. Şimdilik APK ile dağıtıyorum."
-4. **Güvenlik kanıtları:** her sürüm için SHA-256 özeti, VirusTotal tarama bağlantısı, istenen izinler ve her iznin nedeni, toplanan/toplanmayan veri, gizlilik politikası ve KVKK metni (uygulamada şablon var; yer tutucular yayından önce doldurulmalı), tüm sürümlerin aynı anahtarla imzalandığı bilgisi.
-5. **Adım adım kurulum** (ekran görüntülü): bilinmeyen kaynak izni ve kurulumdan sonra nasıl kapatılacağı.
-6. **SSS:**
-   - "Uyarı neden çıkıyor?" — Android, Play Store dışındaki her uygulama için uyarır; bu, uygulamanın zararlı olduğu anlamına gelmez.
-   - "Güncellemeleri nasıl alırım?" — Çoğu güncelleme uygulama açılırken kendiliğinden iner ve uygulanır. Büyük sürümlerde yeni APK gerekir; Telegram kanalından ve bu sayfadan duyurulur. Ayarlar ekranında sürüm ve güncelleme tarihi görünür.
-   - "Skorlar neden ~30 dk'da bir güncelleniyor?" — Ücretsiz veri kaynağı; her maçta son güncelleme saati yazar.
-   - "Pro ne zaman?" — Bekleme listesi bağlantısı.
-   - "Hesabımı silebilir miyim?" — Evet, Ayarlar > Hesabımı sil.
-   - "Uygulamayı silersem ne olur?" — Oturum anonim; uygulama silinince takipler kaybolur (dürüst cevap).
-7. Geri bildirim formu + Pro bekleme listesi formu (Google Forms).
-8. Gizlilik dostu sayfa analitiği (ör. GoatCounter, Cloudflare Web Analytics; ⚠ ücretsiz katman doğrulanmalı) ve her kanal için ayrı `?ref=` / UTM parametresi.
+### 3.1 Başlık (≤ 30 karakter)
+- **Önerilen:** `Skor+ Canlı Skor ve AI Analiz` (29)
+- Yedek: `Skor+: Futbol, NBA, AI Analiz` (29)
+- Kurallar: "en iyi", "1 numara", "ücretsiz", emoji, büyük harf yığını, rakip adı yok (Play meta veri politikası ⚠). "Canlı skor" kategori tanımıdır; hız iddiası değildir.
 
-⚠ doğrulanmalı — **kritik:** Google'ın Play dışı dağıtılan uygulamalar için geliştirici doğrulama (developer verification) zorunluluğunun Türkiye'deki yürürlük tarihi ve doğrulanmamış geliştiricinin APK'sının sertifikalı cihazlarda kurulup kurulamayacağı. Zorunluluk geldiyse APK stratejisinin ömrü kısalır.
+### 3.2 Kısa açıklama (≤ 80 karakter)
+- **Önerilen:** `Futbol ve NBA skorları, Türkçe AI maç analizi, takımına özel bildirimler.` (73)
 
-### 4.2 QR kod
-- İndirme sayfası için ücretsiz statik QR (bağlantı kısaltıcısız, doğrudan sayfa adresi; böylece servis kapanınca QR ölmez).
-- Kullanım yerleri: her paylaşım kartının köşesi, kısa videoların son karesi, Telegram kanal görseli, forum gönderileri.
-- Fiziksel (düşük bütçe, isteğe bağlı): üniversite basketbol/futbol kulübü panoları, maç izleme etkinlikleri için A5 çıktı. Sadece izin alınan yerlerde.
-- Kanal ölçümü için QR'lar ayrı `?ref=qr-kart`, `?ref=qr-video`, `?ref=qr-afis` parametreleri taşır.
+### 3.3 Tam açıklama (taslak, ≤ 4.000 karakter)
 
-### 4.3 WhatsApp paylaşımı (birincil yayılım yolu)
-Türkiye'de uygulama önerisi büyük ölçüde WhatsApp grupları ve birebir mesajla yayılır. APK için bu, mağaza keşfinin yerini tutar.
-- İndirme sayfasında hazır metinli paylaşım düğmesi (`https://wa.me/?text=...`). Örnek metinler:
-  - Futbol: "Türkçe, reklamsız skor uygulaması buldum. Takımını seç, maç başlayınca haber veriyor. Kurulum anlatımı sayfada: <bağlantı>"
-  - NBA: "Gece NBA maçlarının tam box score'u Türkçe arayüzde: <bağlantı>"
-- Paylaşılan bağlantı her zaman **indirme sayfasıdır**, doğrudan APK dosyası değil. Doğrudan APK bağlantısı güvensiz görünür ve kurulum anlatımını atlar.
-- Paylaşım kartları kare/dikey formatta, WhatsApp durumuna (status) uygun boyutta hazırlanır.
-- WhatsApp Kanalı (⚠ doğrulanmalı: Türkiye'de kanal açma ve keşfedilebilirlik koşulları): Telegram kanalının aynası olarak, maç sonu kartları ve sürüm duyuruları.
+```
+Skoru herkes görür, nedenini sen gör.
 
-### 4.4 Davet (referral) sistemi — elle, kodsuz
-Uygulamada davet özelliği yok. Kod değişikliği yapılmadan elle yürütülür:
-1. Bekleme listesi formunda isteğe bağlı "Seni kim davet etti?" alanı (takma ad veya davet kodu).
-2. Kayıt olan her kişiye kendine ait bağlantı verilir: `<indirme sayfası>?ref=<takma-ad>`. Sayfa analitiği bu parametreleri sayar.
-3. **Ödül (vaat yalnız tutulabilir olanla sınırlı):** "Kurucu Destekçi" listesi. 3 kişiyi getiren, Pro çıktığında öncelikli erken erişim alır ve (izinle) indirme sayfasındaki teşekkür listesinde yer alır. Ücretsiz Pro süresi vaat edilecekse süre ve kişi sayısı yazılı olarak sınırlandırılır.
-4. Haftalık sıralama Telegram kanalında paylaşılır (yalnız takma adlar; kişisel veri yok).
-5. **Kurallar:** sahte kayıt, kendi kendini davet ve toplu spam ile gelen davetler sayılmaz. Bu şartlar formda yazılı olur.
-6. KVKK: formda toplanan veri için aydınlatma metni (⚠ doğrulanmalı). Sadece gerekli alanlar toplanır.
+Skor+, futbol ve NBA maçlarını Türkçe takip etmen için yapıldı. Skorları, kadroları ve istatistikleri tek ekranda görürsün. Pro ile maçın neden öyle bittiğini Türkçe AI analiziyle okursun.
 
-**Ürün önerisi (kapsam dışı, kod değişikliği yapılmadı):** Uygulama içi "Paylaş" düğmesi ve davet bağlantısı en yüksek getirili ürün değişikliği olur. Box Score ve AI raporu için görsel paylaşım kartı GELISTIRMELER.txt D maddesinde zaten öneri olarak duruyor (yeni native build gerektirir).
+ÜCRETSİZ
+• Futbol ve NBA skorları: dün, bugün, yarın
+• Türkçe takım adları, sade arayüz, reklam yok
+• Futbolda kadro, diziliş, yedekler ve maç sonu oyuncu puanları
+• NBA'de çeyrek tablosu ve biten maçların tam box score'u (FG%, 3P%, FT%, ribaund, asist, +/-)
+• Takımını takip et: maç başlayınca bildirim
+• Akıllı Alarm (futbol): yalnız takip ettiğin maçlarda, veriyle anlamlı anlarda bildirim. Her korner ve faulde değil.
+• Her maçta son güncelleme saati
 
-### 4.5 Telegram
-- **Skor+ kanalı (sahip olunan kanal):** sürüm notları, maç sonu kartları, NBA "Gece ne oldu?" sabah kartı, davet sıralaması. APK kullanıcısının güncelleme haberini aldığı ana yer.
-- **Taraftar ve NBA grupları:** Önce yöneticiyle özel konuşma: "Grubunuz için maç sonu Türkçe özet paylaşabilir miyim? İsterseniz bağlantı koymam." Yönetici izni olmadan hiçbir gruba bağlantı atılmaz.
-- Bahis içerikli gruplardan uzak durulur (marka güvenliği).
+SKOR+ PRO
+• Maç sonu taktik rapor: xG ve şut kalitesi denetimi, momentum kırılma anları, teknik direktör hamlelerinin etkisi
+• NBA analizi: şut verimliliği (TS%), maçın koptuğu periyot, bench katkısı, oyuncu etkisi
+• Maç önü taktik eşleşme
+• Devre arası raporu: "Soyunma Odası Reçetesi"
+• Kırmızı kart sonrası kısa taktik analiz
+• Taktik Asistan: maça özel, her maçta 3 soru
 
-### 4.6 Discord
-- Türk NBA ve futbol sunucularında yalnız `#kendi-projeni-tanıt` / `#paylaşım` tarzı kanallar kullanılır; yoksa moderatöre sorulur.
-- İçerik: Box Score ekran görüntüsü + "Geri bildirim arıyorum, özellikle hangi istatistik eksik?" sorusu. Geri bildirim isteği tanıtımdan daha iyi karşılanır.
-- Sunucularda maç gecesi düzenli aktif katılım; bağlantı sadece sorulduğunda.
+AI HAKKINDA
+Analizler maç verisinden yapay zekâ ile üretilir ve "AI tarafından üretildi" etiketi taşır. Yorumdur, kesin bilgi veya tahmin değildir. Hatalı bulduğun analizi uygulama içinden bildirebilirsin.
 
-### 4.7 Reddit Türkiye toplulukları
-- **r/superlig:** Önce 2-3 hafta maç başlıklarında normal katılım. Sonra moderatöre modmail ile izin; izin varsa ayda en fazla 1 şeffaf tanıtım ("Kendi geliştirdiğim Türkçe skor uygulaması, geri bildirim arıyorum"). ⚠ doğrulanmalı: self-promotion kuralı ve flair.
-- **r/nba ve Türk basketbol odaklı subreddit'ler:** ⚠ doğrulanmalı: Türkçe basketbol subreddit'lerinin varlığı ve kuralları. r/nba'de uygulama tanıtımı büyük olasılıkla yasaktır; orada yalnız bağlantısız veri yorumu.
-- **r/Turkey, r/KGBTR gibi genel topluluklar:** ⚠ doğrulanmalı: tanıtım kuralları. Yalnız izin verilen "kendi projem" başlıklarında, geliştirici hikâyesiyle.
-- Reddit genelinde kendi içeriğini aşırı paylaşmak spam sayılır.
+Skor+ bağımsız bir geliştirici projesidir. Hiçbir lig, kulüp veya NBA ile resmî bağlantısı yoktur. Bahis veya tahmin hizmeti sunmaz.
 
-### 4.8 Destekleyici kanallar (düşük sıklık)
-- **X (Twitter):** Geliştiricinin gerçek hesabı. Maç sonu kartları, NBA sabah kartı. Bağlantı profilde. Otomasyon yok (⚠ doğrulanmalı: güncel kurallar).
-- **TikTok / Reels / Shorts (tek video, üç platform):** "Gece maçının box score'u 10 saniyede", "Uygulamayı tek başıma yapıyorum" geliştirici günlüğü, "Skoru herkes gördü, işte nedeni" (gerçek AI raporundan). Bio'da indirme sayfası (⚠ doğrulanmalı: bio bağlantısı eşikleri).
-- **Teknoloji forumları** (Technopat, DonanımHaber vb.; ⚠ kurallar): APK kurmaktan çekinmeyen kitle; "geliştirici olarak geri bildirim istiyorum" konusu.
-- **Ekşi Sözlük:** Var olan "canlı skor uygulaması" türü başlıklara ayda en fazla 1 bilgilendirici entry, geliştirici olduğu belirtilerek (⚠ doğrulanmalı: reklam kuralları).
+Pro aboneliği Google Play üzerinden yönetilir; dilediğin zaman Play Store > Abonelikler'den iptal edebilirsin.
+```
+- Doldurulacaklar: fiyat ve deneme metni açıklamaya yazılmaz (Play kendisi gösterir; değişince açıklama eskimesin).
+- Lansman anındaki gerçek duruma göre düzenlenir: Akıllı Alarm ve devre arası raporu ücretli API doğrulanmadan yazılmaz.
 
----
+### 3.4 Anahtar kelimeler (Play'de alan yok; başlık, kısa ve tam açıklamada doğal kullanım)
+- Birincil: canlı skor, maç sonuçları, futbol, NBA, maç analizi, taktik analiz, box score.
+- İkincil: xG, maç istatistikleri, kadro, diziliş, takım takibi, basketbol skorları, Türkçe.
+- Kullanılmaz: iddaa, bahis, tahmin, kupon, oran; rakip uygulama adları; kulüp adlarıyla anahtar kelime doldurma ⚠ (lig adları yalnız tanımlayıcı olarak, bir iki kez).
 
-## 5. İçerik döngüleri
+### 3.5 Ekran görüntüsü senaryosu (8 kare, dikey, gerçek arayüz)
+Her karede üstte kısa başlık; arayüz gerçek veri. Kulüp logoları küçük kalır, logosu öne çıkan maç seçilmez.
 
-### 5.1 Kart döngüsü: gerçek çıktı → kart → paylaşım → indirme sayfası
-1. Büyük maç biter. Geliştirici uygulamadaki gerçek veriyi (Box Score, Kadro + puanlar) veya test hesabıyla gerçek AI raporunu alır.
-2. Sabit şablonlu karta dönüştürür: Skor+ adı, maç adı metin olarak, 3 madde, köşede QR + sayfa adresi.
-3. Telegram kanalı → WhatsApp durumu → X → izinli gruplar.
-4. Pro içeriğinden üretilen kartlarda "Pro (yakında) örneği" etiketi bulunur; CTA bekleme listesidir.
+| # | Ekran | Başlık |
+|---|---|---|
+| 1 | Maç sonu AI raporu (futbol, momentum + xG kartları) | Skoru herkes görür, nedenini sen gör |
+| 2 | Ana liste, Bugün, takip filtresi | Takımın, maçların, tek ekranda |
+| 3 | NBA Box Score (iki takım, kaydırılmış sütunlar) | Gece maçının tam box score'u |
+| 4 | NBA AI analizi (periyot kırılması, TS%) | NBA'i Türkçe yorumla oku |
+| 5 | Akıllı Alarm kartı / bildirim örneği | Sadece önemli an: gürültüsüz alarm |
+| 6 | Futbol Kadro: diziliş + oyuncu puanları | Kadro, diziliş, oyuncu puanları |
+| 7 | Devre arası raporu | Devre arasında ikinci yarının reçetesi |
+| 8 | Taktik Asistan sohbeti | Maça özel sor: 3 soru, Türkçe cevap |
 
-### 5.2 NBA sabah ritmi (S1)
-- Türkiye saatiyle gece oynanan maçlar için sabah ~08:30-09:00 "Gece ne oldu?" kartı: skor + Box Score'dan 3 satır (en skorer, FG%, +/-). ⚠ Kart hazırlanmadan önce box score'un dolduğu kontrol edilir (yalnız biten maçlarda, senkron gecikmesiyle gelir).
-- Türk oyuncu maçlarında ayrı kart (⚠ fikstür).
+- Pro ekranlarında küçük "Pro" rozeti görünür (yanıltıcı olmasın).
+- AI metinleri gerçek maçlardan, okunup kontrol edilmiş raporlardan alınır.
+- Kare 5 ve 7, ücretli API canlıda doğrulanmadan kullanılmaz; yerine Ayarlar/takım takibi konur.
 
-### 5.3 Futbol maç günü ritmi (S2-S4)
-| Olay | İçerik |
-|---|---|
-| Süper Lig derbileri (⚠ fikstür) | Önceki gün maç önü AI kartı (Pro örneği), maç sonrası 2 saat içinde Kadro/puan kartı + AI maç sonu özeti. |
-| Avrupa gecesi (⚠ UEFA takvimi) | "Türk takımları bu gece" listesi; maç sonu toplu özet. |
-| Milli maç arası (⚠ takvim) | Milli takım maç sonu özeti; geniş kitleye ulaşmak için en iyi an. |
+### 3.6 Öne çıkan grafik (1024×500)
+- Koyu zemin, solda "Skor+" ve "Skoru herkes görür, nedenini sen gör.", sağda eğik telefon içinde AI raporu kartı (logo içermeyen bölüm). Kulüp/lig logosu, oyuncu fotoğrafı, top/saha fotoğrafı yok.
 
-### 5.4 Ertelenen içerikler
-- Baskı alarmı ve kırmızı kart analizi örnekleri: ücretli veri planına geçilene kadar kullanılmaz.
-- Canlı devre arası raporunun "maç sırasında anında" paylaşımı: ücretsiz planda rapor zamanlaması tahmini pencereye bağlı. Kart yalnız rapor gerçekten devre arasında üretildiyse "devre arası" diye sunulur.
+### 3.7 Kategori, etiketler, derecelendirme
+- **Kategori:** Spor. Etiketler: Play'in sunduğu listeden futbol / basketbol / skor ile ilgili olanlar ⚠.
+- **İçerik derecelendirmesi (IARC anketi):** şiddet, cinsellik, kumar yok; kullanıcılar arası etkileşim yok (Taktik Asistan yalnız kullanıcı ile AI arasında); dijital satın alma var. Beklenen sonuç en düşük yaş derecesi ⚠ (anket sonucu belirler).
+- **Hedef kitle ve içerik:** 18 yaş ve üzeri seçilmesi önerilir. Daha düşük yaş grubu Aileler politikası yükümlülüklerini getirir ⚠ (ürün kararı).
+- **Reklam beyanı:** "Reklam içermez".
 
 ---
 
-## 6. 4 haftalık lansman planı (sıfır / düşük bütçe)
+## 4. Play politika korkulukları
 
-Zaman: **günde 45-60 dk**, maç günü **90 dk**. Bütçe: 0 TL; isteğe bağlı en fazla birkaç yüz TL (A5 QR çıktısı, alan adı). Alan adı şart değil; GitHub Pages alt alanı yeterli.
+### 4.1 Spor, bahis ve meta veri
+- Uygulamada ve mağaza sayfasında bahis oranı, kupon, tahmin, bahis sitesi bağlantısı veya reklamı yok. Play'in gerçek parayla kumar politikası ayrıca yetki ister; Skor+ bu kapsama hiç girmemeli ⚠.
+- AI raporları "tahmin" olarak sunulmaz. Maç önü raporu "eşleşme ve senaryo"dur; mağaza metninde "kim kazanır" dili yok.
+- Resmî bağlantı imaları yok: açıklamada "resmî bağlantısı yoktur" cümlesi bulunur. İkon ve grafiklerde kulüp, lig, NBA markası yok (fikrî mülkiyet ve taklit politikası ⚠).
+- Meta veri: üstünlük iddiası, sahte yorum alıntısı, emoji yığını, alakasız anahtar kelime yok.
+- Bildirimler: yalnız kullanıcının açtığı türler; tanıtım amaçlı push gönderilmez (lansman duyurusu dahil, uygulama içi bant kullanılır).
 
-### Hafta 1 — Altyapı ve güven (lansman öncesi)
-- Kalıcı APK barındırma (GitHub Releases), SHA-256, VirusTotal.
-- İndirme sayfası: ekran görüntüleri, kurulum adımları, SSS, izinler, gizlilik/KVKK (yer tutucular doldurulmuş), WhatsApp paylaş düğmesi, QR.
-- Google Forms: geri bildirim + bekleme listesi (davet alanıyla) + KVKK aydınlatması.
-- Telegram kanalı, X profili, kısa video hesapları: aynı kullanıcı adı, bio'da indirme sayfası.
-- Kart şablonları (Canva/Figma ücretsiz; ⚠ lisans): futbol kartı, NBA Box Score kartı, AI "Pro örneği" kartı.
-- r/superlig ve 3-5 Discord/Telegram topluluğunda okuma + normal katılım; moderatörlere izin mesajı.
-- Kendi çevresinden 10-20 kişiyle "sessiz test": kurulum adımları anlaşılıyor mu? Takıldıkları yer SSS'e eklenir.
-- **Çıktı:** yayında indirme sayfası, çalışan ölçüm, 3 hazır şablon, en az 10 test kurulumu.
+### 4.2 AI ile üretilen içerik
+- Play, üretken AI içeriği olan uygulamalardan **kullanıcının rahatsız edici AI içeriğini uygulamadan çıkmadan bildirebilmesini** istiyor (Ekim 2023 politika duyurusu; kapsamın Skor+ türü analiz uygulamalarını kapsayıp kapsamadığı ⚠ doğrulanmalı). Güvenli taraf: **F7 "Hata bildir" lansmandan önce** her AI kartında ve Taktik Asistan yanıtında yer alır.
+- Her AI çıktısında "AI tarafından üretildi" etiketi; mağaza açıklamasında "AI hakkında" paragrafı.
+- Taktik Asistan yalnız maç bağlamında yanıt verir (genel sohbet botu değil); bu, kısıtlı içerik üretme riskini azaltır. Uygunsuz soru/yanıt filtresi geliştiriciyle kontrol edilir ⚠.
 
-### Hafta 2 — Yumuşak lansman (NBA önce)
-- İzin veren Discord/Telegram NBA topluluklarında Box Score paylaşımı + geri bildirim isteği.
-- Her NBA sabahı 1 "Gece ne oldu?" kartı (Telegram + WhatsApp durumu + X).
-- Teknoloji forumunda geliştirici konusu.
-- 3 kısa video: Box Score demo, takım takibi + "maç başladı" bildirimi, geliştirici günlüğü.
-- Davet sistemi duyurusu: "Kurucu Destekçi" listesi.
-- **Çıktı:** ilk dış kurulumlar, ilk geri bildirimler, ilk davet bağlantıları.
+### 4.3 Abonelik politikası
+- Dijital içerik yalnız Play Billing ile satılır; Play sürümünde dış ödeme bağlantısı yok.
+- Paywall'da fiyat, dönem, deneme süresi, otomatik yenileme ve iptal yolu açıkça yazar. Deneme bitince ücretlendirileceği deneme başlamadan önce görünür.
+- "Abonelikleri yönet" bağlantısı (Play abonelik sayfası) Ayarlar'da bulunur.
 
-### Hafta 3 — Futbol ve içerik döngüsü
-- r/superlig şeffaf tanıtım gönderisi (yalnız moderatör izni varsa).
-- Hafta sonu büyük maçları için Kadro/puan kartı ve AI maç sonu "Pro örneği" kartı.
-- 5 futbol/NBA küçük içerik üreticisine kişisel mesaj (S5): kartları kaynak göstererek kullanma teklifi.
-- 3 kısa video. İlk Telegram davet sıralaması.
-- Geri bildirimlerden en sık 3 sorun listelenir. Kod tarafı geliştiriciye iletilir; OTA ile gelen düzeltmeler Telegram'da "sizin isteğinizle düzeldi" diye duyurulur.
-- **Çıktı:** kart döngüsü haftada en az 5 kart; en az 1 topluluk/üretici iş birliği.
+### 4.4 Data Safety (Veri güvenliği) cevapları
+Taslak; son hâli geliştiriciyle koda bakılarak doldurulur ⚠. Tüm aktarım HTTPS ile şifreli. Veriler "paylaşılmaz": hizmet sağlayıcılar (Supabase, Google Gemini, Firebase/Expo push, RevenueCat) kullanıcı adına işlediği için Play tanımında "paylaşım" sayılmaz ⚠, ama gizlilik politikasında adlarıyla yazılır.
 
-### Hafta 4 — Ölç, sadeleştir, karar ver
-- KPI tablosu çıkarılır (Bölüm 7). En kötü 1-2 kanal bırakılır, süre en iyi kanala kaydırılır.
-- "İlk ay" şeffaf geliştirici günlüğü: gerçek kurulum sayısı, öğrenilenler, sırada ne var.
-- Karar noktaları:
-  - Bekleme listesi hedefi tuttuysa: Pro talebi var. Play Store / ödeme altyapısı için kaynak aramak önceliklenir.
-  - Haftalık aktif kullanıcının çoğu NBA'den geliyorsa: NBA odaklı içerik payı artırılır.
-  - Kurulum oranı düşükse: indirme sayfası ve kurulum anlatımı yeniden yazılır (güven sorunu).
-- **Çıktı:** 2. ay planı ve kanal listesi.
-
----
-
-## 7. KPI'lar (ölçülebilir, ücretsiz araçlarla)
-
-Hedefler tek geliştiricinin sıfır bütçeli ilk ayı için **iddialı ama ulaşılabilir hedeflerdir**, tahmin değildir. Haftalık 15 dakikalık bir Google Sheets tablosu yeterli. Gerçek sayılar paylaşılırken yuvarlama veya şişirme yapılmaz.
-
-| # | KPI | Tanım | Kaynak | 4. hafta hedefi |
+| Uygulamadaki veri | Data Safety türü | Toplanıyor | Zorunlu mu | Amaç |
 |---|---|---|---|---|
-| 1 | İndirme sayfası ziyareti | Tekil ziyaretçi, `ref` kırılımlı | Sayfa analitiği | 1.000 |
-| 2 | Sayfa → APK indirme oranı | APK indirme / tekil ziyaret | GitHub Releases + analitik | ≥ %25 |
-| 3 | Kurulum / aktif hesap | Yeni anonim hesap sayısı | Supabase (kullanıcı tablosu) | 250 |
-| 4 | Aktivasyon | En az 1 takım takip eden hesap / yeni hesap | Supabase (takip tablosu) | ≥ %40 |
-| 5 | Bildirim izni | Push token kaydı olan hesap / yeni hesap | Supabase (push token) | ≥ %60 |
-| 6 | D7 tutma | Kurulumdan 7 gün sonra tekrar açan oranı | Supabase (son görülme / güncelleme kaydı; ⚠ ölçüm alanının varlığı doğrulanmalı) | ≥ %25 |
-| 7 | NBA payı | NBA maç ekranı açan veya NBA takımı takip eden hesap oranı | Supabase (takip tablosu) | Ölçülür, hedef yok (segment kararı için) |
-| 8 | Pro bekleme listesi | Form kaydı | Google Forms | 100 |
-| 9 | Davet katsayısı | Davetle gelen kayıt / toplam kayıt | Form "davet eden" alanı + `ref` | ≥ %15 |
-| 10 | WhatsApp paylaşımı | `ref=wa` ile gelen ziyaret | Sayfa analitiği | Toplam ziyaretin ≥ %20'si |
-| 11 | Kanal etkinliği | Kanal başına sayfa tıklaması (beğeni değil) | `ref`/UTM | En iyi 2 kanal belirlenir |
-| 12 | OTA erişimi | Son OTA sürümünü almış aktif cihaz oranı | EAS Update panosu (⚠ doğrulanmalı) | ≥ %80 |
+| Anonim hesap kimliği (Supabase anonymous auth) | Kişisel bilgiler > Kullanıcı kimlikleri | Evet | Evet | Uygulama işlevi, hesap yönetimi |
+| Push token (FCM/Expo) | Cihaz veya diğer kimlikler | Evet | Hayır (bildirim izni verilirse) | Uygulama işlevi (bildirim) |
+| Takım / maç takipleri, bildirim tercihleri | Uygulama etkinliği > Uygulama içi etkileşimler | Evet | Hayır | Uygulama işlevi, kişiselleştirme |
+| Aktif günler (F4) | Uygulama etkinliği > Uygulama içi etkileşimler | Evet | Evet | Analiz (hizmeti iyileştirme) |
+| Davet kodu ve davet ilişkisi (F3) | Uygulama etkinliği > Uygulama içi etkileşimler (veya Diğer kullanıcı kimlikleri ⚠) | Evet | Hayır | Uygulama işlevi |
+| Taktik Asistan soruları | Uygulama etkinliği > Kullanıcının oluşturduğu diğer içerik | Evet | Hayır | Uygulama işlevi (AI yanıtı; Gemini'ye gönderilir) |
+| Abonelik / satın alma durumu | Finansal bilgiler > Satın alma geçmişi | Evet | Hayır | Uygulama işlevi, hesap yönetimi |
+| Pro bekleme listesi / AI hata bildirimi notu (F2/F7) | Uygulama etkinliği | Evet | Hayır | Uygulama işlevi, analiz |
+| Konum, kişiler, e-posta, telefon, fotoğraf | — | **Hayır** | — | — |
+| Çökme kaydı / tanılama | Uygulama bilgileri ve performans | Sentry vb. eklenirse **evet** (şu an yok) | — | — |
 
-Notlar:
-- Push token sayısı tek başına aktif kullanıcı değildir.
-- Anonim oturum nedeniyle yeniden kurulum yeni hesap gibi görünebilir; KPI 3 üst sınır olarak okunur.
-- Supabase sorguları yalnız toplam sayı üretir; kişisel veri dışarı aktarılmaz.
+- **Silme:** uygulama içi "Hesabımı sil" var. Play ayrıca **web üzerinden hesap/veri silme talebi bağlantısı** istiyor (hesap oluşturan uygulamalar için; anonim hesabın kapsamı ⚠). Destek sitesinde basit bir silme talebi sayfası hazırlanır: kullanıcı Ayarlar'daki "Hesap kimliği"ni yazar.
+
+### 4.5 Gizlilik politikası URL'si
+- Zorunlu: herkese açık, giriş istemeyen, PDF olmayan bir web sayfası. Destek sitesinde (ör. GitHub Pages) `/gizlilik` ve `/kvkk`. Uygulama içi metinle (src/lib/legal.ts) birebir aynı.
+- Eklenecekler: Gemini'ye gönderilen soru ve maç verisi, RevenueCat ve Play ile abonelik verisi, aktif günler (120 gün), davet ilişkisi, yurt dışına aktarım (KVKK m.9; Supabase, Google, RevenueCat ⚠ hukukçu).
 
 ---
 
-## 8. Reklamcı ajan için özet brief
+## 5. Kapalı test ve ön kayıt
 
-**Ürün:** Skor+ — Türkçe futbol ve NBA skor uygulaması. Android, APK ile dağıtılıyor (Play Store'da değil). iOS yok.
+### 5.1 Doğrulanmış şart
+Google Play Console Yardım ("App testing requirements for new personal developer accounts", answer/14151465; 18 Kasım 2026'da okundu):
+- 13 Kasım 2023'ten sonra açılan kişisel hesaplar, **en az 12 test kullanıcısının son 14 gün boyunca kesintisiz kayıtlı olduğu** bir kapalı test yapmalı.
+- Ayrılıp yeniden katılan test kullanıcısının 14 günü ardışık olmalı; 14 günden kısa kalıp ayrılan sayılmaz.
+- Şart sağlanınca Play Console Panosu'ndan üretim erişimine başvurulur (kapalı test, uygulama ve üretime hazırlık soruları). İnceleme **genellikle 7 gün veya daha kısa**, bazen uzun.
+- Az test kullanıcısı veya **yetersiz test etkileşimi** nedeniyle ek test istenebilir.
+- Üçüncü taraf kaynaklar: kuruluş (organization) hesapları bu şarttan muaf; açık test bu şartı karşılamaz; ön kayıt üretim erişimine kadar kapalı ⚠ (Console'da doğrulanmalı).
 
-**Tagline:** "Skoru herkes görür, nedenini sen gör." NBA için: "Box score İngilizce, yorum Türkçe."
+### 5.2 Test ekibi planı
+- **Hedef: 20-25 kayıtlı test kullanıcısı**, en az 15'i günlük aktif. 12'nin altına düşmemek için yedek.
+- Kaynak: mevcut APK kullanıcıları (uygulama içi bant, OTA ile), Telegram kanalı, Pro bekleme listesi, çevre. Her test kullanıcısının bir Google hesabı olmalı; e-posta listesi bir Google Grubu ile yönetilir (kişisel veri yalnız bu amaçla, KVKK aydınlatmasıyla).
+- Test kullanıcılarına net görev listesi: her gün uygulamayı aç, bir takım takip et, bir maçın AI raporunu oku, Taktik Asistan'a soru sor, haftada bir geri bildirim. Geri bildirim kanalı: Telegram test grubu + Play özel geri bildirimi.
+- **Teşekkür (ödül değil, yorum karşılığı değil):** test ekibi "Kurucu Test Ekibi" listesine (izinle) girer; Pro çıktığında ücretsiz Pro süresi verilmesi Play abonelik promosyon kodlarıyla mümkünse yazılı ve sınırlı olarak vaat edilir ⚠ (promosyon kodu türleri doğrulanmalı).
+- Test sırasında Play Billing **lisans test kullanıcılarıyla** denenir; gerçek ödeme gerekmez.
+- 14 günlük sayaç her gün Console'dan izlenir (KPI T1).
 
-**Ton:** Sakin, zeki, veriye dayalı "akıllı arkadaş". Kulüp tarafsız. Kısa cümleler. Futbolda Türkçe futbol dili; NBA içeriğinde basketbol dili (FG%, ribaund, asist, bench, çeyrek), futbol terimi yok. Bağımsız tek kişilik geliştirici hikâyesi güç olarak kullanılır.
+### 5.3 Ön kayıt
+- Yeni kişisel hesapta ön kayıt, üretim erişimine kadar açılamaz ⚠. Bu yüzden lansman öncesi talep **kendi kanallarımızla** toplanır: Telegram kanalı, uygulama içi bant (APK kullanıcılarına), Pro bekleme listesi (F2) ve destek sitesindeki "Play'e çıkınca haber ver" formu.
+- Üretim onayı ile halka açık yayın arasına birkaç gün konabiliyorsa ön kayıt kısa süre açılır ⚠; açılamazsa plan değişmez.
 
-**Ana mesajlar (öncelik sırasıyla):**
-1. NBA: biten maçların tam box score'u Türkçe arayüzde; iki takım alt alta.
-2. Futbol: Türkçe takım adları, kadro ve diziliş, maç sonu oyuncu puanları.
-3. Takımını takip et, maç başlayınca bildirim al. Reklam yok.
-4. Yakında Pro: Türkçe AI taktik analiz (futbol ve NBA). Bekleme listesine katıl.
-5. Bir kez kur; çoğu güncelleme kendiliğinden gelir.
+---
+
+## 6. Zaman çizelgesi (hesap satın alma = H0)
+
+Varsayım: hesap ~2 hafta sonra alınır (bugün = H−2). Halka açık lansman (L) en erken ~H+3, büyük olasılıkla H+3…H+4. Hesap daha erken alınırsa tüm çizelge kayar.
+
+| Hafta | Geliştirici | Pazarlama | Çıktı |
+|---|---|---|---|
+| **H−2** | RevenueCat + Play Billing entegrasyonu (yeni native build), Play install referrer (aynı build), F7 Hata bildir, paywall fiyat/deneme metni | Test ekibi çağrısı (Telegram + APK kullanıcılarına OTA bandı); destek sitesi: gizlilik, KVKK, silme talebi; ASO metinleri | 15+ gönüllü adı, yayında gizlilik URL'si |
+| **H−1** | F3 Paylaş + Davet (Play bağlantısıyla), F4 aktif gün, F5 ilk açılış; ücretli API geçişi ve 1 maç günü doğrulama | 8 ekran görüntüsü, öne çıkan grafik, Data Safety taslağı, IARC cevapları; test ekibi 25'e | Mağaza varlıkları hazır; test listesi tamam |
+| **H0** | Hesap alınır, kimlik doğrulama; uygulama kaydı, imza anahtarı kararı, iç test (internal) | Mağaza sayfası, Data Safety, içerik derecelendirmesi, hedef kitle doldurulur | Kapalı test parçası yüklendi |
+| **H+1** | Kapalı test başlar (gün 1-7); hata düzeltmeleri OTA ile | Test ekibine günlük görev; KPI T1 her gün; Telegram'da "Play'e geliyoruz" geri sayımı | ≥ 12 kesintisiz test kullanıcısı |
+| **H+2** | Kapalı test gün 8-14; F2 AI Vitrini hazırlanır | Lansman içerikleri: 3 kısa video, kart şablonları (Play rozeti ile), basın/topluluk mesajları | 14. gün sonunda üretim başvurusu |
+| **H+3** | Üretim incelemesi (≤ 7 gün, ⚠ uzayabilir); onay gelince aşamalı yayın (%20 → %100) | Onay gününde lansman: Telegram, Discord, Reddit (moderatör izniyle), X, WhatsApp; APK kullanıcılarına "Play'e geç" bandı | **L: halka açık** |
+| **H+4** | Çökme/ANR izleme, F2 vitrin açılır, ardından F12b (NBA tazeliği) ve F1 | İlk yorumlara yanıt, ilk hafta KPI'ları, ilk "Pro (deneme)" geri bildirimi | İlk hafta raporu |
+
+İnceleme H+3'te gelmezse lansman içerikleri bekletilir; test ekibi uygulamayı kullanmaya devam eder ("ek test" riskine karşı).
+
+Lansmandan sonraki ilk 30 gün (L…L+30): haftalık içerik ritmi (NBA sabah kartı, hafta sonu maç sonu AI kartı), haftada en fazla 3 vitrin maçı, ayda bir şeffaf geliştirici günlüğü.
+
+---
+
+## 7. Tazelik mesajı (Pro API ile)
+
+**Futbol (API-Football Pro, 7.500 istek/gün, dakikalık senkron):** Dakikalık senkron bizim yoklama sıklığımızdır; veri sağlayıcının kendi gecikmesi ölçülmedi. Mesaj ölçümle ilerler:
+
+| Aşama | Ne zaman | Söylenebilir | Söylenemez |
+|---|---|---|---|
+| F0 | Ücretli plan canlıda doğrulanmadan | Mevcut metin: "~30 dk aralıkla" | Her türlü yeni hız iddiası |
+| F1 | Ücretli plan açık, < 7 gün ölçüm | "Futbolda maç sırasında sık güncellenir. Her maçta son güncelleme saati yazar." | Dakika rakamı, "anlık", "gerçek zamanlı" |
+| F2 | ≥ 7 gün ölçüm (KPI 13: canlı maçlarda "Son güncelleme" aralığı medyanı ve %90'lık dilim) | "Futbolda maç sırasında genellikle ~X dakika içinde güncellenir" (X = ölçülen %90'lık dilim, yukarı yuvarlanır) | "Her zaman", "garanti", ölçülenden küçük rakam |
+| F3 | Olay → ekran gecikmesi ayrıca ölçülürse (gerçek gol saati ile uygulamada görünme farkı, en az 20 maç örnek) ve %90'ı ≤ 60 sn ise | "Dakika dakika" kabul edilebilir | "Anlık" yine kullanılmaz (ölçülemeyen bir hız vaadidir) |
+
+**NBA (ücretsiz plan, 100/gün):** Sürüm 2.2'deki aşamalar geçerli: "~30 dk aralıkla" → F12b yayında ve 7 gün log varsa "maç saatlerinde daha sık". Box score yalnız biten maçta.
+
+Kurallar:
+- **Tek cümlede iki spor birleştirilmez.** "Skorlar dakikalık güncellenir" yanlıştır (NBA için doğru değil).
+- Uygulama içi not ("~30 dk aralıkla güncellenir") spora göre ayrılmalı; pazarlama metni uygulama metninden önce değişmez.
+- Rakiplerle hız karşılaştırması yapılmaz.
+- Kota tükenirse güncelleme durabilir; "en geç X dk" garantisi verilmez.
+
+---
+
+## 8. Pro fiyatı ve deneme (Play)
+
+Kaynak: rakip araştırması §7 ve §12.3 (öneriler araştırma bulgusu değildir). Türkiye'de reklamsız skor premium'u çok ucuz (Maçkolik Pro 14,99 TL/ay, eski olabilir); AI abonelikleri 200-1.000 TL/ay. Skor+ Pro ikisinin arasında, AI değeriyle gerekçelendirilir; "reklamsız" Pro'nun gerekçesi değildir (ücretsizde de reklam yok).
+
+**Lansman önerisi:**
+| Plan | Fiyat (KDV dahil, Play TL fiyat kademesine göre ⚠) | Not |
+|---|---|---|
+| Aylık | **59,99 TL** | Araştırma bandının alt ucu: değer henüz kanıtlanmadı. |
+| Yıllık | **499,99 TL** | Aylığa göre ~%30 tasarruf (59,99 × 12 = 719,88 TL). |
+| Ücretsiz deneme | **7 gün**, iki planda da, kullanıcı başına bir kez (Play deneme teklifi) | 7 gün en az bir hafta sonu maç döngüsünü kapsar. |
+
+- Paywall kodundaki taslak fiyatlar (79,99 / 599,99 TL) lansmanda ürün kararıyla güncellenir; mağaza ve uygulama aynı fiyatı gösterir (Play kendi fiyatını gösterir).
+- Fiyat artışı ileride yeni abonelere uygulanır; mevcutlar korunur (güven).
+- **Maliyet:** Gemini maliyeti kullanıcı başına ölçülür (deneme kullanıcıları dahil). Deneme kötüye kullanımı için asistan soru sınırı (maç başına 3) korunur.
+- **Gelir hesabı:** Play hizmet ücreti abonelikte %15 ⚠ (güncel oran doğrulanmalı); RevenueCat aylık 2.500 $ izlenen gelire kadar ücretsiz (üçüncü taraf ⚠). 20/B istisnası ve %15 stopaj için mali müşavir ⚠.
+- **Pazarlamada:** fiyat yalnız mağaza ve paywall'da. Sosyal içerikte fiyat yerine "7 gün ücretsiz dene" kullanılabilir; deneme bitince ücretlendirileceği aynı cümlede söylenir.
+- Bekleme listesi ve test ekibine lansman teşekkürü: uzatılmış deneme veya promosyon kodu, Play'in izin verdiği biçimde ⚠. "Ömür boyu Pro" vaadi yok.
+
+---
+
+## 9. Paylaşım ve davet (Play bağlantısı)
+
+### 9.1 Bağlantı biçimi
+Tüm paylaşımlar Play mağaza sayfasına gider, `referrer` parametresinde UTM taşır:
+
+```
+https://play.google.com/store/apps/details?id=com.skorplus.app&referrer=utm_source%3D<kaynak>%26utm_medium%3D<ortam>%26utm_campaign%3D<kampanya>%26utm_content%3D<davet_kodu>
+```
+
+| Kullanım | utm_source | utm_medium | utm_campaign |
+|---|---|---|---|
+| Uygulama içi maç paylaşımı (F3) | app | share | match_share |
+| Uygulama içi davetiye (F3) | app | invite | invite (utm_content = davet kodu) |
+| Telegram kanalı | telegram | social | launch / nba_morning / ai_showcase |
+| Reddit / Discord / X | reddit / discord / x | social | launch |
+| QR (afiş, video sonu) | qr | offline / video | launch |
+| İçerik üreticisi | creator_<takma ad> | referral | creator |
+
+- Play Console edinme raporları `utm_source` / `utm_campaign` kırılımı gösterir ⚠ (rapor ayrıntısı doğrulanmalı).
+- **Davet kodunun otomatik okunması** Play Install Referrer kütüphanesini gerektirir (native modül → RevenueCat ile aynı yeni build'e eklenir ⚠). Okunamazsa F3'teki elle kod girişi yedek olarak kalır.
+- F13 web önizleme sayfası kullanılacaksa, sayfanın "Skor+'ı indir" düğmesi aynı referrer'lı Play bağlantısını taşır.
+- Kısaltıcı kullanılmaz (WhatsApp'ta güvensiz görünür, servis kapanırsa bağlantı ölür).
+
+### 9.2 Davet ödülü (Play politikasıyla uyumlu)
+- Davet eden: 3 aktif davet (davetli en az 2 ayrı gün aktif) → Pro deneme süresi uzatması veya promosyon kodu ⚠ (RevenueCat promosyonel yetki / Play promosyon kodu doğrulanmalı). Nakit yok.
+- Davet, yükleme veya yorum karşılığı değil, **aktif kullanım** karşılığıdır. Ödül asla Play yorumuna, puana veya "5 yıldız"a bağlanmaz.
+- Sahte davet önlemleri F3'teki gibi: kendi kodu yok, 7 günden eski hesap kod giremez.
+
+### 9.3 Paylaşım metinleri (kısa)
+- NBA: `Rockets 112-105 Lakers (MS) · En skorer: J. Smith 31 sayı, FG% 52 · Skor+: <Play bağlantısı>`
+- Futbol: `<Ev> 2-1 <Deplasman> (MS) · En yüksek puan: X (8,4) · Skor+: <bağlantı>`
+- Davetiye: `Futbol ve NBA skorları, Türkçe AI maç analizi. Reklamsız. Davet kodum: ABC123 · <bağlantı>`
+- Canlı maçta paylaşım: futbolda ücretli plan F2 aşamasına gelene kadar gizli; NBA'de gizli.
+
+---
+
+## 10. KPI'lar
+
+Hedefler tek geliştiricinin sıfır bütçeli lansmanı için **hedeftir, tahmin değildir**. Kaynaklar: Play Console (edinme, dönüşüm, Android vitals, abonelik), RevenueCat, Supabase. Haftalık 15 dakikalık tablo.
+
+### 10.1 Lansman öncesi
+| # | KPI | Kaynak | Hedef |
+|---|---|---|---|
+| T1 | Kesintisiz kayıtlı test kullanıcısı (günlük) | Play Console kapalı test | Her gün ≥ 15 (asla < 12) |
+| T2 | Test kullanıcılarının günlük aktif oranı | F4 `user_activity_days` | ≥ %60 |
+| T3 | Test sürecinde açılan kritik hata | Telegram test grubu, Play geri bildirimi | Üretim başvurusundan önce 0 açık kritik |
+| T4 | "Play'e çıkınca haber ver" kaydı | Form + Telegram üye sayısı | 200 |
+
+### 10.2 Lansman sonrası
+| # | KPI | Tanım | Kaynak | H+4 (lansman haftası) | L+30 |
+|---|---|---|---|---|---|
+| 1 | Mağaza sayfası ziyaretçisi | Tekil ziyaretçi | Play Console | 1.000 | 5.000 |
+| 2 | Mağaza dönüşümü | Ziyaretçi → yükleme | Play Console | ≥ %25 | ≥ %30 |
+| 3 | Yeni yükleme | Edinme, `utm_source` kırılımlı | Play Console | 250 | 1.500 |
+| 4 | Aktivasyon | ≥ 1 takım takip eden yeni hesap oranı | Supabase | ≥ %50 (F5 ile) | ≥ %50 |
+| 5 | Bildirim izni | Push token kaydı / yeni hesap | Supabase | ≥ %60 | ≥ %60 |
+| 6 | D7 tutma | F4 aktif günler | Supabase | ölçülür | ≥ %25 |
+| 7 | Deneme başlatma | Yeni hesap içinde deneme başlatan | RevenueCat / Play | ≥ %5 | ≥ %5 |
+| 8 | Deneme → ücretli | Denemesi biten içinde ücretliye geçen | RevenueCat | ölçülür | ≥ %30 |
+| 9 | Ücretli abone | Aktif ücretli abonelik | RevenueCat | ölçülür | 30 |
+| 10 | Davet katsayısı | Davetle gelen / tüm yeni hesap | `invited_by` + `utm_medium=invite` | ≥ %10 | ≥ %15 |
+| 11 | Paylaşımdan yükleme | `utm_medium=share` ve `invite` yüklemeleri / toplam | Play Console | ≥ %15 | ≥ %20 |
+| 12 | Mağaza puanı | Ortalama puan ve yorum sayısı | Play Console | ≥ 4,3 | ≥ 4,3 |
+| 13 | Futbol tazeliği | Canlı maçta "Son güncelleme" aralığı medyanı ve %90'lık dilimi | Supabase + loglar | ölçülür | §7 aşama kararı |
+| 14 | Kararlılık | Çökmesiz kullanıcı oranı, ANR oranı | Android vitals | ≥ %99 çökmesiz | ≥ %99,5; ANR Play eşiğinin altında ⚠ |
+| 15 | AI maliyeti | Pro/deneme kullanıcısı başına aylık Gemini maliyeti | Supabase token kolonları | ölçülür | Aylık Pro fiyatının ≤ %20'si |
+| 16 | AI hata bildirimi | Bildirim / AI rapor görüntülemesi | F7 tablosu | ölçülür | < %2 |
+
+- Kota sağlığı (NBA ≤ 94/gün; futbol 7.500 sınırının altında) teknik izleme olarak kalır.
+- Gerçek sayılar paylaşılırken yuvarlama ve şişirme yok.
+
+---
+
+## 11. Reklamcı ajan için özet brief
+
+**Ürün:** Skor+ — Türkçe futbol ve NBA skor uygulaması, Pro'da Türkçe AI maç analizi. Android, Google Play'de (lansmandan önce "yakında Google Play'de"). iOS yok.
+
+**Tagline:** "Skoru herkes görür, nedenini sen gör." NBA: "Sayılar box score'da, anlamı Türkçe yorumda."
+
+**Ton:** Sakin, zeki, veriye dayalı. Kulüp tarafsız. NBA içeriğinde basketbol dili; futbol teriminden kaçınılır. Bağımsız tek geliştirici hikâyesi güçtür.
+
+**Ana mesajlar:**
+1. Maçın nedenini Türkçe oku: futbolda xG, momentum, teknik direktör etkisi; NBA'de TS%, kırılma periyodu, bench. (Pro, 7 gün ücretsiz deneme.)
+2. Takımını takip et; maç başlayınca ve veriyle anlamlı anda haber al (futbol Akıllı Alarm). Reklam yok.
+3. NBA box score ve futbol kadro/puanlar ücretsiz.
+4. Google Play'de; tek geliştirici, bağımsız proje.
+
+**Tek CTA kuralı:** "Google Play'den indir" (referrer'lı bağlantı) veya lansman öncesi "Haber ver / test ekibine katıl". İkisi aynı içerikte birlikte verilmez.
 
 **Yasaklı iddialar ve ifadeler:**
-- "Anlık / gerçek zamanlı skor", "en hızlı skor", "dakika dakika" (ücretsiz planda ~30 dk aralıkla güncellenir).
-- "Canlı box score" (yalnız biten maçlarda).
-- "Gol bildirimi", "baskı alarmı", "kırmızı kart alarmı" (bugün kapalı).
-- "Gol tahmin eder", "kesin", "garanti", "kazandırır", "kupon", "oran", "iddaa", "bahis".
-- "Resmî uygulama", "NBA/TFF/UEFA/kulüp onaylı" veya ortaklık imaları.
-- "Türkiye'nin ilk/tek", "en iyi", "1 numara" (kanıt olmadan).
-- "Şimdi Pro'ya abone ol" ve her türlü fiyat (Pro satışta değil).
-- "Play Store'da".
-- "%100 güvenli", "virüssüz garanti" (yerine: "SHA-256 ve VirusTotal sonucunu kendin kontrol et").
-- Uydurma kullanıcı/indirme sayısı, puan, yorum.
+- "Anlık", "gerçek zamanlı", "en hızlı"; §7 aşamasında izin verilmeyen hiçbir dakika rakamı. Futbol ve NBA tazeliği tek cümlede birleştirilmez. "En geç X dk" garantisi yok.
+- "Canlı box score" (NBA box score yalnız biten maçta), "NBA seri alarmı" (kapalı).
+- "Gol bildirimi" (uygulamada ayrı bir gol bildirimi doğrulanmadı ⚠); "gol tahmin eder", "gol geliyor". Baskı alarmı için doğru dil: "baskıyı veriyle gösterir".
+- "Kesin", "garanti", "kazandırır", "kupon", "oran", "iddaa", "bahis", "tahmin", "kim kazanır".
+- "Resmî uygulama", "NBA/TFF/UEFA/kulüp onaylı" ve ortaklık imaları.
+- "Türkiye'nin ilk/tek", "en iyi", "1 numara" ve kanıtsız karşılaştırma.
+- "Ücretsiz Pro" (deneme dışında), "ömür boyu Pro", deneme bitince ücretlendirmeyi söylemeyen "ücretsiz dene" metni.
+- Sosyal içerikte fiyat (fiyat yalnız mağaza ve paywall'da; değişince eski içerik yanıltmasın).
+- "Maçın oyuncusu" paylaşım metinlerinde (yerine "En yüksek puan"); "Haftanın oyuncusu".
+- "Birazdan", "maç biter bitmez", "anında" (box score ve özet zamanlaması garanti değil).
+- "Yorum yap, Pro kazan" veya puan/yorum karşılığı herhangi bir ödül.
+- "%100 güvenli", "verilerin hiç toplanmaz" (Data Safety ile çelişir).
+- Uydurma kullanıcı/indirme sayısı, puan, yorum alıntısı.
 - Kapsam dışı: kadın ligleri, alt yaş takımları, Basketbol Süper Ligi, EuroLeague, iOS.
 
-**Görsel kurallar:** Kulüp/lig/NBA logoları, oyuncu fotoğrafları ve maç görüntüleri reklam görselinde öne çıkarılmaz. Ekran görüntüleri gerçek; maket varsa "temsilîdir". AI örnekleri gerçek maçlardan; "Pro (yakında) örneği" etiketiyle.
+**Görsel kurallar:** Kulüp/lig/NBA logoları, oyuncu fotoğrafları, maç görüntüleri öne çıkarılmaz. Ekran görüntüleri gerçek. AI örnekleri gerçek maçlardan, "AI tarafından üretildi" etiketiyle; Pro ekranlarında "Pro" rozeti.
 
-**Hedef kanallar (öncelik sırasıyla):**
-1. WhatsApp (birebir ve durum) + indirme sayfası — tüm segmentler
-2. Skor+ Telegram kanalı + izinli Telegram/Discord toplulukları — S1, S3
-3. Reddit Türkiye toplulukları (kurallara uygun) — S1, S2
-4. X — S1, S2
-5. TikTok / Reels / Shorts — S1, S3
-6. İçerik üreticileri — S5
+**Kanallar (öncelik):** WhatsApp (uygulama içi paylaşım) → Telegram kanalı + izinli Telegram/Discord toplulukları → Reddit Türkiye (moderatör izniyle) → X → kısa video → içerik üreticileri.
 
-**Her içerikte zorunlu:** Geliştirici kendini açıkça belirtir. Tek CTA: "İndirme sayfasına git" veya "Bekleme listesine katıl" (ikisi birlikte değil). Platform kuralları paylaşımdan önce kontrol edilir.
+---
 
-**Kesinlikle yapılmayacaklar:** Sahte hesap, bot, satın alınmış etkileşim, sahte yorum, izinsiz grup paylaşımı, toplu DM, başkası adına yazma, telifli maç görüntüsü.
+## 12. APK kullanıcılarının geçişi
+- OTA ile uygulama içi bant: önce "Test ekibine katıl" (H−2), lansmanda "Skor+ artık Google Play'de" + Play bağlantısı (`utm_source=apk_banner`).
+- İmza anahtarı aynıysa Play sürümü APK'nın üstüne güncellenir ve takipler korunur ⚠ (§0.3). Değilse bant "kaldırıp Play'den kur" der ve takip kaybı dürüstçe yazılır; bu durumda F14 (takip taşıma kodu) lansmandan önce yapılmalı.
+- GitHub Releases'teki APK'lar lansmandan sonra kaldırılır veya "artık güncellenmiyor" notu alır; destek sitesi Play'e yönlendirir.
 
 ---
 
 ## Ek: Doğrulanması gereken açık konular
-1. Google'ın Play dışı uygulamalar için geliştirici doğrulama zorunluluğunun Türkiye'de yürürlük tarihi ve APK kurulumuna etkisi. **(En kritik.)**
-2. Veri sağlayıcının (API-Sports) ve logo kaynaklarının ticari kullanım ve sosyal medyada yeniden paylaşım koşulları (Box Score ve AI kartları dahil).
-3. r/superlig, Türk basketbol subreddit'leri, r/Turkey, Discord sunucuları, Ekşi Sözlük, X ve TikTok tanıtım/otomasyon kuralları.
-4. WhatsApp Kanalı açma koşulları ve keşfedilebilirliği.
-5. Davet/bekleme listesi formu için KVKK aydınlatma metni; gizlilik politikası yer tutucularının doldurulması ve hukukçu kontrolü.
-6. D7 tutma için uygulamada "son görülme" verisinin tutulup tutulmadığı; tutulmuyorsa hangi kayıttan türetileceği.
-7. EAS Update panosunda sürüm erişim oranının görülebilirliği.
-8. Rakiplerde Türkçe NBA box score olup olmadığı (karşılaştırmalı iddia kullanılmaması için).
-9. Güncel fikstürler: Süper Lig derbileri, UEFA maç günleri, milli maç arası, Türk NBA oyuncularının takımları ve maç takvimi.
-10. İleride Play Store'a geçişte kapalı test şartı (test kullanıcısı sayısı, süre) ve kayıt ücreti; bekleme listesi bu test ekibi için kaynak olarak saklanır.
+1. Play App Signing'de mevcut EAS anahtarının kullanımı (APK → Play güncelleme yolu). **Kritik.**
+2. Ön kaydın yeni kişisel hesapta üretim erişiminden önce açılıp açılamadığı (üçüncü taraf kaynak "kapalı" diyor).
+3. Play AI içerik politikasının Skor+ türü analiz uygulamasına kapsamı (F7 lansman şartı olarak ele alınıyor).
+4. Anonim hesaplarda web silme bağlantısı zorunluluğu.
+5. Data Safety türlerinin (davet kodu, aktif gün, asistan soruları) son eşlemesi; hizmet sağlayıcıların "paylaşım" sayılmaması.
+6. Play TL fiyat kademeleri, abonelik hizmet ücreti oranı, ücretsiz deneme ve promosyon kodu seçenekleri.
+7. RevenueCat promosyonel yetki ile davet ödülü verilebilmesi.
+8. Play Install Referrer kütüphanesinin Expo SDK sürümüyle uyumu; Play Console'da UTM raporlarının ayrıntısı.
+9. API-Football Pro planında dakikalık senkronun ve Akıllı Alarm'ın canlıda doğrulanması; veri sağlayıcının ticari kullanım ve mağaza görsellerinde yeniden yayım koşulları.
+10. 20/B istisnası, ayrı banka hesabı ve stopaj (mali müşavir); KVKK m.9 yurt dışı aktarım (hukukçu).
+11. IARC anket sonucu ve hedef yaş kararı (18+ önerisi).
+12. Güncel fikstürler (lansman haftasının derbileri, NBA takvimi, Türk oyuncuların takımları).
+
+## Kaynaklar
+- [Google Play Console Yardım — Yeni kişisel geliştirici hesapları için uygulama test şartları](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en) (18 Kasım 2026'da okundu)
+- [Android Developers Blog — Ekim 2023 politika güncellemesi (AI içerik bildirimi)](https://android-developers.googleblog.com/2023/10/announcing-policy-updates-to-support-app-quality-on-google-play.html), [TechCrunch, Ekim 2023](https://techcrunch.com/2023/10/25/google-plays-policy-update-cracks-down-on-offensive-ai-apps-disruptive-notifications/), [TechCrunch, Haziran 2024](https://techcrunch.com/2024/06/06/google-play-cracks-down-on-ai-apps-after-circulation-of-apps-for-making-deepfake-nudes)
+- Üçüncü taraf (ön kayıt ve kuruluş hesabı muafiyeti; ⚠): [Choicely — 12 tester kuralı](https://www.choicely.com/blog/google-play-12-tester-rule), [playcode — Play'de yayın](https://playcode.io/blog/how-to-publish-an-app-on-google-play), [ProAndroidDev — 12 test kullanıcısı](https://proandroiddev.com/how-to-get-12-testers-for-google-play-closed-testing-and-actually-pass-6a2ab52a0779)
+- Proje içi: `docs/rakip-arastirmasi.md` §5, §7, §12; `docs/inovasyon-onerileri.md`; `GELISTIRMELER.txt` 3.14-3.27.

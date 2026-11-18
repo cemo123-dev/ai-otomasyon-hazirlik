@@ -8,7 +8,7 @@ const errs = []; p.on('pageerror', e => errs.push('PAGEERROR ' + e.message)); p.
 await p.goto(BASE, { timeout: 180000 });
 await p.getByText('İskoçya').first().waitFor({ timeout: 150000 });
 // "Takip" filtresi başta boş
-await p.getByText('★ Takip').click();
+await p.getByText('★ Takip', { exact: true }).click();
 await p.getByText('Takip ettiğin maç yok', { exact: false }).waitFor({ timeout: 5000 }); console.log('boş takip filtresi: OK');
 await p.getByText('Tümü').click();
 await p.screenshot({ path: OUT + 't1-liste.png' });
@@ -19,7 +19,7 @@ await p.getByLabel('Türkiye takibini bırak').waitFor({ timeout: 5000 }); conso
 await p.screenshot({ path: OUT + 't2-mac.png' });
 await p.goBack();
 // Takip filtresinde takımın maçı görünür
-await p.getByText('★ Takip').click();
+await p.getByText('★ Takip', { exact: true }).click();
 await p.getByText('İskoçya').first().waitFor({ timeout: 5000 }); console.log('takip filtresinde takımın maçı: OK');
 // Ayarlarda takım listesi + maç başladı anahtarı
 await p.getByLabel('Bildirim ayarları').click();

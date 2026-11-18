@@ -37,11 +37,24 @@ if (supabase && Platform.OS !== 'web') {
  * RPC'ler auth.uid() ister. Kullanıcı giriş yapmamışsa anonim oturum açılır
  * (Supabase Dashboard > Auth > "Allow anonymous sign-ins" açık olmalı).
  */
-export async function ensureSession(): Promise<string | null> {
-  if (!supabase) return null;
-  const { data } = await supabase.auth.getSession();
+// Tek uçuş: ilk açılışta eşzamanlı çağrılar (Pro, takip, test hesabı …) aynı oturum isteğini paylaşır;
+// aksi halde her biri ayrı signInAnonymously() ile kurulum başına birden çok anonim kullanıcı açar.
+let inflight: Promise<string | null> | null = null;
+
+export function ensureSession(): Promise<string | null> {
+  if (!supabase) return Promise.resolve(null);
+  if (!inflight) {
+    inflight = resolveSession(supabase).finally(() => {
+      inflight = null; // sonuç oturumda saklı; bir sonraki çağrı getSession ile hızlıca döner
+    });
+  }
+  return inflight;
+}
+
+async function resolveSession(sb: SupabaseClient): Promise<string | null> {
+  const { data } = await sb.auth.getSession();
   if (data.session) return data.session.user.id;
-  const { data: anon, error } = await supabase.auth.signInAnonymously();
+  const { data: anon, error } = await sb.auth.signInAnonymously();
   if (error) {
     console.warn('[supabase] anonim oturum açılamadı:', error.message);
     return null;

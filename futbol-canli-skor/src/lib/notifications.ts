@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import { dataSource } from './data';
 
@@ -64,12 +65,33 @@ export function ensurePushRegistration(): Promise<PushRegistration> {
   return registered;
 }
 
-/** Bildirime dokununca ilgili maç açılır (bkz. app/_layout.tsx) */
-export function onNotificationOpen(handler: (fixtureId: number) => void): () => void {
-  if (Platform.OS === 'web') return () => {};
-  const sub = Notifications.addNotificationResponseReceivedListener((resp) => {
-    const id = Number(resp.notification.request.content.data?.fixture_id);
-    if (Number.isFinite(id)) handler(id);
-  });
-  return () => sub.remove();
+/** Bildirim yanıtından maç kimliği (yoksa null) */
+function fixtureIdOf(resp: Notifications.NotificationResponse): number | null {
+  const id = Number(resp.notification.request.content.data?.fixture_id);
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+/**
+ * Bildirime dokununca ilgili maç açılır (bkz. app/_layout.tsx). Yalnız native'de çağrılır
+ * (web'de getLastNotificationResponse desteklenmez ve hata fırlatır).
+ * useLastNotificationResponse hem soğuk açılıştaki (uygulamayı bildirim başlattı) hem de açıkken
+ * gelen dokunuşu verir; işlenen yanıt temizlenir ki ekran yeniden açılınca tekrar yönlendirmesin.
+ * Kaynak: https://docs.expo.dev/versions/v58.0.0/sdk/notifications/
+ */
+export function useNotificationOpen(handler: (fixtureId: number) => void): void {
+  const resp = Notifications.useLastNotificationResponse();
+  const handlerRef = useRef(handler);
+  useEffect(() => {
+    handlerRef.current = handler;
+  }, [handler]);
+  useEffect(() => {
+    if (!resp || resp.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+    const id = fixtureIdOf(resp);
+    try {
+      Notifications.clearLastNotificationResponse();
+    } catch {
+      // eski native modülde yoksa: yanıt yine yalnız bir kez işlenir (hook aynı kimliği tekrar vermez)
+    }
+    if (id != null) handlerRef.current(id);
+  }, [resp]);
 }

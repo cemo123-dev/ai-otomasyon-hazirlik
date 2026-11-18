@@ -250,6 +250,139 @@ Mevcut durum: API-Sports ücretsiz planı spor başına 100 istek/gün veriyor v
 
 ---
 
+## 11. Araştırma turu 3 (2026-11-18): doğrulamalar, büyüme mekanikleri, kotayla tazelik
+
+Bu bölüm önceki bölümleri değiştirmez. Önceki "doğrulanamadı" maddelerinin güncel durumu 11.1'de.
+
+### 11.1 Açık maddelerin doğrulaması
+
+| Madde | Sonuç | Kaynak |
+|-------|-------|--------|
+| Sideload geliştirici doğrulaması, Türkiye tarihi | **Hâlâ doğrulanamadı.** Google'ın resmî rehberi yalnız 1. aşamayı tarihliyor: 30 Eylül 2026, Brezilya, Endonezya, Singapur ve Tayland. 2027 için yalnız "küresel genişleme" deniyor. Ülke listesi ve ay verilmiyor. Pratik varsayım: Türkiye 2027 içinde herhangi bir tarihte gelebilir. Hazırlık şimdiden yapılmalı. | [developer.android.com rehber](https://developer.android.com/developer-verification/guides), [Android Developers blog](https://developer.android.com/blog/posts/android-developer-verification-building-a-safer-ecosystem-together), [TechRepublic](https://www.techrepublic.com/article/news-google-android-developer-verification-september-2026/) |
+| API-Sports fiyatları | **Kısmen doğrulandı (RapidAPI üzerinden).** API-Football: Pro $19 (7.500/gün), Ultra $29 (75.000/gün), Mega $39 (150.000/gün). API-NBA: Ultra $25 (20.000/gün), Mega $35 (50.000/gün). Önceki bölümdeki "NBA Pro $15 / 7.500" bilgisi api-sports.io'nun kendi sayfasından geliyor. RapidAPI fiyatları doğrudan dashboard fiyatlarından farklı olabilir. **Futbol ve NBA ayrı ürün, ayrı abonelik.** Paket indirimi bulunamadı. | [RapidAPI API-Football](https://rapidapi.com/api-sports/api/api-football/pricing), [RapidAPI API-NBA](https://rapidapi.com/de/api-sports/api/api-nba/pricing), [api-football.com/pricing](https://www.api-football.com/pricing) |
+| **Kota gerçekten ortak mı?** | **Önemli belirsizlik.** Kod (0004_quota.sql, `nbaApi.ts`) futbol ve NBA'in aynı 100 istek/günü paylaştığını varsayıyor. Kaynaklar ise ürünleri ayrı listeliyor ve her birinde "100 istek/gün" yazıyor. Bu, kotanın **ürün başına** olabileceğini düşündürüyor. Doğrulanamadı. Test 2 istek tutar: aynı anahtarla `v3.football.api-sports.io/status` ve `v2.nba.api-sports.io/status` çağrılır, `requests.current` ve `limit_day` alanları karşılaştırılır. Kota ürün başınaysa bütçe fiilen 2 katıdır. | [API-NBA rehberi](https://www.api-football.com/news/post/how-to-get-started-with-api-nba-the-complete-beginners-guide), [RapidAPI API-Basketball](https://rapidapi.com/it/api-sports/api/api-basketball/pricing) **Çözüldü: kotalar ayrı (2026-11-18 üretim logları).** API-Football ve API-NBA her biri kendi 100/gün kotasına sahip (2026-11-17 logu: aynı 30 dk'da futbol 63 → 59, NBA 49 → 30); kod `supabase/functions/_shared/quota.ts`. |
+| API-Sports kullanım şartları | **Kısmen.** Arama özetine göre şartlar, verinin ürünlerde kullanılması veya yayınlanması için gerekli izin ve lisansları almayı **kullanıcının sorumluluğu** sayıyor. Ayrıca yarışmalar üzerinde "herhangi bir ticari hak vermiyor". Önbellekleme, gösterim ve logo kuralları doğrulanamadı; sayfa 403 döndü. Anlamı: API-Sports veri erişimi satıyor, lig verisi ve logolar için lisans vermiyor. Ticari yayından önce hukukçu görüşü gerekir. | [api-football.com/terms](https://www.api-football.com/terms) (arama özeti) |
+| AskNBA Türkçe destekliyor mu? | **Doğrulanamadı.** NBA.com duyurusunda ve SVG röportajında dil bilgisi yok. SVG, AskNBA'nın "sınırlı beta" deneyiminden söz ediyor ve video highlight'ların yolda olduğunu yazıyor. NBA'in duyurulan AI yerelleştirmesi yalnız Fransızca, Portekizce ve İspanyolca. Türkçe izine rastlanmadı. | [NBA.com](https://www.nba.com/news/nba-digital-experiences-2026-27), [SVG](https://sportsvideo.org/2026/10/20/nba-app-adds-game-pulse-ai-based-chat-feature-to-keep-fans-tuned-in), [NBA PR](https://pr.nba.com/nba-app-launches-new-digital-features-highlighted-by-multiview-ahead-of-the-2024-25-season) |
+
+### 11.2 Play Store'suz büyüme ve elde tutma mekanikleri
+
+Genel uyarı: Bulunan rakamların neredeyse tamamı satıcı vaka çalışması (push veya analitik şirketi). Kontrol grubu yok. Bunları kesin etki değil, yön olarak okuyun. Bahissiz tahmin oyunları için bağımsız ve ölçülmüş bir retention verisi **bulunamadı**.
+
+| Mekanik | Ölçülen sonuç | Güven | Skor+ için uygunluk |
+|---------|---------------|-------|---------------------|
+| **Kişisel, olay bazlı push** | Uygulamayı indiren ve 90 gün içinde en az 1 push alan kullanıcıda retention %5'ten %10'a çıkıyor; haftalık push ile %30'a kadar (63 milyon kullanıcı, sektörler arası, 2017). Maçkolik, gol bildirim sesini "gol" sesine çevirince açılma oranı ve retention arttı diyor, yüzde vermiyor. SPORT1'de push açılma oranı %8'e kadar çıktı. | Orta (eski, satıcı) | **Yüksek.** Skor+'ta push altyapısı zaten var (FCM). Maç sesi ve takım bazlı kişiselleştirme ucuz. ([Airship 2017](https://www.airship.com/?p=15627), [Netmera Maçkolik](https://netmera.com/mackolik-case-study/), [Pushwoosh SPORT1](https://www.pushwoosh.com/blog/sport1/)) |
+| **Canlı kilit ekranı / Live Activity** | TNT Sports'ta Live Activity kullanıcıları 2 kat oturum açtı; canlı izleme oturumları %25 arttı. | Orta (satıcı) | Düşük-orta. Live Activity iOS'a özel. Android karşılığı, kalıcı (ongoing) canlı skor bildirimi. ([Airship TNT](https://www.casestudies.com/company/airship/case-study/tnt-sports-boosts-live-viewing-sessions-25-with-airship)) |
+| **Ana ekran widget'ı** | Gratitude uygulamasında widget kullanıcılarının retention'ı %25 daha yüksek. DAU'nun %10'u widget kullanıyor. Uygulama içi "widget'ı sabitle" düğmesi kurulum sayısını artırdı. Jetpack Glance geliştirme süresini ~%50 kısalttı. | Orta (Google blogu, tek vaka, nedensellik zayıf) | Orta. Native modül ister, yani yeni APK. Spor uygulaması verisi değil. ([Android Developers Blog, Mayıs 2026](https://android-developers.googleblog.com/2026/05/how-gratitude-widgets-boosted-user-retention-25-percent.html)) |
+| **Sabah özeti (günde 1, sabit saat)** | Günde 1 bildirim alışkanlık kurmak için iyi; alışkanlık sabit saatte daha iyi oluşuyor. Sabah push'u gün boyu aktivasyonu %15 artırdı (haber yayıncıları, satıcı). Zamanlama verileri çelişkili: Pushwoosh sabah ve Cumartesi tepesi görüyor, Leanplum öğleden önce düşük etkileşim görüyor. | Düşük-orta | **Yüksek, maliyet 0.** Dünün sonuçları, bugünün takip edilen maçları ve AI özetin ilk cümlesi sabah 09:00 TSİ'de gönderilebilir. Sunucuda DB'den üretilir, API isteği yok. Ölçüm için A/B saati denenmeli. ([Twipe](https://www.twipemobile.com/3-findings-from-experiments-with-triggers-via-push-notifications-website-and-email/), [Andrew Chen / Leanplum](https://andrewchen.com/breaking-down-671-million-push-notifications-by-hour/amp/)) |
+| **Davet (referral)** | Dream11'de davetle gelen trafikte dönüşüm %37, kayıt %28 daha yüksek; kanal ücretli edinimden ucuz. K-faktör = kullanıcı başına davet × davet dönüşümü; 1'in altı da anlamlı. | Orta (satıcı; ödüllü fantezi oyunu) | Orta. Play Store yokken davet bağlantısı aynı zamanda **indirme kanalı**. Ödül olarak "7 gün Pro" verilebilir. Ancak gerçek ödeme gelene kadar ödülün maliyeti yalnız AI çağrısı. ([AppsFlyer Dream11](https://www.appsflyer.com/customers/dream11/), [Tenjin K-faktör](https://tenjin.com/glossary/k-factor/)) |
+| **Paylaşım kartı** | Spor uygulamasına özgü tıklama veya kurulum verisi **bulunamadı**. | — | Orta. Mekanizma davetle aynı. Kart içine indirme bağlantısı ve deep link konursa ölçülebilir. |
+| **Bahissiz tahmin oyunu / skor tahmini, liderlik tablosu** | Ölçülmüş retention verisi yok. Satıcı görüşü: düz puan yerine seri (streak) ve güven çarpanı, küresel tablo yerine **arkadaş tablosu** daha iyi elde tutuyor. Bahissiz biçimler sportsbook lisansı gerektirmiyor. Hukuki dayanağı kaynakta yok. | Düşük | Orta, dikkatli. Türkiye'de ödül + tahmin, şans oyunu düzenlemesine yaklaşabilir. **Para veya maddi ödül olmadan**, yalnız rozet ve seri ile yapılmalı. Hukuki görüş doğrulanamadı. ([Game-Ace](https://game-ace.com/blog/game-predictions-in-sports/), [Predictfully](https://www.pocketgamer.biz/industry/predictfully)) |
+
+Çıkarım: Ucuz ve 0 API isteği tutan en güçlü üçlü şu: **takım bazlı kişisel push + sabah özeti + davet/paylaşım bağlantısı.** Widget en iyi kanıta sahip ama native, yani bir sonraki APK'ya kalmalı. Tahmin oyunu kanıtı en zayıf ve hukuki riski en yüksek olan.
+
+### 11.3 100 istek/gün ile canlı tazeliği artırmak (ücretli plan olmadan)
+
+Mevcut durum (`0004_quota.sql`): futbol canlısı 12:00-22:59 UTC arasında sabit 30 dakikada bir çalışıyor (~22 çağrı). NBA canlısı 23:00-06:59 UTC arasında 30 dakikada bir (~16 çağrı). Cron, o saatte maç olsa da olmasa da API'yi çağırıyor.
+
+Temel gözlem: `GET /fixtures?live=all` **tek istekle tüm canlı maçları** döndürüyor. ([API-Football: çağrı tasarrufu](https://www.api-football.com/news/post/how-to-save-calls-to-the-api), [Jentic](https://jentic.com/apis/api-sports.io/api-sports)) Yani maliyet maç sayısına değil **yoklama (poll) sayısına** bağlı. Boş saatlerde harcanmayan her istek, maçların yoğun olduğu 2 saate kaydırılabilir. API-Football'un kendi rehberi de aynı şeyi söylüyor: neyi, ne zaman ve ne sıklıkla isteyeceğine karar ver, değer getirmeyen çağrıyı yapma, önbelleği kullan, `ids` ile 20 maçı tek istekte topla. ([API-Football optimizasyon rehberi](https://www.api-football.com/news/post/how-to-optimize-api-sports-calls-and-quota-usage)) Sağlayıcıdan bağımsız iyi uygulamalar: yalnız maç canlıyken yokla, FT'de dur, yalnız gösterilen ligleri yokla, değişmeyen maçı atla, hata alınca geri çekil. ([Sportmonks iyi uygulamalar](https://docs.sportmonks.com/v3/welcome/best-practices), [Sportmonks önbellekleme](https://www.sportmonks.com/blogs/caching-and-optimisation-strategies-for-high-volume-football-api-usage/), [anwp API kullanımı](https://anwp.pro/docs/sports-api-hub/import-sync/api-usage/))
+
+Önerilen teknikler (hepsi ücretsiz planda, kod düzeyinde):
+
+1. **DB kapılı yoklama.** Cron her 5 dakikada bir tetiklensin. Fonksiyon önce DB'ye baksın: takip edilen ligde `[başlama − 5 dk, başlama + 130 dk]` aralığında maç var mı? Yoksa API çağrılmaz (0 istek). Kazanç: bugünkü 22 çağrının maçsız saatlere düşen kısmı.
+2. **Bütçeyle hızlanan aralık.** Yoklama aralığı sabit değil, `kalan_bütçe / kalan_canlı_pencere_dakikası` formülüyle hesaplansın. Alt sınır ~4 dk, üst sınır 30 dk olsun. Örnek: Süper Lig 20:00 TSİ'de toplanırsa, gündüz harcanmayan ~25 istek 20:00-22:00 arasına konur. Bu, bu iki saatte ~5 dakikada bir güncelleme demek.
+3. **Olaya bağlı ek yoklamalar.** Her maç kümesi için sabit anlara birer yoklama: başlama + 2 dk (başladı mı), + 47 dk (devre arası), + 95-115 dk (maç sonu). Devre arası raporu ve maç sonu AI'ı bu anlara bağlı olduğu için tazelik değeri en yüksek bu noktalarda. Mevcut 45-75 dk HT penceresi (3.20) bununla daralır.
+4. **Takip önceliği.** Bütçe darsa yalnız takipçisi olan maçların ligleri yoklansın: `live=all` yerine `live=<ligId-ligId>` filtresi. İstek sayısı değişmez ama zenginleştirme (`ids=`) yalnız takip edilen maçlara harcanır. Takipsiz maçlar 30 dakikalık temel ritimde kalır.
+5. **Değişiklik yoksa zenginleştirme yok.** `live=all` yanıtındaki skor, durum ve dakika önceki kayıtla aynıysa o maç için `/fixtures?id=` çağrılmaz. Kadro, maç başına bir kez çekilip kilitlenir; kod kısmen bunu yapıyor.
+6. **NBA'de aynı mantık.** Maç saatleri `games` kaydında belli. Çeyrek sonu ve maç sonu tahmini anlarda yoklanır. Boş geceler (NBA'in az maçlı günleri) 0 istekle geçer.
+7. **Şeffaflık korunsun.** Aralık artık değişken olduğu için "~30 dk" yerine son güncelleme saati ve bir sonraki tahmini güncelleme gösterilmeli ("Sonraki güncelleme ~20:45").
+8. **Önce kotayı ölçün.** 11.1'deki 2 isteklik `/status` testi yapılsın. Kota ürün başınaysa NBA ve futbol bütçeleri ayrılır, ikisi de iki katına çıkar. Bu, kod yazmadan en büyük kazanç olabilir. Not: Kod `/status` çağrısının kotadan düşmediğini varsayıyor gibi; bu da doğrulanamadı.
+
+Doğrulanamayanlar: API-Football v3'te canlı verinin hangi sıklıkla tazelendiği (eski v2 rehberi "yaklaşık dakikada bir" diyor). ETag veya koşullu istek desteği. `/status`'un kotaya sayılıp sayılmadığı.
+
+### 11.4 İnovasyon ajanı için öneriler
+
+1. **Kota testi + DB kapılı, bütçeye göre hızlanan zamanlayıcı (en yüksek getiri).** Önce 2 isteklik `/status` testiyle kotanın ortak mı ürün başına mı olduğu belirlenmeli. Sonra `sync-matches` ve `sync-nba` için 5 dakikalık cron + DB kapısı + `kalan_bütçe / kalan_pencere` aralığı + başlama/HT/FT ek yoklamaları yazılmalı. Native değişiklik yok, OTA ile gider. Kabul ölçütü: maç olmayan saatte 0 istek; yoğun pencerede ortalama aralık ≤ 8 dk; günlük toplam ≤ limit − yedek. **Çözüldü: kotalar ayrı (2026-11-18 üretim logları).** API-Football ve API-NBA her biri kendi 100/gün kotasına sahip (2026-11-17 logu: aynı 30 dk'da futbol 63 → 59, NBA 49 → 30); kod `supabase/functions/_shared/quota.ts`.
+2. **Sabah özeti push'u (0 API isteği).** 09:00 TSİ'de takip edilen takımların dünkü sonuçları, bugünkü maç saatleri ve Pro kullanıcıya AI özetin ilk cümlesi gönderilsin. Bildirim tercihlerinde ayrı anahtar olsun (3.23'teki sunucu tarafı tercihlere eklenir). Açılma oranı ölçülmeli. Mümkünse iki saat A/B denensin.
+3. **Davet ve paylaşım bağlantısı = indirme kanalı.** Maç ekranından metin paylaşımı yapılsın. Mesajda skor, AI özetin ilk cümlesi, deep link ve APK indirme sayfası olsun. Bağlantıya davet kodu eklensin. Davet eden ve edilen için "7 gün Pro" ödülü ve basit K-faktör ölçümü (davet / kurulum) yapılsın. Native gerekmez.
+4. **Gol sesi + kalıcı canlı skor bildirimi (Android).** Takip edilen maç canlıyken, güncellenen tek bir "ongoing" bildirim gösterilsin; bu, Live Activity'nin Android karşılığı. Gol için özel ses kullanılsın; Maçkolik emsali var. Özel ses ve bildirim kanalı native ayar isteyebilir, bu yüzden bir sonraki APK ile planlanmalı.
+5. **Widget ve tahmin oyununu ertele.** Widget'ı geliştirici doğrulamasıyla birlikte bir sonraki native APK'ya bırakın. Kanıtı en iyi olan bu, ancak maliyeti yüksek. Tahmin oyunu yapılacaksa yalnız rozet ve seri içersin, para veya maddi ödül olmasın, arkadaş tablosuyla olsun. Öncesinde hukuki görüş alınsın.
+
+---
+
+## 12. Araştırma turu 4 (2026-11-18): Play Store'suz para kazanma
+
+Bağlam: Pro kodda var (`src/app/paywall.tsx`, `simulate_subscription` yalnız test hesaplarında). Uygulama yalnız APK ile dağıtılıyor. RevenueCat planlı. Bu bölüm hukuki veya mali tavsiye değildir. Vergi ve tüketici hukuku maddeleri bir mali müşavir ve avukatla teyit edilmeli.
+
+### 12.1 Ödeme altyapısı seçenekleri
+
+| Seçenek | Türkiye'den satıcı olarak kullanılabilir mi? | Ücret | Bireysel geliştirici / KYC | Not |
+|---------|---------------------------------------------|-------|-----------------------------|-----|
+| **Google Play Billing** | Yalnız Play Store'daki uygulamada. APK'da kullanılamaz. | — | — | Play'e geçince RevenueCat bunun üzerine kurulur. |
+| **Stripe (doğrudan)** | **Büyük ihtimalle hayır.** Kaynakların çoğu Türkiye'nin Stripe'ın resmî ülke listesinde olmadığını söylüyor. Tek bir rehber aksini iddia ediyor. Resmî liste okunamadı, **doğrulanamadı**. Yaygın geçici çözüm ABD'de şirket kurmak; bu Skor+ ölçeği için orantısız. | — | — | ([dodopayments](https://dodopayments.com/blogs/merchant-of-record-turkey), [apicalculators TR](https://apicalculators.com/tr/blog/stripe-turkiye-komisyon-2026), [learnwithhasan](https://learnwithhasan.com/payment-gateways/country/turkey/)) |
+| **RevenueCat Web Billing** | **Var ama dolaylı.** Web satın alması, kullanıcı uygulamayı açınca yetkiyi aktif ediyor. Arka uç olarak RevenueCat'in kendi motoru (Stripe tabanlı), Stripe Billing veya Paddle Billing kullanılabiliyor. Paddle entegrasyonu **davetle**. Stripe Türkiye'de yoksa bu yol pratikte Paddle'a bağlı. Sideload edilmiş (Play'siz) Android'de nasıl çalıştığı **doğrulanamadı**. | RevenueCat aylık $2.500 izlenen gelire kadar ücretsiz, sonrasında toplam gelirin %1'i (üçüncü taraf kaynaklar). İşlemci ücreti ayrı. | İşlemciye bağlı | ([RevenueCat Web](https://www.revenuecat.com/docs/web/overview), [RevenueCat Web Billing](https://production-docs.revenuecat.com/docs/web/web-billing/overview), [Paddle entegrasyonu](https://www-docs.revenuecat.com/docs/web/integrations/paddle), [ücret: apppricinglab](https://apppricinglab.com/playbook/revenuecat-review)) |
+| **Paddle (Merchant of Record)** | **Muhtemel, doğrulanamadı.** Paddle'ın Türkiye sayfası Codeway, HubX ve AppNation gibi Türk şirketlerini müşteri olarak sayıyor. Ancak bunlar şirket. Bireysel veya şahıs şirketi kabulü ve ödeme (payout) koşulları **doğrulanamadı**. | 5% + $0,50 / işlem (üçüncü taraf); ödeme ücreti ayrı | Şirket belgeleri istenmesi olası (doğrulanamadı) | MoR olduğu için alıcıya faturayı ve yabancı KDV'yi Paddle üstleniyor. Türk satıcının Paddle'a keseceği faturanın niteliği (hizmet ihracatı mı?) **doğrulanamadı**. ([Paddle Türkiye](https://www.paddle.com/billing/turkey), [Paddle ülkeler](https://developer.paddle.com/concepts/sell/supported-countries-locales), [Paddle Türkiye ödemeleri](https://www.paddle.com/blog/payments-in-turkey)) |
+| **Lemon Squeezy** | **Belirsiz.** Banka ödemesi listesinde Türkiye görülemedi. PayPal ödemesi 200+ ülkede var. Ancak PayPal 2016'dan beri Türkiye'de kapalı; 2026'da açıldığına dair kanıt yok. Ayrıca Lemon Squeezy 2026'da satıcılarını Stripe Managed Payments'a taşıyor. | 5% + $0,50; uluslararası ödeme ücreti kaynaklarda çelişkili | — | Skor+ için önerilmez. ([LS ülkeler](https://docs.lemonsqueezy.com/help/getting-started/supported-countries), [dodopayments LS](https://dodopayments.com/blogs/lemonsqueezy-review), [PayPal TR kapanış](https://www.finextra.com/newsarticle/28974/paypal-forced-to-shut-down-in-turkey), [CNBC-e](https://www.cnbce.com/teknoloji/paypal-world-turkiyeye-de-geri-donus-sinyali-mi-h15290)) |
+| **Polar.sh** | **Doğrulanamadı.** Desteklenen ülkelerde bireylere de ödeme yapıyor (Stripe Connect Express üzerinden). Görülen listede Türkiye yok. Stripe Connect'e dayandığı için Türkiye olasılığı düşük (çıkarım). | — | Birey kabul | ([Polar ülkeler](https://polar.sh/docs/merchant-of-record/supported-countries)) |
+| **iyzico** | **Evet.** Yerli lisanslı ödeme kuruluşu. Abonelik (tekrarlayan ödeme) ürünü var. | Resmî oran yayımlanmıyor, panelde görünüyor. Kaynaklarda %1,59 + 0,25 TL ile %3,99 arası çelişkili rakamlar var. **Doğrulanamadı.** | Bir karşılaştırma sitesine göre şirketi olmayan bireyler için "iyzico Link" var. Ancak düzenli satış gelir vergisi mükellefiyeti doğurur (bkz. 12.2). | ([iyzico Easy POS](https://www.iyzico.com/en/business/easy-pos), [kobitime](https://kobitime.com/sanal-pos-ucretleri-ve-sanal-pos-firmalari-2026/), [ticimax](https://www.ticimax.com/blog/iyzico-komisyon-oranlari)) |
+| **PayTR** | **Evet.** "Link ile Ödeme" sanal POS'u olmayan işletmelere de açık. | Sözleşmeye ve hacme göre. Üçüncü taraf ~%1,49–1,99 diyor. **Doğrulanamadı.** | Bireysel kabul net değil. Bir kaynak vergi levhası olmayan bireyin kabulünü "hukuken net değil" diye niteliyor. | ([PayTR link ile ödeme](https://www.paytr.com/en/linkle-odeme), [birfatura](https://birfatura.com/sanal-pos-nedir-sanal-pos-komisyon-oranlari/), [ideasoft](https://www.ideasoft.com.tr/eticaret-cozum-merkezi/odeme-sistemleri/paytr/)) |
+
+Çıkarım: Türkiye'deki bireysel bir geliştirici için **en gerçekçi ve doğrulanabilir yol, iyzico veya PayTR ile kendi web ödeme sayfası artı sunucu tarafı yetki (Supabase)**. Paddle bir seçenek olabilir ama kabul koşulları belirsiz. Stripe tabanlı her şey (RevenueCat'in kendi motoru, Lemon Squeezy, Polar) Türkiye'den satıcı için büyük ihtimalle kapalı.
+
+### 12.2 Vergi, fatura ve KVKK yükümlülükleri
+
+- **GVK mük. 20/B istisnası APK satışına uygulanmaz.** İstisna, mobil uygulama geliştiricinin "elektronik uygulama paylaşım ve satış platformları üzerinden" (mağazalar) elde ettiği kazancı kapsıyor. Hukuk bürosu özetine göre "mağaza dışında kazanç sağlamak" kapsam dışı. Şartlar: yalnız gerçek kişi, Türkiye'de ayrı banka hesabı, tüm hasılat bu hesaptan, bankanın %15 stopajı nihai vergi. 2026 sınırı 4. gelir dilimi; kaynaklar 5.300.000 TL diyor. Bu kapsamdaki teslimler KDV'den istisna (KDVK 17/4-a). **Sonuç: Skor+ Play Store'a çıkınca 20/B çok avantajlı olur. Web veya APK satışında olmaz.** ([Kazım Ceylan Hukuk](https://www.kazimceylan.av.tr/sosyal-medya-ve-mobil-uygulama-vergi-istisnasi), [fatiharas](https://www.fatiharas.com/gvk-mukerrer-madde-20-b-sosyal-icerik-ureticiligi-istisnasi/), [muhasebenews](https://www.muhasebenews.com/muhasebenews-haber-43436/))
+- **Web satışı için şahıs şirketi (gerçek kişi ticari kazanç mükellefiyeti).** Kuruluş maliyeti kaynaklara göre 3.500–6.000 TL ile 9.500–14.900 TL arası. Kaynaklar fatura yazılımı satıcısı bloğu, **çelişkili**. GİB e-Arşiv Portalı ücretsiz. Özel entegratör seçilirse kontör ücreti var. Mali müşavir aylık ücreti **doğrulanamadı**. ([faturaport](https://faturaport.com/blog/on-muhasebe/sahis-sirketi-kurma-adimlari-2026), [faturaport maliyet kıyas](https://www.faturaport.com/blog/crm/2026-sirket-kurma-maliyetleri-nelerdir-sahis-limited-anonim-karsilastirmasi), [paraşüt](https://www.parasut.com/blog/sahis-sirketi-kurmak))
+  - Alıcı bireysel tüketici olduğu için belge e-arşiv fatura olur. Bir kaynak, basit usulde 1 Ocak 2027'den itibaren tutardan bağımsız her satışın e-arşiv faturayla belgeleneceğini söylüyor. **Doğrulanamadı.** ([birfatura](https://birfatura.com/marti-tag-fatura-zorunlulugu-marti-tag-sahis-sirketi/))
+  - KDV: Dijital abonelik genel orana tabi olmalı (genel oran %20). Basit usul mü bilanço/işletme esası mı uygun olur? Bu, mali müşavirin kararı. **Doğrulanamadı.**
+  - Genç girişimci istisnası koşulları (yaş vb.) geliştiriciye uyuyorsa ilk yıllarda kazanç istisnası sağlayabilir. Koşullar mali müşavirle kontrol edilmeli. ([birfatura genç girişimci](https://birfatura.com/genc-girisimci-istisnasi-destegi-ve-sartlari/))
+- **Tüketici hukuku.**
+  - Mesafeli satış sözleşmesi ve ön bilgilendirme formu gerekli. Maçkolik'in kendi sözleşmesi örnek alınabilir. ([Maçkolik sözleşme](https://www.mackolik.com/static-mackolik-mesafeli-satis-sozlesmesi.html))
+  - 14 günlük cayma hakkı var. Dijital içerik istisnası "anında ifa ve tüketici onayı" koşuluna bağlı. Kaynaklar dijital aboneliklerde cayma hakkının sürdüğünü söylüyor, istisnanın tam metni **doğrulanamadı**. 2026 yönetmelik değişikliği ve bir Danıştay kararı iddiası var, **doğrulanamadı**. ([Kazım Ceylan cayma](https://www.kazimceylan.av.tr/14-gunluk-cayma-hakki), [bilalalyar abonelik iptali](https://bilalalyar.av.tr/?p=8883), [Mesafeli Sözleşmeler Yönetmeliği](https://www.lexpera.com.tr/mevzuat/yonetmelikler/mesafeli-sozlesmeler-yonetmeligi))
+  - Pratik kural: Aboneliği iptal etmek, almak kadar kolay olmalı (uygulama içinde tek düğme). Bu kuralın dayandığı yönetmelik **doğrulanamadı**, ancak şikâyet riskini azaltır.
+- **KVKK.**
+  - Kart verisi Skor+'a hiç gelmemeli. iyzico/PayTR barındırılan (hosted) ödeme sayfası kullanılmalı. Sunucuda yalnız sipariş kimliği, kullanıcı kimliği ve abonelik durumu tutulmalı.
+  - Gizlilik metni (src/lib/legal.ts) ödeme işlemcisini ve fatura için işlenen verileri (ad, e-posta, TCKN gerekirse) eklemeli.
+  - **Yurt dışına aktarım:** Paddle gibi yabancı bir MoR kullanılırsa KVKK m.9 kapsamında standart sözleşme imzalanıp Kurul'a **5 iş günü içinde** bildirim gerekir. Bildirmemenin 2026 cezası 90.308–1.806.377 TL (hukuk bürosu kaynağı, **resmî teyit yok**). Aynı konu Supabase barındırması için de geçerli olabilir. Bu ayrıca kontrol edilmeli. ([KVKK standart sözleşmeler](https://www.kvkk.gov.tr/Icerik/7929/Standart-Sozlesmeler), [Cottgroup](https://cottgroup.com/tr/blog/kvkk-gdpr/item/standart-sozlesme-bildirim-yukumlulugu-ve-yaptirimlari), [bilalalyar m.9](https://bilalalyar.av.tr/?p=101222))
+  - VERBİS kayıt eşiği için 2026 güncellemesi **doğrulanamadı**.
+
+### 12.3 TL fiyat kıyasları
+
+| Ürün | TL fiyat | Kaynak / güven |
+|------|----------|----------------|
+| Maçkolik Pro (reklamsız) | 14,99 TL/ay | Tarihsiz sözleşme, **eski olabilir** ([Maçkolik](https://www.mackolik.com/static-mackolik-mesafeli-satis-sozlesmesi.html)) |
+| Google AI Plus | 199,99 TL/ay | Teknoblog ([teknoblog](https://www.teknoblog.com/google-ai-turkiye-fiyatlari-plus-pro-ve-ultra-farklari/)) |
+| Google AI Pro (Gemini) | 719,99 TL/ay | Teknoblog (aynı kaynak) |
+| ChatGPT Plus | 999,99 TL/ay, 9.999,99 TL/yıl (2026 zammından sonra; önce 499,99 TL) | Tamindir, Teknoblog ([tamindir](https://www.tamindir.com/haber/chatgpt-plus-turkiye-fiyati-zam_109856/), [teknoblog](https://www.teknoblog.com/chatgpt-plus-fiyati-ikiye-katlandi/)) |
+| TOD Süper Lig paketi | Taahhütsüz aylık ~1.590 TL; sezonluk ödemede ~479 TL/ay; 12 ay ~4.200–4.800 TL | Yeniden satıcılar ve haber; **resmî fiyat doğrulanamadı** ([Milli Gazete](https://www.milligazete.com.tr/tod-tv-ucreti-ne-kadar-2026-super-lig-paketi-kac-tl-giris-nasil-yapilir-hangi-diziler-ve-maclar-var), [digiturkburada](https://digiturkburada.com.tr/2026-2027-tod-fiyatlari.html)) |
+| Sofascore / FotMob / Flashscore+ TL fiyatı | **Doğrulanamadı.** Döviz fiyatları bölüm 7'de. | — |
+
+Çıkarım: Türkiye'de "skor uygulaması premium"u çok ucuz (reklamsızlık). "AI aboneliği" ise 200–1.000 TL/ay bandında. Skor+ Pro, bu iki bandın arasında konumlanmalı: bir sohbet botundan çok daha ucuz, reklamsızlıktan daha değerli. Aşağıdaki fiyatlar **öneri**, araştırma bulgusu değil:
+- Pro aylık 59,99–79,99 TL, yıllık 499,99–599,99 TL.
+- Maliyet kontrolü: Gemini çağrı maliyeti kullanıcı başına ölçülmeli. Pro'da günlük asistan soru sınırı korunmalı.
+
+### 12.4 Play Store öncesi satış seçenekleri
+
+| Seçenek | Artı | Hukuki sınır / risk |
+|---------|------|---------------------|
+| **Kurucu destekçi paketi (tek seferlik)** | Abonelik altyapısı (tekrarlayan ödeme, iptal akışı) gerekmez. iyzico/PayTR'de tek çekim yeter. Erken nakit ve sadık çekirdek kitle sağlar. | Satış yine ticari kazançtır: fatura ve şahıs şirketi gerekir. **"Ömür boyu" ifadesinden kaçının.** AI maliyeti süreklidir ve servis kapanırsa tüketici şikâyeti doğar. Süreyi tanımlayın: "2026-27 ve 2027-28 sezonları boyunca Pro" veya "24 ay". Kontenjan koyun (ör. ilk 300 kişi). Play'e geçişte bu kullanıcıların yetkisi sunucuda korunmalı. Google Play, Play dışında alınmış içeriğin uygulamada kullanılmasına genel olarak izin veriyor, ancak Play sürümünde dış ödeme bağlantısı göstermek yasak olabilir. Türkiye için güncel Play ödeme politikası **doğrulanamadı**. |
+| **Bağış (Buy Me a Coffee, Patreon, IBAN)** | Kurulumu kolay | **Önerilmez.** 2860 sayılı Yardım Toplama Kanunu, internette izinsiz yardım toplamayı kapsayabilir. Her faaliyet için izin ve DERBİS izin numarası gerekiyor. İçerik üreticisi bağışının bu kapsamda nasıl değerlendirildiği **doğrulanamadı**. Bağış karşılığında Pro verilirse bu fiilen satıştır ve faturalanmalıdır. Buy Me a Coffee ve Patreon ödemeleri Stripe/PayPal'a dayanıyor, ikisi de Türkiye'de sorunlu (çıkarım). ([Lexpera 2860](https://www.lexpera.com.tr/mevzuat/kanunlar/yardim-toplama-kanunu-2860/11), [TÜSEV bilgi notu](https://tusev.org.tr/wp-content/uploads/2024/02/YardimToplamaBilgiNotu_Ulusal.pdf), [hukukihaber](https://www.hukukihaber.net/toplumsal-fayda-veya-sorun-olarak-internet-sosyal-medyada-yardim-toplama-sorulu-ve-cevapli)) |
+| **Ön kayıt / bekleme listesi (ödemesiz)** | 0 TL, yasal risk yok. Talebi ölçer: "Pro çıkınca %X indirim". | Yalnız e-posta veya push tercihi toplanır; KVKK aydınlatması gerekir. |
+| **Davetle Pro süresi** (bölüm 11.4 #3) | Ödeme olmadan büyüme | Ödül nakit değil, hizmet süresi. Risk düşük. |
+
+### 12.5 Öneri: adım adım plan ve maliyetler
+
+1. **Şimdi (0 TL, OTA).** Paywall'daki "yakında" yerine **bekleme listesi + kurucu destekçi ön kaydı** koyun ("haber ver" düğmesi + Supabase tablosu). Hedef: kaç kişinin ödemeye hazır olduğunu ölçmek. Ayrıca Gemini maliyeti kullanıcı başına loglanmalı; fiyatın tabanı budur.
+2. **Talep yeterliyse (ör. 100+ kayıt): şahıs şirketi + mali müşavir.** Kuruluş ~3.500–14.900 TL (çelişkili kaynaklar). Aylık müşavir ücreti doğrulanamadı. e-Arşiv için GİB portalı ücretsiz. Mali müşavire sorulacaklar: basit usul mü işletme esası mı, KDV, genç girişimci istisnası, ileride 20/B'ye geçiş.
+3. **iyzico (veya PayTR) üye işyeri başvurusu.** Komisyonu yazılı alın; kaynaklarda %1,59 + 0,25 TL ile %3,99 arasında. Barındırılan ödeme sayfası kullanın; kart verisi Skor+'a gelmez.
+4. **Sunucu tarafı yetki.** Yeni edge function: ödeme sağlayıcının webhook'unu imzasıyla doğrular, `subscriptions` tablosunu yazar. `simulate_subscription` yalnız test için kalır. Uygulama, satın almayı **harici tarayıcıda** açar (`skorplus.app/pro?uid=…` gibi bir sayfa). Dönüşte deep link ile yetki tazelenir. Native modül gerekmez, yani OTA ile gider.
+5. **İlk ürün: Kurucu Destekçi (tek çekim, süreli, kontenjanlı).** Abonelik ve iptal akışı gerektirmez. Ardından iyzico abonelik API'siyle aylık ve yıllık Pro eklenir. Mesafeli satış sözleşmesi, ön bilgilendirme formu ve uygulama içi tek düğmeli iptal hazırlanır. Metinler avukata kontrol ettirilir.
+6. **Play Store'a çıkınca.** RevenueCat + Play Billing eklenir. Web/APK alıcılarının yetkisi Supabase'de korunur ve RevenueCat'e taşınır (RevenueCat'in API ile yetki verme yöntemi **doğrulanamadı**). Play gelirleri için **20/B istisnası** değerlendirilir (%15 stopaj, KDV istisnası). Play sürümünde dış ödeme bağlantısı gösterilmez.
+7. **Paddle'ı paralel sorun, beklemeyin.** Paddle şahıs şirketini kabul ederse yurt dışı alıcılar ve KDV işi için iyi bir ikinci kanal olur (5% + $0,50). Ancak KVKK m.9 bildirimi ve fatura niteliği çözülmeden başlanmamalı.
+
+Tahmini başlangıç maliyeti (doğrulanmış kalemler): şahıs şirketi kuruluşu ~3.500–14.900 TL + Android tam dağıtım hesabı $25 (bölüm 8). iyzico komisyonu ve müşavir ücreti doğrulanamadı. RevenueCat aylık $2.500 gelire kadar ücretsiz (üçüncü taraf).
+
+---
+
 ## Kaynaklar
 - https://unstar.app/blog/fotmob-onefootball-espn-365scores-sofascore-football-score-apps-ranked-2026
 - https://www.fotmob.com/topnews/3627-live-xg-data-is-now-fotmob
@@ -338,3 +471,76 @@ Mevcut durum: API-Sports ücretsiz planı spor başına 100 istek/gün veriyor v
 - https://github.com/rsforbes/nba_api
 - https://zuplo.com/learning-center/espn-hidden-api-guide
 - https://sportsapis.dev/espn-api
+
+### Araştırma turu 3'te (2026-11-18) eklenen kaynaklar
+- https://developer.android.com/developer-verification/guides
+- https://developer.android.com/blog/posts/android-developer-verification-building-a-safer-ecosystem-together
+- https://www.techrepublic.com/article/news-google-android-developer-verification-september-2026/
+- https://rapidapi.com/api-sports/api/api-football/pricing
+- https://rapidapi.com/de/api-sports/api/api-nba/pricing
+- https://rapidapi.com/it/api-sports/api/api-basketball/pricing
+- https://www.api-football.com/pricing
+- https://www.api-football.com/terms
+- https://pr.nba.com/nba-app-launches-new-digital-features-highlighted-by-multiview-ahead-of-the-2024-25-season
+- https://www.airship.com/?p=15627
+- https://netmera.com/mackolik-case-study/
+- https://www.pushwoosh.com/blog/sport1/
+- https://www.casestudies.com/company/airship/case-study/tnt-sports-boosts-live-viewing-sessions-25-with-airship
+- https://android-developers.googleblog.com/2026/05/how-gratitude-widgets-boosted-user-retention-25-percent.html
+- https://www.twipemobile.com/3-findings-from-experiments-with-triggers-via-push-notifications-website-and-email/
+- https://andrewchen.com/breaking-down-671-million-push-notifications-by-hour/amp/
+- https://www.appsflyer.com/customers/dream11/
+- https://tenjin.com/glossary/k-factor/
+- https://game-ace.com/blog/game-predictions-in-sports/
+- https://www.pocketgamer.biz/industry/predictfully
+- https://www.api-football.com/news/post/how-to-save-calls-to-the-api
+- https://www.api-football.com/news/post/how-to-optimize-api-sports-calls-and-quota-usage
+- https://jentic.com/apis/api-sports.io/api-sports
+- https://docs.sportmonks.com/v3/welcome/best-practices
+- https://www.sportmonks.com/blogs/caching-and-optimisation-strategies-for-high-volume-football-api-usage/
+- https://anwp.pro/docs/sports-api-hub/import-sync/api-usage/
+
+### Araştırma turu 4'te (2026-11-18) eklenen kaynaklar
+- https://dodopayments.com/blogs/merchant-of-record-turkey
+- https://apicalculators.com/tr/blog/stripe-turkiye-komisyon-2026
+- https://learnwithhasan.com/payment-gateways/country/turkey/
+- https://www.revenuecat.com/docs/web/overview
+- https://production-docs.revenuecat.com/docs/web/web-billing/overview
+- https://www-docs.revenuecat.com/docs/web/integrations/paddle
+- https://apppricinglab.com/playbook/revenuecat-review
+- https://www.paddle.com/billing/turkey
+- https://www.paddle.com/blog/payments-in-turkey
+- https://developer.paddle.com/concepts/sell/supported-countries-locales
+- https://docs.lemonsqueezy.com/help/getting-started/supported-countries
+- https://dodopayments.com/blogs/lemonsqueezy-review
+- https://www.finextra.com/newsarticle/28974/paypal-forced-to-shut-down-in-turkey
+- https://www.cnbce.com/teknoloji/paypal-world-turkiyeye-de-geri-donus-sinyali-mi-h15290
+- https://polar.sh/docs/merchant-of-record/supported-countries
+- https://www.iyzico.com/en/business/easy-pos
+- https://kobitime.com/sanal-pos-ucretleri-ve-sanal-pos-firmalari-2026/
+- https://www.ticimax.com/blog/iyzico-komisyon-oranlari
+- https://www.paytr.com/en/linkle-odeme
+- https://birfatura.com/sanal-pos-nedir-sanal-pos-komisyon-oranlari/
+- https://www.ideasoft.com.tr/eticaret-cozum-merkezi/odeme-sistemleri/paytr/
+- https://www.kazimceylan.av.tr/sosyal-medya-ve-mobil-uygulama-vergi-istisnasi
+- https://www.fatiharas.com/gvk-mukerrer-madde-20-b-sosyal-icerik-ureticiligi-istisnasi/
+- https://www.muhasebenews.com/muhasebenews-haber-43436/
+- https://faturaport.com/blog/on-muhasebe/sahis-sirketi-kurma-adimlari-2026
+- https://www.faturaport.com/blog/crm/2026-sirket-kurma-maliyetleri-nelerdir-sahis-limited-anonim-karsilastirmasi
+- https://www.parasut.com/blog/sahis-sirketi-kurmak
+- https://birfatura.com/marti-tag-fatura-zorunlulugu-marti-tag-sahis-sirketi/
+- https://birfatura.com/genc-girisimci-istisnasi-destegi-ve-sartlari/
+- https://www.kazimceylan.av.tr/14-gunluk-cayma-hakki
+- https://bilalalyar.av.tr/?p=8883
+- https://www.lexpera.com.tr/mevzuat/yonetmelikler/mesafeli-sozlesmeler-yonetmeligi
+- https://www.kvkk.gov.tr/Icerik/7929/Standart-Sozlesmeler
+- https://cottgroup.com/tr/blog/kvkk-gdpr/item/standart-sozlesme-bildirim-yukumlulugu-ve-yaptirimlari
+- https://bilalalyar.av.tr/?p=101222
+- https://www.teknoblog.com/google-ai-turkiye-fiyatlari-plus-pro-ve-ultra-farklari/
+- https://www.tamindir.com/haber/chatgpt-plus-turkiye-fiyati-zam_109856/
+- https://www.teknoblog.com/chatgpt-plus-fiyati-ikiye-katlandi/
+- https://www.milligazete.com.tr/tod-tv-ucreti-ne-kadar-2026-super-lig-paketi-kac-tl-giris-nasil-yapilir-hangi-diziler-ve-maclar-var
+- https://digiturkburada.com.tr/2026-2027-tod-fiyatlari.html
+- https://www.lexpera.com.tr/mevzuat/kanunlar/yardim-toplama-kanunu-2860/11
+- https://tusev.org.tr/wp-content/uploads/2024/02/YardimToplamaBilgiNotu_Ulusal.pdf
+- https://www.hukukihaber.net/toplumsal-fayda-veya-sorun-olarak-internet-sosyal-medyada-yardim-toplama-sorulu-ve-cevapli

@@ -15,13 +15,13 @@ export function HalftimeReport({ p, match }: { p: HalftimePayload; match: Match 
   return (
     <View style={{ gap: space(3) }}>
       <Card accent={colors.pro}>
-        <Badge label="SOYUNMA ODASI REÇETESİ" color={colors.pro} />
+        <Badge label="✦ AI · SOYUNMA ODASI REÇETESİ" color={colors.pro} />
         <Text style={styles.headline}>{p.headline}</Text>
         <Text style={styles.body}>{p.situation}</Text>
       </Card>
 
       <Card>
-        <CardTitle kicker="İkinci Yarıda Ne Olmalı?" title="Hamleler" />
+        <CardTitle kickerColor={colors.pro} kicker="İKİNCİ YARIDA NE OLMALI?" title="Hamleler" />
         {p.prescriptions.length ? (
           p.prescriptions.map((r, i) => (
             <View key={i} style={[styles.rx, { borderLeftColor: sideColor(r.side) }]}>
@@ -43,7 +43,8 @@ export function HalftimeReport({ p, match }: { p: HalftimePayload; match: Match 
       {h && a ? (
         <Card>
           <CardTitle
-            kicker="İlk Yarı"
+            kickerColor={colors.pro}
+            kicker="İLK YARI"
             title={`${p.score.home}-${p.score.away}`}
             right={p.formations.home && p.formations.away ? <Text style={styles.meta}>{p.formations.home} · {p.formations.away}</Text> : undefined}
           />
@@ -58,6 +59,7 @@ export function HalftimeReport({ p, match }: { p: HalftimePayload; match: Match 
       <Text style={styles.note}>
         Rapor devre arasında ilk yarı verisiyle bir kez üretilir; sayılar maç verisiyle doğrulanır.
       </Text>
+      <Text style={styles.aiNote}>AI tarafından üretildi, maç verisine dayanır. Hata görürsen bildir.</Text>
     </View>
   );
 }
@@ -79,7 +81,8 @@ export function HalftimeLocked({ match }: { match: Match }) {
 
 const styles = StyleSheet.create({
   headline: { color: colors.text, fontSize: 21, fontWeight: '900', lineHeight: 27 },
-  body: { color: colors.text, fontSize: 14, lineHeight: 21, opacity: 0.92 },
+  body: { color: colors.text, fontSize: 14, lineHeight: 21 },
+  aiNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17, textAlign: 'center' },
   cardTitle: { color: colors.text, fontWeight: '900', fontSize: 16 },
   rx: { borderLeftWidth: 3, paddingLeft: space(3), paddingVertical: space(1.5), gap: 2 },
   team: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
@@ -90,6 +93,6 @@ const styles = StyleSheet.create({
   meta: { color: colors.textMuted, fontSize: 12 },
   note: { color: colors.textDim, fontSize: 11, lineHeight: 15, textAlign: 'center' },
   lock: { fontSize: 26 },
-  button: { marginTop: space(2), backgroundColor: colors.pro, borderRadius: radius.md, paddingVertical: space(3.5), paddingHorizontal: space(4) },
-  buttonText: { color: colors.bg, fontWeight: '900', fontSize: 15, textAlign: 'center' },
+  button: { marginTop: space(2), minHeight: 48, justifyContent: 'center', backgroundColor: colors.pro, borderRadius: radius.md, paddingVertical: space(3), paddingHorizontal: space(4) },
+  buttonText: { color: colors.onFill, fontWeight: '900', fontSize: 15, textAlign: 'center' },
 });

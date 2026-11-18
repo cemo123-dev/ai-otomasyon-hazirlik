@@ -1,5 +1,25 @@
 # Skor+ — Reklam ve Kreatif Fikirler (Türkiye, ~0 TL)
 
+> **Değişiklik notu — 18 Kasım 2026, 3. tur (Google Play'e geçiş; pazarlama Sürüm 3)**
+> - **Dağıtım değişti: lansman Google Play'de.** APK'ya özgü bütün kreatifler ve "indirme sayfası" CTA'ları emekliye ayrıldı. Yeni ana CTA: **"Google Play'den indir"**. Lansmandan önce: "Test ekibine katıl" veya "Haber ver".
+> - Yeni **9. bölüm**. Çelişkide 9. bölüm, 0–8. bölümlerin önüne geçer:
+>   - 9.0 Sürüm 3 ürün gerçekleri: sporlara göre ayrılmış tazelik aşamaları, Pro fiyatı 59,99 / 499,99 TL ve 7 gün deneme, güncel yasaklı ifadeler.
+>   - 9.1 Emeklilik tablosu: her APK kreatifi ve yerine ne geldiği.
+>   - 9.2 Kapalı test gönüllüsü çağrısı. Telegram, WhatsApp, Reddit ve Ekşi için ayrı metinler. 14 günlük test açıkça anlatılır; yorum karşılığı ödül verilmez.
+>   - 9.3 H−2…H+4 takvimi ve Play politikasına uygun lansman haftası kreatifleri.
+>   - 9.4 Google App Campaigns (UAC) ile ücretli edinme. Meta→APK planının yerine geçer.
+>   - 9.5 Play `referrer` UTM şeması. 8.4'teki `?ref=` şemasının yerine geçer.
+> - 7.6, 7.7, 8.2 ve 8.4 tamamen emekli. 2.7, 5. bölüm ve 8.1'deki davet ödülü cümlesi de emekli. Tarihçe için yerinde bırakıldılar.
+
+> **Değişiklik notu — 18 Kasım 2026, 2. tur (pazarlama Sürüm 2.2'ye uyum)**
+> - Yeni **8. bölüm** eklendi. Pazarlama stratejisi Sürüm 2.2'ye bağlıdır. Yapım sırası: F12a → F3+F4 (+F5) → F12b → F2 → F7 → F1.
+>   - 8.1 Uygulama içi Paylaş + Davet kodu (F3) kreatifleri. Paylaşım metni, `docs/inovasyon-onerileri.md` §4.3 `buildShareText` satır kurallarından birebir alındı. Ödül cümlesi: "Pro satışa açılmadan önce denemeye davet edilirsin."
+>   - 8.2 Lansman haftaları (H1–H2) için reklam ve organik takvim. Strateji §6 ile aynı sıradadır.
+>   - 8.3 Düzeltme tablosu. Strateji §8 yasaklı ifadeleri ve §4.9 tazelik aşamalarıyla çelişen eski satırlar burada listelenir: eski satır alıntılanır, yeni satır verilir. **Çelişkide 8.3 geçerlidir.**
+>   - 8.4 `ref` / UTM adlandırma şeması. `/m/?id=` bağlantıları ve `?ref=` / `k=` parametreleriyle uyumludur. 7.7'deki UTM öncelikli ölçüm yerine `ref` öncelikli ölçüm gelir.
+> - Önemli ürün gerçeği (strateji §0.2): **Akıllı alarmlar bugün kapalıdır** (ücretli veri planı gerekir). Alarm içerikleri "Pro · yakında" diye bile kullanılmaz; ertelenmiştir.
+> - Bütçe notu: Strateji 2.2'ye göre bütçe ~0 TL, en fazla birkaç yüz TL. 7.6'daki ₺1000–3000 planı ancak kullanıcı bu bütçeyi ayrıca onaylarsa ve en erken H3'te uygulanır (8.2).
+
 > **Değişiklik notu — 18 Kasım 2026**
 > - Yeni **7. bölüm** eklendi: güncel özelliklere (GELISTIRMELER 3.20–3.27) göre yeni kreatif turu.
 >   - 7.1 Özellik doğruluk tablosu: hangi özellik ücretsiz, hangisi Pro (Pro henüz satışta değil, "yakında").
@@ -713,3 +733,531 @@ Play Store olmadığı için mağaza yönlendirme verisi (install referrer) yokt
 > Geliştiriciye not (kod değişikliği yapılmadı, yalnız fikir): Kurulumu kanala bağlamak için ilk açılışta tek soruluk, atlanabilir bir "Bizi nereden duydun?" ekranı düşünülebilir. Bu ekran bugün uygulamada **yoktur**. Reklamda veya raporda varmış gibi anılmaz.
 
 **Paylaşım kuralı:** "X kişi indirdi" gibi bir sayı yalnız ölçülen gerçek değerle ve ölçüm kaynağıyla paylaşılır. İndirme sayısı "kullanıcı sayısı" diye sunulmaz.
+
+---
+
+## 8. Paylaş + Davet, lansman takvimi ve düzeltmeler — 18 Kasım 2026, 2. tur
+
+> Kaynaklar: `docs/pazarlama-stratejisi.md` Sürüm 2.2 (§4.3, §4.4, §4.9, §6, §7, §8) ve `docs/inovasyon-onerileri.md` (§4.3 F3 arayüz metinleri ve `buildShareText`, §5 F3 lansman mesajı, F13 bağlantı biçimi). Bu bölüm 0. ve 7.2'deki kuralların hepsine tabidir.
+>
+> **Kapı kuralı:** 8.1'deki kreatifler ancak F3 (Paylaş + Davet kodu, migration `0017`) OTA ile kullanıcılara ulaştıktan **sonra** yayınlanır. Bugün F3'ün yalnız spesifikasyonu hazırdır. Uygulamada henüz yoktur. F3 gecikirse strateji §4.4'teki elle yürütülen davet (form + `?ref=<takma-ad>`) kullanılır. 8.1'deki metinler bekletilir.
+
+### 8.1 Paylaş + Davet kodu kreatifleri (F3)
+
+**Ürün gerçekleri (kreatifte bunun dışına çıkılmaz):**
+- Maç ekranında başlıkta **"Paylaş"** düğmesi vardır. Hazır Türkçe metin + indirme sayfası bağlantısı oluşturur.
+- **Canlı maçta Paylaş düğmesi gizlidir.** Yalnız biten ve başlamamış maçlar paylaşılır. Devre arası ve ertelenen maçlar da paylaşılmaz. Kreatifte canlı maç paylaşımı **gösterilmez**.
+- Paylaşım metni yalnız temel olguyu içerir: skor + tek oyuncu satırı. Tablo veya tam box score paylaşılmaz.
+- Ayarlar'da 6 karakterli kişisel davet kodu bulunur. Yeni kullanıcı kodu **ilk 7 günde** girebilir. Zorunlu değildir.
+- Davet, davetli uygulamayı **en az 2 farklı gün** açarsa "aktif" sayılır. **3 aktif davette:** "Pro satışa açılmadan önce denemeye davet edilirsin." Süre, fiyat ve "ücretsiz Pro" yoktur.
+
+**Paylaşım metni — uygulamanın ürettiği biçim** (inovasyon §4.3, birebir; kreatifte bu satırlar değiştirilmez):
+
+| Durum | 1. satır | 2. satır | 3. satır |
+|---|---|---|---|
+| NBA bitti, box score var | `<Ev> <s>-<s> <Dep> (MS)` | `En skorer: <Oyuncu> <n> sayı, FG% <n>` | `Box score Skor+'ta: <url>` |
+| NBA bitti, box score yok | aynı | — | `Skor ve istatistik Skor+'ta: <url>` |
+| Futbol bitti, puan var | `<Ev> <s>-<s> <Dep> (MS)` (veya `MS, uzatma` / `MS, penaltılar`) | `En yüksek puan: <Oyuncu> (8,4)` | `Kadro ve puanlar Skor+'ta: <url>` |
+| Futbol bitti, puan yok | aynı | — | `Maç özeti Skor+'ta: <url>` |
+| Başlamadı (iki spor) | `<Ev> – <Dep>, bugün 21:45` | — | `Skor+'ta takip ediyorum: <url>` |
+
+Not: Paylaşım metninde **"Maçın oyuncusu" yoktur**, "En yüksek puan" vardır (strateji §8). Uygulama içindeki etiket ayrı bir konudur.
+
+**Davet ekranı metinleri** (inovasyon §4.3, birebir):
+- Kart: `DAVET` / `Arkadaşını davet et` · `Davet kodun` · düğme `Davetiye gönder`
+- Sayaç: `Davetinle gelen: {total} · Aktif olan: {active}`
+- Açıklama: `Aktif 3 davet → Pro satışa açılmadan önce denemeye davet edilirsin.` · `Aktif: uygulamayı en az 2 farklı gün açan davetli.`
+- Davetiye metni: `Türkçe, reklamsız skor uygulaması. Kurulum anlatımı burada: <url>?ref=invite&k=ABC234 — Uygulamayı açınca davet kodum: ABC234`
+
+**Kreatif kuralları (Paylaş + Davet):**
+- Ekran kayıtlarında görünen davet kodu, test hesabının kodudur. Köşeye "örnek kod" yazılır. Geliştiricinin **gerçek kişisel kodu** reklamda, bio'da veya kanalda yayınlanmaz. Yayınlanırsa davet katsayısı (KPI 9) ölçümü bozulur.
+- Pazarlama bağlantıları hiçbir zaman `k=` taşımaz (8.4). `k=` yalnız uygulamanın kendisi tarafından eklenir.
+- Kreatif "kodu gir, Pro kazan" demez. Ödül cümlesi yalnız şudur: **"3 aktif davette, Pro satışa açılmadan önce denemeye davet edilirsin."**
+- "Davet yarışması", "ödül", "kazan", "hediye" kelimeleri kullanılmaz. Haftalık sıralama yalnız Telegram'da, kodun ilk 3 karakteri veya takma adla paylaşılır (strateji §4.4, inovasyon §5).
+- Paylaşım metnindeki skor tazelik iddiası taşımaz. Kreatifte "canlı", "anlık" geçmez.
+
+**Konsept P — "Tek dokunuşla paylaş"**
+- Büyük fikir: Türkiye'de maç sohbeti WhatsApp'ta. Skor+ maçı sohbete hazır bir Türkçe metin olarak taşır. Bağlantı her zaman kurulum anlatımlı indirme sayfasına gider.
+- Slogan: **"Maç bitti. Grubuna tek dokunuşla at."**
+- Kanıt: Gerçek bir biten maçta Paylaş → WhatsApp önizlemesi. Logolar bulanık (7.2).
+
+**Konsept D — "Kodun seninle gelsin" (Kurucu Destekçi)**
+- Büyük fikir: Erken kullanıcı uygulamayı arkadaşına önerir. Uygulama kimin önerdiğini anonim bir kodla sayar. 3 aktif davette Pro satışa açılmadan önce denemeye davet edilir.
+- Slogan: **"3 arkadaş, erken davet."**
+- Kanıt: Ayarlar > DAVET kartı. Sayaç gerçek değeriyle gösterilir; 0 ise 0 yazılır. Kod "örnek kod" etiketlidir.
+
+**Video N4 — "Grup sohbetine 3 saniyede" (15 sn, Konsept P)**
+
+| Saniye | Sahne | Ekran yazısı | Seslendirme |
+|---|---|---|---|
+| 0-3 | Biten NBA maçı ekranı, skor + "Maç Sonu" (logolar bulanık) | "Maç bitti. Grup soruyor." | "Grup 'kaç kaç bitti' diye soruyor." |
+| 3-6 | Başlıktaki "Paylaş" düğmesine dokunma, Android paylaşım ekranı, WhatsApp seçimi | "Paylaş → WhatsApp" | — |
+| 6-11 | WhatsApp'ta hazır metin: `(MS)` satırı, `En skorer: …` satırı, `Box score Skor+'ta: …` | Metin olduğu gibi görünür | "Skor, en skorer ve box score bağlantısı. Hazır." |
+| 11-15 | Kapanış kartı + QR | "Maç bitti. Grubuna tek dokunuşla at." · "APK'yı indir" | "Bağlantı profilde." |
+
+- Futbol varyantı: 2. satır `En yüksek puan: …`, 3. satır `Kadro ve puanlar Skor+'ta: …`.
+- Kayıt yalnız biten veya başlamamış maçla yapılır. Canlı maç kaydı kullanılmaz; düğme zaten görünmez.
+
+**Video N5 — "Davet kodun Ayarlar'da" (15 sn, Konsept D)**
+
+| Saniye | Sahne | Ekran yazısı | Seslendirme |
+|---|---|---|---|
+| 0-4 | Ayarlar > DAVET kartı, "Davet kodun" + kod ("örnek kod" etiketi) | "Herkesin kendi kodu var." | "Ayarlar'da kendi davet kodun var." |
+| 4-8 | "Davetiye gönder" → hazır davetiye metni | "Davetiye hazır." | "Arkadaşın kurar, açınca kodunu girer." |
+| 8-12 | Sayaç ve açıklama satırları yakın plan | "Aktif 3 davet → Pro satışa açılmadan önce denemeye davet edilirsin." | "En az iki farklı gün açan davetli aktif sayılır. Üç aktif davette, Pro satışa açılmadan önce denemeye davet edilirsin." |
+| 12-15 | Kapanış kartı + QR | "3 arkadaş, erken davet." · "APK'yı indir" | "Bağlantı profilde." |
+
+**Statik S6 — Paylaş (WhatsApp durumu / Instagram hikâyesi, 9:16)**
+- Başlık: **"Maç bitti. Grubuna tek dokunuşla at."**
+- Gövde: "Skor+ biten maçı hazır Türkçe metne çevirir: skor, en skorer ya da en yüksek puan ve bağlantı. Futbol ve NBA, ücretsiz, reklamsız."
+- CTA: **APK'yı indir** · [QR: `[site]/?ref=wa-durum-s6`] · [kısa-bağlantı]
+- Görsel: Gerçek WhatsApp önizlemesi (kişi adları ve profil fotoğrafları bulanık).
+
+**Statik S7 — Davet (Telegram kanalı / X / Instagram gönderisi, 4:5)**
+- Başlık: **"3 arkadaş, erken davet."**
+- Gövde: "Ayarlar'da kendi davet kodun var. Arkadaşın Skor+'ı kurup ilk 7 gün içinde kodunu girsin. Uygulamayı en az 2 farklı gün açarsa davetin aktif sayılır. 3 aktif davette, Pro satışa açılmadan önce denemeye davet edilirsin."
+- CTA: **APK'yı indir** · [QR: `[site]/?ref=tg-s7`] · [kısa-bağlantı]
+- Dipnot (küçük): "Sahte kayıt ve kendi kendini davet sayılmaz. Pro henüz satışta değil."
+
+**Lansman duyurusu (Telegram kanalı + WhatsApp Kanalı; inovasyon §5 F3 metni, birebir):**
+> Artık maçı uygulamadan tek dokunuşla paylaşabilirsin. Ayarlar'da kendi davet kodun var. Arkadaşın kurup kodunu girerse ve uygulamayı en az 2 farklı gün açarsa davetin aktif sayılır. 3 aktif davette Pro satışa açılmadan önce denemeye davet edilirsin.
+> İndirme sayfası: `[site]/?ref=tg-duyuru-f3`
+
+### 8.2 Lansman haftaları (H1–H2): reklam ve organik takvim
+
+Strateji §6'daki sıraya bağlıdır. Günler göreli verilmiştir: **G1 = H1'in ilk günü.** Fikstür ⚠ doğrulanmalı. Tazelik dili H1–H2 boyunca **aşama 0**'dadır (8.3, satır T1). Ücretli reklam H1–H2'de **yoktur** (gerekçe tablonun altında).
+
+**H1 — Altyapı ve güven (lansman öncesi; dışarıya tanıtım yok)**
+
+| Gün | Geliştirici (strateji §6) | Pazarlama / kreatif | Kanal | `ref` |
+|---|---|---|---|---|
+| G1 | F12a kota ayrımı | İndirme sayfası iskeleti: SHA-256, VirusTotal, kurulum adımları, SSS (tazelik cevabı aşama 0), 7.2 dipnotu | Site | — |
+| G2 | F12a yayın | `/m/` yolu indirme sayfasına yönlendirir ve `ref` + `k` parametrelerini korur (8.4). `/dl?ref=` sayacı kurulur, analitikte `ref` kırılımı test edilir. | Site | `test` |
+| G3 | F3 + F4 + F5 yapımı (`0017`) | Kart şablonları: NBA "Gece ne oldu?", futbol Kadro/puan ("En yüksek puan"), Pro örneği. QR'lar: `qr-kart`, `qr-video`, `qr-afis` | — | — |
+| G4 | F3 + F4 + F5 | Telegram kanalı, X, kısa video hesapları; aynı kullanıcı adı. Bio bağlantıları 8.4'e göre. | Tümü | `tg-bio`, `x-bio`, `tt-bio`, `ig-bio`, `yt-bio` |
+| G5 | F3 + F4 + F5 OTA | Google Forms: geri bildirim + bekleme listesi (davet alanı yedek olarak) + KVKK | Site | — |
+| G6 | OTA doğrulama | **Sessiz test**, 10-20 kişi: kurulum, Paylaş ve davet kodu girme. Davet sayacı ve `ref=app-share` / `ref=invite` ziyaretleri gerçekten sayılıyor mu? | Birebir WhatsApp | `wa-test` |
+| G7 | Düzeltmeler | Video N1, N4, N5 ve S6, S7'nin ham çekimleri. Takıldıkları yer SSS'e eklenir. Topluluklarda okuma ve katılım; moderatöre izin mesajı (2.6). | — | — |
+
+**H1 çıkış kapısı (H2 lansmanı için hepsi gerekli):** indirme sayfası yayında; `ref` sayımı çalışıyor; en az 10 test kurulumu; F3 kullanıcılarda. F3 yoksa H2 yine başlar ama 8.1 kreatifleri bekletilir. Davet strateji §4.4'teki elle yürütülen sistemle yapılır.
+
+**H2 — Yumuşak lansman (NBA önce)**
+
+| Gün | Geliştirici | Organik içerik | Kanal | `ref` |
+|---|---|---|---|---|
+| G8 | F12b yapımı (`0018`) | Lansman duyurusu (8.1 metni) + S7 | Telegram, WhatsApp Kanalı | `tg-duyuru-f3`, `wak-duyuru-f3` |
+| G8-G14 her sabah 08:30-09:00 | — | NBA "Gece ne oldu?" kartı: skor + box score'dan 3 satır. Box score dolmadıysa kart atlanır. | Telegram, WhatsApp durumu, X | `tg-kart`, `wa-durum-kart`, `x-kart` |
+| G9 | F12b | Video N1 (box score; 8.3'teki düzeltilmiş metinle) | TikTok, Reels, Shorts | `tt-n1`, `ig-n1`, `yt-n1` |
+| G10 | F12b yayın + 24 saat log | İzinli NBA Discord/Telegram topluluklarında box score paylaşımı + geri bildirim isteği. "Bu uygulamayı ben geliştiriyorum." | Discord, Telegram | `dc-nba`, `tgg-nba` |
+| G11 | Log gözlemi | Video N4 (Paylaş) + S6 | Kısa video, WhatsApp durumu | `tt-n4`, `ig-n4`, `yt-n4`, `wa-durum-s6` |
+| G12 | — | Teknoloji forumunda geliştirici konusu (kurallara uygun) | Forum | `forum-technopat`, `forum-dh` |
+| G13 | — | Video N5 (Davet) veya geliştirici günlüğü (Video 5, 8.3'teki düzeltilmiş hâliyle) | Kısa video | `tt-n5` / `tt-gunluk` |
+| G14 | — | Haftalık gözden geçirme: `ref` başına ziyaret, `/dl` tıklaması, yeni hesap, `invited_by` dolu hesap. İlk davet sıralaması (yalnız ilk 3 karakter). | Telegram | — |
+
+H2 kuralları:
+- F12b yayına girse bile H2'de tazelik metni **değişmez**. Aşama 1 için en az 7 gün sorunsuz log gerekir; bu ancak H3'te olur.
+- Senkron regresyonu olursa (§6) lansman paylaşımları 1-2 gün ertelenir. Sabah kartı yine elle yapılır.
+- Futbol içeriği H2'de azdır. Yalnız büyük maçta Kadro/puan kartı ("En yüksek puan") paylaşılır. Futbol ağırlığı H3'te başlar.
+
+**Ücretli reklam — H1–H2'de yok, neden?**
+1. Ölçüm (F4 aktif gün, `ref` sayımı) ilk kez H1 sonunda çalışır. Daha önce harcanan para ölçülemez.
+2. Ücretli kreatif, organikte kazanan içerikten seçilir (7.6). Kazanan ancak G14'te bellidir.
+3. Strateji 2.2 bütçesi ~0 TL, en fazla birkaç yüz TL'dir.
+- **En erken başlangıç H3 G15'tir.** Koşullar: kullanıcı bütçeyi onaylamış olmalı; sayfa → APK indirme oranı ölçülmüş olmalı. Bu oran düşükse para reklama değil, sayfa ve güven bölümüne harcanır.
+- İsteğe bağlı mikro deneme (birkaç yüz TL, strateji sınırında): H3'te G14'ün en iyi NBA videosu, Meta'da Android + basketbol ilgisi + sabah 07:00-10:00 gösterimi. Bağlantı: `ref=ad-meta-<kreatif>` + UTM (8.4).
+
+### 8.3 Düzeltme tablosu (eski satır → yeni satır)
+
+Bu tablo, eski bölümlerin metnini geçersiz kılar. Eski satırlar tarihçe için yerinde bırakıldı. **Kreatif hazırlanırken bu tablodaki yeni satır kullanılır.**
+
+**Tazelik aşamaları (strateji §4.9).** Bütün tazelik cümleleri yalnız bu üç satırdan alınır:
+
+| # | Aşama | Kullanılacak cümle |
+|---|---|---|
+| T1 | 0 — F12b yayında değil (H1–H2 boyunca bu) | "~30 dk aralıkla güncellenir; her maçta son güncelleme saati yazar." |
+| T2 | 1 — F12b yayında, log kanıtı 7 günden az. Önce uygulama içi not değişir, sonra pazarlama metni. | "Maç saatlerinde daha sık güncellenir. Her maçta son güncelleme saati yazar." (Dakika rakamı yok.) |
+| T3 | 2 — en az 7 gün log, KPI 13 ölçüldü | "Maç sırasında genellikle ~X dakikada bir güncellenir." (X = ölçülen medyan, yukarı yuvarlanmış; "genellikle" zorunlu) |
+
+**Satır satır düzeltmeler:**
+
+| # | Yer | Eski satır (alıntı) | Yeni satır | Neden |
+|---|---|---|---|---|
+| R1 | 7.1 tablo, tazelik satırı | "Canlı veri ~30 dk aralıkla güncellenir." | T1 cümlesi birebir; aşama değişince T2/T3. | §4.9 |
+| R2 | 7.1 tablo, Box Score satırı | "Gece maçının tam kutu skoru sabah hazır." | "Biten maçların tam kutu skoru, Türkçe arayüzde." | "Sabah hazır" bir zaman vaadidir. Box score senkron gecikmesiyle gelir (§5.2, §8 "birazdan / maç biter bitmez"). |
+| R3 | 7.4 S1 başlık | "Gece maçının tam kutu skoru, sabah kahvenle." | "Gece maçı bitti mi? Sayılar box score'da, anlamı yakında Türkçe yorumda." | Zaman vaadi. Box score tek başına farklılaştırıcı değil (§1). NBA tagline'ı kullanıldı. |
+| R4 | 7.4 S1 gövde | "Biten her NBA maçında, Türkçe arayüzde, ücretsiz." | "Biten maçlarda, Türkçe arayüzde, ücretsiz. Türkçe NBA analizi Pro'da, yakında." | "Her" kapsama garantisi verir; box score veri gelirse dolar. |
+| R5 | 6. bölüm madde 4 | "\"Gece maçının tam kutu skoru, sabah kahvenle.\" (Video N1 + S1)" | "\"Sayılar box score'da, anlamı yakında Türkçe yorumda.\" (Video N1 + S1)" | R3 ile aynı. |
+| R6 | 7.1 tablo, Kadro satırı | "maç sonu oyuncu puanları ve \"Maçın oyuncusu\"" | Reklam ve paylaşım metninde: "maç sonu oyuncu puanları ve en yüksek puan" | §8: "Maçın oyuncusu" resmî ödül gibi okunur. |
+| R7 | 7.1 tablo, alarm satırı | "Akıllı alarmlar (baskı alarmı vb.) \| Pro · yakında" | "Akıllı alarmlar \| **Bugün kapalı** (ücretli veri planı gerekir) \| Reklamda anılmaz." | §0.2, §8: "baskı alarmı" yasak. |
+| R8 | 0. bölüm, alarm dili kuralı | "Uygulamanın alarm metinleri (\"gol kapıda!\" gibi) yalnız gerçek ekran görüntüsü olarak, gerçek maçtan gösterilir." | "Alarm içerikleri ertelendi (strateji §5.4). Ücretli veri planı açılana kadar alarm ekranı, alarm metni veya alarm vakası kullanılmaz." | §5.4, §8 |
+| R9 | 2.1 X gönderisi 8 ve 9 | "Dün gece telefona düşen bildirim bu: [ekran görüntüsü — gerçek \"NBA Seri Alarmı\"]." / "Bu baskı alarmı [dk]. dakikada geldi." | Gönderiler **çıkarıldı**. Yerine: "Gece maçı bittiyse box score Skor+'ta. En skorer, FG%, +/- tek ekranda. Bu uygulamayı ben geliştiriyorum." `ref=x-kart` | §8 |
+| R10 | 2.2 Video 3 | "Kilit ekranında gerçek \"Baskı Alarmı\" bildirimi" / "Baskı alarmı: yakında Pro'da" | Video **çıkarıldı**. Yerine Video N4 (8.1). | §8 |
+| R11 | 3. bölüm Kart 2 | "Kart 2 — \"Alarm anı\" (Pro alarm kartı, gerçek vaka)" | Kart **çıkarıldı**. Yerine NBA "Gece ne oldu?" kartı (§5.2): skor + box score'dan 3 satır. | §8 |
+| R12 | 6. bölüm madde 2 | "Dürüst alarm vakaları (\"Alarm golü bilmez, baskıyı gösterir\" — Video 3 + Kart 2)" | "Paylaş + Davet (Konsept P/D, Video N4/N5): kullanıcının kendisi yayar, `ref=app-share` / `ref=invite` ile ölçülür." | §8; F3 öncelikli |
+| R13 | 4. bölüm takvim, maç sonu | "Maç sonu kartı (Kart 1); alarm vakası varsa Kart 2" | "Maç sonu kartı (Kart 1); NBA'de sabah kartı." Maç içi satırındaki "Gerçek alarm gelirse ekran görüntüsünü saatiyle kaydet" cümlesi silinir. | §8 |
+| R14 | 2.7 fayda maddesi 3 | "Maç sonu taktik analizi, devre arası raporu ve baskı alarmı üzerinde çalışıyorum." | "Maç sonu ve devre arası Türkçe taktik analizi Pro ile açılacak. Pro henüz satışta değil; açıldığında ilk haberi bekleme listesi alır." | Alarm kapalı (§8). |
+| R15 | 2.6 Telegram/Discord izin mesajı | "Uygulama maçlar için devre arası ve maç sonu kısa taktik özetleri üretiyor." | "Uygulamada canlı skor, takım takibi, futbolda kadro ve NBA'de box score var. Maç sonu ve devre arası Türkçe taktik özetleri Pro ile açılacak; Pro henüz satışta değil." | Bugün kullanıcıya açık olmayan özellik "üretiyor" diye sunulmuş (§0.2). |
+| R16 | 7.4 S3 başlık | "Devre arası 15 dakika. İkinci yarı için hamleler hazır." | "İlk yarı bitti. İkinci yarıda ne olmalı?" | §4.9: "Devre arası raporu zamanında gelir" denmez. "Hazır" bir zaman vaadidir. |
+| R17 | 7.3 Video N2, 0-3 sn | "Devre arası. [skor]." | Aynı kalır, **yalnız** rapor gerçekten devre arasında üretildiyse. Değilse: "İlk yarının okuması. [skor]." | §5.4 |
+| R18 | 1. bölüm Konsept C | "Tek Kişilik Takım (geliştirici hikâyesi + Play Store yolculuğu)" / CTA "Kapalı test ekibine katıl / bekleme listesi" | "Tek Kişilik Takım (geliştirici hikâyesi + Kurucu Destekçi)". CTA: "Bekleme listesine katıl" veya F3 sonrası "Davet kodunu paylaş". Ödül cümlesi: "Pro satışa açılmadan önce denemeye davet edilirsin." | Strateji 2: Play Store kısa vadeli hedef değil; 25 $ kampanyası ve bağış çıkarıldı. |
+| R19 | 2.2 Video 5, 17-25 sn | "Hedef: Play Store" / "Hedefim Play Store. Bunun için kapalı test ekibine ihtiyacım var." | Sahne: Ayarlar > DAVET kartı. Yazı: "Kodun Ayarlar'da." Ses: "Beğendiysen arkadaşına öner. Üç aktif davette, Pro satışa açılmadan önce denemeye davet edilirsin." | R18 ile aynı. |
+| R20 | 2.2 Video 5, not | "Sayılar (bağış, gönüllü) gerçek değerle gösterilir" | "Sayılar (kurulum, aktif davet) yalnız ölçülen gerçek değerle gösterilir." | Bağış çıkarıldı. |
+| R21 | 5.1 ve 5.4 son madde | "bu parayı reklama değil Play Store'a harcamak daha verimli olabilir" / "Play Store ücreti için strateji 3.4'teki şeffaf destek kampanyası" | "Bütçe önce indirme sayfası güvenine ve ölçüme (alan adı, A5 QR çıktısı) harcanır. Play Store kaydı bu planın dışındadır (strateji Sürüm 2)." | Strateji 3.4 artık yok. |
+| R22 | 7.6 giriş notu | "Önce 5.1'e bak: Play Console kayıt ücreti karşılanmadıysa…" | "Önce 8.2'ye bak: Ücretli test en erken H3'te, kullanıcının bütçe onayıyla başlar. Strateji bütçesi en fazla birkaç yüz TL'dir." | Strateji 2.2 |
+| R23 | 7.7 madde 1-2 | "`[indirme-sayfası]/?utm_source=tiktok&utm_medium=video&utm_campaign=n1`" / "`[indirme-sayfası]/dl?src=tiktok-n1`" | "`[site]/?ref=tt-n1`" / "`[site]/dl?ref=tt-n1`". UTM yalnız ücretli reklamda, `ref`'e ek olarak kullanılır. | 8.4: strateji `?ref=` kullanır; tek anahtar. |
+| R24 | 7.7 madde 4 ve tablo | "Yalnız zaman bazında; kanal ayrımı yok" | F4 ve F3 sonrası: davetle gelen kurulum `profiles.invited_by` ile ayrılır. D7, `user_activity_days` ile ölçülür. Diğer kanallar yine yalnız zaman bazındadır. | F3 + F4 (`0017`) |
+| R25 | 7.3 / 7.4 bütün Pro kapanışları | "Pro · yakında" (tek başına) | Aynı kalır. Ek kural: tarihli vaat yok ("ay sonunda" vb.). F2 vitrini açılınca "her maçta AI ücretsiz" denmez; vitrin haftada en fazla 3 maçtır. | §8 |
+
+Kontrol listesi (0. bölüm) için ek soru — **10.** Metinde "baskı alarmı", "gol bildirimi", "Maçın oyuncusu", "birazdan", "anında", "maç biter bitmez", "ücretsiz Pro" veya tarihli Pro vaadi var mı? Tazelik cümlesi T1/T2/T3 dışında mı? Varsa 8.3'e göre düzelt.
+
+### 8.4 `ref` / UTM adlandırma şeması
+
+**Tek ölçüm anahtarı `ref`'tir.** Sayfa analitiği (KPI 1, 10, 11) ve `/dl` sayacı `ref` değerini okur. UTM yalnız ücretli reklamda, platform raporlarıyla eşleşmek için `ref`'e **ek olarak** kullanılır.
+
+**Bağlantı biçimleri:**
+
+| Kim üretir | Biçim | Örnek |
+|---|---|---|
+| Uygulama — maç paylaşımı (F3, F13 uyumlu) | `[site]/m/?id=<maçId>&ref=app-share&k=<kod>` | `[site]/m/?id=123456&ref=app-share&k=ABC234` |
+| Uygulama — davetiye (F3) | `[site]/?ref=invite&k=<kod>` | `[site]/?ref=invite&k=ABC234` |
+| Pazarlama — organik | `[site]/?ref=<kanal>-<içerik>` | `[site]/?ref=tt-n1` |
+| Pazarlama — maç kartı (yalnız F13 `/m/` sayfası yayındaysa) | `[site]/m/?id=<maçId>&ref=<kanal>-kart` | `[site]/m/?id=123456&ref=tg-kart` |
+| Pazarlama — ücretli | `[site]/?ref=ad-<platform>-<kreatif>&utm_source=<platform>&utm_medium=paid&utm_campaign=<dalga>&utm_content=<kreatif>` | `[site]/?ref=ad-meta-n1&utm_source=meta&utm_medium=paid&utm_campaign=h3-test&utm_content=n1` |
+| İndirme düğmesi | `[site]/dl?ref=<gelen ref>` (sayfa gelen `ref`'i aktarır; yoksa `ref=site`) | `[site]/dl?ref=tt-n1` |
+
+**`/m/` yolu kuralı:** F13 hazır değilken `/m/?id=…` adresi indirme sayfasına yönlendirir. Yönlendirme `ref` ve `k` parametrelerini **korur** (inovasyon F13, Değişiklik 1). F13 gelince aynı bağlantılar önizlemeye kavuşur; sayfa `noindex`'tir. `/m/` sayfasında "canlı" rozeti yoktur. Görünen not: "Skor son güncelleme saatindeki durumdur."
+
+**`ref` yazım kuralları:**
+- Yalnız küçük harf, rakam ve tire: `[a-z0-9-]`. En fazla 24 karakter. Türkçe karakter ve boşluk yok.
+- Biçim: `<kanal>[-<biçim>][-<içerik>]`. Örnek: `wa-durum-s6`, `tt-n4`, `tg-duyuru-f3`.
+- **Ayrılmış değerler** (yalnız uygulama üretir, pazarlama kullanmaz): `app-share`, `invite`.
+- **`k=` parametresi yalnız uygulamadan gelir.** Pazarlama bağlantısına, QR'a veya reklama `k=` konmaz.
+- Strateji §4.2 ve §7'deki mevcut değerler aynen korunur: `wa`, `qr-kart`, `qr-video`, `qr-afis`.
+- Her yeni `ref` değeri kullanılmadan önce ölçüm tablosuna (Google Sheets, "ref sözlüğü" sekmesi) yazılır: değer, kanal, kreatif, ilk kullanım tarihi.
+
+**Kanal önekleri:**
+
+| Önek | Kanal | Önek | Kanal |
+|---|---|---|---|
+| `wa` | WhatsApp birebir / grup (elle) | `wa-durum` | WhatsApp durumu |
+| `wak` | WhatsApp Kanalı | `tg` | Skor+ Telegram kanalı |
+| `tgg` | Başka Telegram grupları (izinli) | `dc` | Discord (izinli) |
+| `x` | X | `rd` | Reddit |
+| `eksi` | Ekşi Sözlük | `forum` | Teknoloji forumları (`forum-technopat`, `forum-dh`) |
+| `tt` | TikTok | `ig` | Instagram (Reels, gönderi, hikâye) |
+| `yt` | YouTube Shorts | `qr` | Basılı / görsel QR (`qr-kart`, `qr-video`, `qr-afis`) |
+| `ad-meta` | Meta ücretli | `ad-tt` | TikTok ücretli |
+| `site` | Doğrudan / referanssız | `test` | Kurulum testi (raporlardan çıkarılır) |
+
+**İçerik sonekleri:** Kreatif kimliği (`n1`–`n5`, `s1`–`s7`, `kart`, `duyuru-f3`, `gunluk`, `bio`). Bio bağlantıları `-bio` ile biter (`tt-bio`). Video tek başına izlendiğinde ziyaretler bio'dan gelir; bu nedenle videonun açıklamasındaki bağlantı içerik sonekini taşır, bio bağlantısı taşımaz.
+
+**Ölçüm eşlemesi (strateji §7 KPI'ları):**
+
+| KPI | `ref` kırılımı |
+|---|---|
+| 1 Sayfa ziyareti | Bütün `ref` değerleri |
+| 10 WhatsApp paylaşımı | `wa*` + `app-share` (uygulama içi paylaşımın çoğu WhatsApp'a gider; ayrım yapılamaz, not düşülür) |
+| 9 Davet katsayısı | `invite` ziyaretleri (öncü sinyal) + `profiles.invited_by` (asıl ölçü) |
+| 11 Kanal etkinliği | Önek bazında toplam; `/dl?ref=` tıklaması (beğeni değil) |
+| 2 Sayfa → APK | `/dl?ref=` tıklaması ÷ ziyaret, aynı `ref` için |
+
+Kanal başına APK dosyası (7.7 madde 3) isteğe bağlıdır ve en fazla üç dosyayla sınırlanır: `-site`, `-wa`, `-ad`. Daha fazlası sürüm duyurularında kafa karıştırır. Asıl kanal ayrımı `/dl?ref=` sayacıyla yapılır.
+
+---
+
+## 9. Google Play lansmanı — 18 Kasım 2026, 3. tur
+
+> Kaynak: `docs/pazarlama-stratejisi.md` **Sürüm 3**: §2 genel kurallar, §3 ASO, §4 Play politika korkulukları, §5 kapalı test, §6 H−2…H+4 takvimi, §7 tazelik, §8 fiyat, §9 paylaşım/davet, §11 brief. Paket adı: `com.skorplus.app` (app.json).
+> **Öncelik:** Bu bölüm 0–8. bölümlerle çelişirse bu bölüm geçerlidir. 7.2 marka/logo kuralı ve 0. bölümdeki "geliştirici kendini belirtir" kuralı aynen geçerlidir.
+
+### 9.0 Sürüm 3 ürün ve dil gerçekleri (her kreatifte)
+
+**Ne değişti (7.1 tablosuna göre):**
+- **Pro satışa çıkıyor** (Play Billing). Fiyatlar: aylık 59,99 TL, yıllık 499,99 TL, iki planda da 7 gün ücretsiz deneme (strateji §8, Play fiyat kademesi ⚠).
+  - Sosyal içerikte ve reklamda **fiyat yazılmaz**. Fiyat yalnız mağazada ve paywall'da görünür.
+  - "7 gün ücretsiz dene" denebilir. Aynı cümlede deneme bitince ücretlendirileceği de söylenir.
+  - Standart cümle: **"Pro'yu 7 gün ücretsiz dene. Deneme bitince seçtiğin plan ücretlendirilir; Google Play'den istediğin zaman iptal edebilirsin."**
+- **"Pro · yakında" etiketi lansman günü (L) emekli olur.** Yerine kreatifte "Pro" rozeti kullanılır. Pro'yu anan metinde deneme cümlesi bulunur. L'den önce "yakında" kalır.
+- **Futbol Akıllı Alarm lansmanla açılır**, ama yalnız şu koşulla: geliştirici ücretli API'yi açmış ve 1 maç günü doğrulamış olmalı (strateji §0.1). Doğrulama gelene kadar 8.3 R7–R13 (alarm içerikleri yok) geçerlidir. Doğrulamadan sonra eski alarm içerikleri **yalnız futbolda** geri döner: Video 3, Kart 2, X gönderisi 9. Dil: "baskıyı veriyle gösterir". **NBA seri alarmı kapalıdır** (X gönderisi 8 emekli kalır). "Gol bildirimi" denmez.
+- **Her AI ekranında "AI tarafından üretildi" etiketi** görünür (strateji §4.2). Pro ekranlarında "Pro" rozeti bulunur.
+
+**Tazelik — spora göre ayrı (strateji §7).** Tek cümlede iki spor birleştirilmez. "Skorlar dakikalık güncellenir" **yanlıştır**.
+
+| Spor | Aşama | Kreatifte kullanılacak cümle |
+|---|---|---|
+| Futbol | F0: ücretli plan canlıda doğrulanmadı | "~30 dk aralıkla güncellenir; her maçta son güncelleme saati yazar." |
+| Futbol | F1: ücretli plan açık, ölçüm 7 günden az | "Futbolda maç sırasında sık güncellenir. Her maçta son güncelleme saati yazar." |
+| Futbol | F2: en az 7 gün ölçüm (KPI 13, %90'lık dilim) | "Futbolda maç sırasında genellikle ~X dakika içinde güncellenir." (X ölçülen değerdir, yukarı yuvarlanır) |
+| Futbol | F3: olaydan ekrana gecikme ölçüldü, %90'ı ≤ 60 sn | "Dakika dakika" kabul edilir. "Anlık" yine yasaktır. |
+| NBA | 0: F12b yayında değil | "NBA skorları ~30 dk aralıkla güncellenir; her maçta son güncelleme saati yazar." |
+| NBA | 1–2 | 8.3 T2 / T3 cümleleri, başına "NBA'de" eklenerek. Box score yalnız biten maçta. |
+
+**Güncel yasaklı liste (strateji §11).** 8.3'teki listeye eklenenler:
+- Deneme dışında "ücretsiz Pro" ve "ömür boyu Pro".
+- Ücretlendirmeyi söylemeyen "ücretsiz dene" metni.
+- Sosyal içerikte fiyat.
+- "Yorum yap, Pro kazan" ve puan ya da yorum karşılığı **her türlü** ödül.
+- "%100 güvenli" ve "verilerin hiç toplanmaz" (Data Safety ile çelişir).
+- "Haftanın oyuncusu".
+- "Kim kazanır".
+- Futbol ve NBA tazeliğini tek cümlede birleştirmek.
+- "NBA seri alarmı".
+- Lansmandan önce "Google Play'de" demek. Doğrusu: "yakında Google Play'de".
+
+**CTA kuralı:** Bir içerikte tek CTA bulunur.
+- L'den önce: **"Test ekibine katıl"** veya **"Haber ver"**.
+- L'den sonra: **"Google Play'den indir"**, `referrer`'lı bağlantıyla (9.5).
+- Görselde resmî **"Google Play'den alın" rozeti** yalnız Google'ın rozet kurallarına uygun kullanılır: değiştirilmez, renk ya da oranı bozulmaz, yanına "resmî" iması konmaz ⚠ (Google Play rozet yönergeleri doğrulanmalı). Rozet, L'den önce **hiç** kullanılmaz.
+
+### 9.1 Emekliye ayrılan APK kreatifleri ve yerine gelenler
+
+| # | Eski kreatif / CTA (yer) | Durum | Yerine (CTA: "Google Play'den indir", L'den önce "Test ekibine katıl") |
+|---|---|---|---|
+| A1 | 0. bölüm kontrol listesi 5: "\"Play Store'da\" yazıyor mu? Geçiş bitene kadar sil." | Değişti | "L'den önce 'Google Play'de' yazıyor mu? Varsa 'yakında Google Play'de' yap. L'den sonra serbest." |
+| A2 | 0. bölüm kontrol listesi 4: "Pro için sadece \"yakında\" ve \"bekleme listesi\"." | Değişti | "Fiyat yok. Pro anılıyorsa 9.0'daki deneme cümlesi var mı?" |
+| A3 | 0. bölüm kontrol listesi 7: "\"İndirme sayfası\" **veya** \"bekleme listesi\"" | Emekli | 9.0 CTA kuralı |
+| A4 | 1. bölüm Konsept C, 8.3 R18 sonrası hâli bile ("Kurucu Destekçi" + davet) | Değişti | **Konsept C → "Tek Kişilik Takım, Play yolunda"**. H−2…H+2 boyunca kapalı test hikâyesi (9.2). L'den sonra "Google Play'de; tek geliştirici, bağımsız proje" (strateji §11 mesaj 4). |
+| A5 | 2.2 Video 1, 2 ve 4 kapanışı: "İndirme sayfası profilde." / "Link profilde." | Değişti | "Google Play bağlantısı profilde." Bio bağlantısı 9.5'e göre. |
+| A6 | 2.2 Video 5 (SHA-256 / VirusTotal sahnesi, "Kontrolü sana bırakıyorum", "Play Store'da değilim") ve 8.3 R19 | Emekli | **Video P1 — "14 gün, 12 kişi"** (9.2): kapalı test çağrısı. L'den sonra **Video L1** (9.3). |
+| A7 | 2.3 carousel 2, slayt 7: "Neden Play Store'da değil? … SHA-256 ve VirusTotal sonucu indirme sayfasında." | Emekli | Slayt 7: "Google Play'de. Tek geliştirici, bağımsız proje." + Play rozeti (L'den sonra). |
+| A8 | 2.4 Reddit taslağı, güven paragrafı: "Play Store'da değil, APK ile dağıtıyorum. … Kontrol edip öyle kurun lütfen." | Emekli | L'den önce: 9.2 Reddit metni. L'den sonra: "Google Play'de yayında; geri bildirim için buradayım." |
+| A9 | 2.5 Ekşi taslağı: "eksikleri: play store'da değil, apk ile dağıtıyorum… sha-256 özeti ve virustotal sonucu var" | Emekli | 9.2 Ekşi metni. L'den sonra "eksikleri" cümlesi: "ios yok. bsl ve euroleague yok. nba skorları ücretsiz veri planında, yarım saatte bir güncelleniyor." |
+| A10 | 2.6 Telegram/Discord izin mesajındaki indirme sayfası bağlantısı | Değişti | L'den önce test ekibi formu (`?ref=tgg_test`). L'den sonra Play bağlantısı (`utm_source=telegram`). |
+| A11 | **2.7 APK indirme sayfası metinlerinin tamamı**: güven bölümü, SHA-256, VirusTotal, "bilinmeyen kaynak", "Kullanılmayacak ifadeler" | Emekli | Mağaza sayfası metni strateji §3'te (ASO). Eski sayfa **destek sitesi** olur: gizlilik, KVKK, hesap silme talebi, iletişim, Play bağlantısı (strateji Sürüm 3 notu). |
+| A12 | 3. bölüm kart CTA'sı: "Kartta tek satır, kısa adres: \"[indirme-sayfası]\"" | Değişti | Köşede Play bağlantısına giden QR (`utm_source=qr`, kısaltıcı yok) + "Google Play'de: Skor+". Pro kartında "Pro rozeti + 7 gün deneme cümlesi". |
+| A13 | 5. bölümün tamamı (Play kaydı önerisi, Meta/TikTok boost, GitHub indirme sayacı) | Emekli | 9.4 (UAC) ve 9.5 (referrer ölçümü) |
+| A14 | 7.3 N1–N3 kapanışı: "APK'yı indir" ve "Pro · yakında" | Değişti | "Google Play'den indir". L'den sonra "Pro" rozeti + deneme cümlesi. |
+| A15 | 7.4 S1–S5 CTA'sı: "**APK'yı indir** · [QR] · [kısa-bağlantı]" | Değişti | "**Google Play'den indir** · [QR: Play referrer bağlantısı] · [Play rozeti]". Kısa bağlantı yok (strateji §9.1). |
+| A16 | 7.4 APK güven notu: "Play Store'da henüz değil. İndirme sayfasında SHA-256 özeti ve tarama bağlantısı var." | Emekli | Yok. Gerekirse: "Google Play'de; veri güvenliği bilgisi mağaza sayfasında." |
+| A17 | 7.6 Meta/TikTok → indirme sayfası ücretli testi | Emekli | 9.4 |
+| A18 | 7.7 APK ölçümü (UTM'li sayfa, `/dl` sayacı, kanal başına APK dosyası, anonim hesap = kurulum) | Emekli | 9.5: Play install referrer + Play Console edinme raporu |
+| A19 | 8.1 kapı kuralı ve davetiye bağlantısı: "`<url>?ref=invite&k=ABC234`" | Değişti | Play bağlantısı: `utm_medium=invite`, `utm_content=<davet_kodu>` (9.5). Kod otomatik okunamazsa elle girilir (strateji §9.1). |
+| A20 | 8.1 ödül cümlesi: "3 aktif davette, Pro satışa açılmadan önce denemeye davet edilirsin." | Emekli (L'de) | Pro satışta olduğu için anlamını yitirir. Strateji §9.2'ye göre ödül, "Pro deneme süresi uzatması veya promosyon kodu"dur ⚠. **Mekanizma doğrulanana kadar kreatifte ödül cümlesi kullanılmaz.** Doğrulanınca: "3 arkadaşın uygulamayı en az 2 farklı gün kullanırsa Pro deneme süren uzatılır." Yükleme, puan veya yorum karşılığı değildir. |
+| A21 | 8.1 paylaşım metni (3 satır, "Box score Skor+'ta: <url>") | Değişti | Strateji §9.3 biçimi: `<Ev> 112-105 <Dep> (MS) · En skorer: … · Skor+: <Play bağlantısı>`. Uygulama metniyle birebir aynı olmalı ⚠ (geliştirici hangi biçimi koda alıyorsa kreatif onu gösterir). Davetiye: "Futbol ve NBA skorları, Türkçe AI maç analizi. Reklamsız. Davet kodum: … · <bağlantı>" |
+| A22 | 8.1 "canlı maçta Paylaş gizli" | Değişti | Futbolda ücretli plan F2 aşamasına gelince görünebilir. NBA'de gizli kalır (strateji §9.3). |
+| A23 | 8.2 H1–H2 takvimi | Emekli | 9.3 H−2…H+4 takvimi |
+| A24 | 8.3 T1–T3 tazelik cümleleri (sporsuz) | Değişti | 9.0 spor ayrımlı tablo. T1–T3 yalnız NBA için geçerli. |
+| A25 | 8.4 `?ref=` / `/dl?ref=` / `/m/?id=…&ref=app-share&k=` şeması | Emekli | 9.5. `/m/` sayfası (F13) kalırsa düğmesi referrer'lı Play bağlantısı taşır. |
+| A26 | 7.2 "Temsilî ekran · örnek veri" seçeneği | Daraldı | Mağaza ekran görüntülerinde **kullanılmaz**; ekranlar gerçek olmalı (strateji §3.5). Sosyal içerikte etiketle kalabilir. |
+
+### 9.2 Kapalı test gönüllüsü çağrısı (H−2 → H+1)
+
+**Ortak gerçekler.** Her metin bunları doğru söyler; fazlasını söylemez:
+- Google, yeni kişisel geliştirici hesabından yayından önce şunu ister: **en az 12 kişinin 14 gün boyunca kesintisiz kayıtlı kaldığı** bir kapalı test. Hedefimiz 20–25 kişi, çünkü bırakanlar olur.
+- Gerekenler: bir Google hesabı, Android telefon, Google Grubu'na katılma, Play'deki test bağlantısından "test kullanıcısı ol" demek ve uygulamayı Play'den kurmak.
+- **Ricamız:** 14 gün boyunca testten çıkma ve uygulamayı silme. Mümkünse her gün bir kez aç. Google az kullanımı "yetersiz test" sayıp ek test isteyebilir.
+- Görev listesi (strateji §5.2): bir takım takip et, bir AI raporu oku, Taktik Asistan'a bir soru sor, haftada bir geri bildirim yaz. Geri bildirim Telegram test grubundan ya da Play'in özel geri bildiriminden gelir.
+- **Ödül yok; puan ve yorum karşılığı hiçbir şey yok.** Test kullanıcısı mağazaya yorum yazmak zorunda değildir. Yorum yazarsa karşılığında hiçbir şey almaz.
+- Teşekkür: izin verenlerin takma adı "Kurucu Test Ekibi" listesine yazılır. Pro süresi gibi bir teşekkür ancak Play promosyon kodu yolu doğrulanırsa, yazılı ve sınırlı olarak duyurulur ⚠ (strateji §5.2). Çağrı metinlerinde bu vaat **yer almaz**.
+- Test sürümü erken bir sürümdür; hata çıkabilir. Pro özellikleri test sırasında denenebilir: geliştirici test kullanıcılarını lisans test listesine eklerse gerçek ödeme olmadan ⚠.
+- Toplanan veri yalnız e-posta (Google Grubu için) ve aydınlatma metninde yazılanlardır. Bu veri yalnız test için kullanılır (KVKK aydınlatması form sayfasında).
+- Lansmandan önce Play bağlantısı herkese açık değildir. CTA her zaman **test ekibi formuna** gider (9.5'teki `ref` değerleriyle).
+
+**Telegram (Skor+ kanalı, sabitlenmiş mesaj).** CTA: Test ekibine katıl.
+> Skor+ Google Play'e geliyor ve bunun için senin yardımına ihtiyacım var.
+>
+> Uygulamayı tek başıma geliştiriyorum. Google, yeni geliştiricilerden yayından önce kapalı bir test istiyor: en az 12 kişi, 14 gün boyunca kesintisiz. Bırakanlar olacağı için 20-25 kişi arıyorum.
+>
+> Ne yapman gerekiyor?
+> 1) Formu doldur (Google hesabının e-postası yeterli).
+> 2) Seni test grubuna ekleyince Play'deki test bağlantısından katıl ve uygulamayı kur.
+> 3) 14 gün boyunca uygulamayı silme ve testten çıkma. Mümkünse her gün bir kez aç.
+>
+> Hata bulursan ya da bir şeyi beğenmezsen test grubuna yaz. En çok buna ihtiyacım var.
+> Bunun bir ödülü yok. Mağazaya yorum yazman da gerekmiyor; yazarsan da karşılığında bir şey vermiyorum. İstersen adın "Kurucu Test Ekibi" listesine girer.
+>
+> Test ekibine katıl: [destek-sitesi]/test?ref=tg_test
+
+**WhatsApp (birebir veya izinli grup; kısa).** CTA: Test ekibine katıl.
+> Selam! Skor+ diye bir futbol + NBA uygulaması geliştiriyorum, Google Play'e çıkarmaya çalışıyorum. Google önce 12 kişiyle 14 günlük kapalı test istiyor. Android telefonun varsa 14 gün boyunca uygulamayı kurulu tutar mısın? Günde bir kez açman yeterli. Hata görürsen bana yaz. Ödülü yok, yorum yazman da gerekmiyor. Katılmak istersen: [destek-sitesi]/test?ref=wa_test
+
+**Reddit** (yalnız moderatör izni alındıysa; r/superlig veya izin verilen Türkçe topluluk ⚠ kurallar). Başlık: "Kendi geliştirdiğim Türkçe futbol/NBA uygulaması için 14 günlük kapalı teste gönüllü arıyorum". CTA: Test ekibine katıl.
+> Merhaba. Moderatörlerden izin alarak yazıyorum.
+>
+> Skor+'ı tek başıma geliştiriyorum. Türkçe futbol ve NBA skorları var: futbolda kadro ve oyuncu puanları, NBA'de biten maçların box score'u. Pro tarafında maç sonu Türkçe AI taktik analizi var.
+>
+> Google Play'e çıkmak için Google'ın yeni hesap kuralını karşılamam gerekiyor: en az 12 test kullanıcısı, 14 gün kesintisiz. Bu yüzden 20-25 gönüllü arıyorum.
+>
+> - Google hesabı ve Android telefon gerekiyor.
+> - 14 gün boyunca uygulamayı silmemen ve testten çıkmaman yeterli. Günde bir açman testin geçmesine yardım eder.
+> - Ödül yok. Mağaza yorumu istemiyorum; yorum karşılığı hiçbir şey vermiyorum.
+> - E-postan yalnız test grubu için kullanılıyor. Aydınlatma metni form sayfasında.
+>
+> Sert eleştiri de dahil her geri bildirim işime yarar. Katılmak isteyenler: [destek-sitesi]/test?ref=rd_test
+
+**Ekşi Sözlük** (yeni başlık açılmaz; var olan "canlı skor uygulaması" türü başlıkta, ayda en fazla 1 entry, tanıtım kuralları ⚠). Ekşi diliyle küçük harf. CTA: Test ekibine katıl.
+> skor+ diye türkçe bir futbol/nba uygulaması geliştiriyorum, tek kişiyim. google play'e çıkmadan önce google 12 kişilik, 14 gün süren kapalı test istiyor. bu yüzden android telefonu olan ve 14 gün boyunca uygulamayı silmeden tutabilecek gönüllüler arıyorum. ödül yok, mağaza yorumu da istemiyorum. işim hata bulan ve eleştiren insanlarla. ilgilenen olursa form: [destek-sitesi]/test?ref=eksi_test
+
+**Video P1 — "14 gün, 12 kişi" (20 sn, A6'nın yerine).** CTA: Test ekibine katıl.
+
+| Saniye | Sahne | Ekran yazısı | Seslendirme (geliştiricinin kendi sesi) |
+|---|---|---|---|
+| 0-4 | Masada telefon, uygulama açık (logolar bulanık) | "Bunu tek başıma yapıyorum." | "Skor+'ı tek başıma geliştiriyorum." |
+| 4-10 | Liste, Kadro, Box Score kayar | "Google Play'e çıkmadan önce: 12 kişi, 14 gün." | "Google Play'e çıkmak için 14 gün süren bir kapalı teste ihtiyacım var." |
+| 10-16 | Metin kartı | "Kur. 14 gün silme. Hata görürsen yaz." | "Uygulamayı kur, on dört gün silme, hata görürsen yaz." |
+| 16-20 | Kapanış kartı | "Ödül yok, yorum isteği yok. Sadece dürüst geri bildirim." · "Test ekibine katıl" | "Bağlantı profilde." |
+
+**Takip mesajları (test sırasında, Telegram test grubu):**
+- Gün 1: "Hoş geldin. Uygulamayı Play'deki test bağlantısından kurduğunu kontrol et. 14 günlük sayaç bugün başladı."
+- Gün 7: "Yarı yoldayız. Lütfen testten çıkma ve uygulamayı silme. Bu hafta denemek için: Taktik Asistan'a bir soru."
+- Gün 13: "Yarın 14. gün. Testten çıkma; üretim başvurusu bu güne bağlı."
+- Hatırlatmalarda yorum veya puan isteği **yoktur**.
+
+### 9.3 Lansman takvimi (H−2…H+4) ve Play'e uygun lansman kreatifleri
+
+| Hafta | Geliştirici (strateji §6) | Kreatif ve kanal | CTA |
+|---|---|---|---|
+| H−2 | RevenueCat + Play Billing, install referrer, F7 Hata bildir | 9.2 çağrısı: Telegram, WhatsApp. APK kullanıcılarına OTA bandı "Test ekibine katıl" (`ref=apk_banner_test`). Video P1. | Test ekibine katıl |
+| H−1 | F3/F4/F5, ücretli API + 1 maç günü doğrulama | Reddit ve Ekşi çağrısı (izinliyse). Mağaza varlıkları: 8 ekran görüntüsü, öne çıkan grafik (strateji §3.5–3.6). Test ekibini 25'e çıkarma. | Test ekibine katıl |
+| H0 | Hesap, iç test, imza anahtarı kararı | Kreatif üretimi: L1–L3 videoları ve S8–S10 statikleri çekilir, **yayınlanmaz**. | — |
+| H+1 | Kapalı test gün 1–7 | Test grubu takip mesajları. Kanalda "Play'e geliyoruz" geri sayımı (rozet yok, "yakında Google Play'de"). | Haber ver |
+| H+2 | Kapalı test gün 8–14, üretim başvurusu | "Haber ver" formu. L kreatiflerinin son kontrolü (9.0 kontrol listesi, gerçek ekranlar). | Haber ver |
+| H+3 (L) | Üretim onayı, aşamalı yayın %20 → %100 | **Onay günü:** Telegram duyurusu, L1 videosu, S8. Reddit/Discord/X (izinli). APK kullanıcılarına "Skor+ artık Google Play'de" bandı (`utm_source=apk_banner`). Ertesi gün: S9 (NBA sabah). İlk hafta sonu: L2 + S10. | Google Play'den indir |
+| H+4 | Çökme/ANR izleme, F2 vitrin | İlk yorumlara geliştirici yanıtı (olumsuz dahil). Futbol Akıllı Alarm doğrulandıysa L3. 9.4 UAC testi başlar (koşullu). İlk hafta raporu. | Google Play'den indir |
+
+İnceleme H+3'te gelmezse L kreatifleri bekletilir. Hiçbir içerik "Google Play'de" demeden önce mağaza sayfası herkese açık olmalıdır.
+
+**Play politikasına uygun kreatif kuralları (strateji §4):**
+- Tanıtım amaçlı push **gönderilmez**, lansman duyurusu dahil. Duyuru uygulama içi bantla yapılır.
+- Bahis, tahmin, kupon ve "kim kazanır" yoktur. Maç önü raporu "eşleşme"dir.
+- Resmî bağlantı iması yoktur. İkonda, grafikte ve videoda kulüp, lig veya NBA markası bulunmaz (7.2).
+- Mağaza yorumu **istenebilir ama ödüllendirilmez**. İstek nötr olur: "Beğendiysen de beğenmediysen de Play'de yazabilirsin; her yorumu okuyorum." Yalnız memnun kullanıcıya yorum çağrısı yapılmaz (seçici istek).
+- AI ekranlarında "AI tarafından üretildi" etiketi ve Pro rozeti görünür. AI metni gerçek maçtan alınır ve okunup kontrol edilmiş olur.
+- Ekrandaki puan, yükleme sayısı ve yorum alıntısı yalnız gerçek ve güncel Play verisiyle kullanılır. Uydurma yoktur. Lansman haftasında sayı **hiç** kullanılmaz.
+
+**Video L1 — "Skor+ artık Google Play'de" (15 sn).** Kapanış: Play rozeti + QR.
+
+| Saniye | Sahne | Ekran yazısı | Seslendirme |
+|---|---|---|---|
+| 0-3 | Play mağaza sayfası (gerçek), "Yükle" düğmesi | "Skor+ artık Google Play'de." | "Skor+ artık Google Play'de." |
+| 3-8 | Ana liste → futbol Kadro → NBA Box Score (logolar bulanık) | "Futbol ve NBA, Türkçe. Reklam yok." | "Futbol ve NBA, Türkçe ve reklamsız." |
+| 8-12 | Maç sonu AI raporu; köşede "AI tarafından üretildi" + "Pro" rozeti | "Maçın nedenini Türkçe oku." | "Maçın nedenini Türkçe oku." |
+| 12-15 | Kapanış kartı | "Pro'yu 7 gün ücretsiz dene. Deneme bitince ücretlendirilir; Play'den iptal edilir." · Play rozeti | "Google Play'den indir." |
+
+**Video L2 — "Skoru herkes gördü, işte nedeni" (25 sn).** Eski Video 1'in Play sürümü. Sahneler 2.2 Video 1 ile aynıdır, şu değişikliklerle:
+- 5–22 sn: köşede "AI tarafından üretildi" ve "Pro" rozeti.
+- 22–25 sn kapanışı: "Skoru herkes görür, nedenini sen gör." + deneme cümlesi + Play rozeti.
+- Eski "Analiz özelliği yakında Pro'da" notu kaldırılır.
+
+**Video L3 — futbol Akıllı Alarm (20 sn).** Yalnız ücretli API doğrulandıktan sonra çekilir. Eski Video 3'ün yapısı korunur: gerçek vaka, golle biten ve bitmeyen vakalar sırayla. 18–20 sn kapanışı: "Takımını takip et; veriyle anlamlı anda haber al." + Play rozeti. Akıllı Alarm ücretsizdir; kırmızı kart analizi Pro'dur (strateji §0.1). Bu ayrım ekranda doğru gösterilir. NBA'de alarm **gösterilmez**.
+
+**Statik S8 — Lansman (4:5 ve 9:16)**
+- Başlık: **"Skor+ artık Google Play'de."**
+- Gövde: "Futbol ve NBA skorları Türkçe. Futbolda kadro ve oyuncu puanları, NBA'de biten maçların box score'u. Maç sonu Türkçe AI analizi Pro'da. Pro'yu 7 gün ücretsiz dene; deneme bitince ücretlendirilir, Google Play'den istediğin zaman iptal edebilirsin. Bu uygulamayı ben geliştiriyorum."
+- CTA: **Google Play'den indir** · [Play rozeti] · [QR: `utm_source=instagram&utm_campaign=launch&utm_content=s8`]
+
+**Statik S9 — NBA sabahı (S1'in Play sürümü, 8.3 R3 ile uyumlu)**
+- Başlık: **"Sayılar box score'da, anlamı Türkçe yorumda."**
+- Gövde: "Biten maçların tam box score'u ücretsiz. Maçın hangi çeyrekte koptuğunu Türkçe AI analizi anlatır (Pro, 7 gün ücretsiz deneme; deneme bitince ücretlendirilir). NBA skorları ~30 dk aralıkla güncellenir."
+- CTA: **Google Play'den indir** · [Play rozeti] · [QR: `utm_source=telegram&utm_campaign=nba_morning&utm_content=s9`]
+
+**Statik S10 — Takımını seç (S4'ün Play sürümü)**
+- Başlık: **"Bir takım. Önemli an. Reklam yok."**
+- Gövde (Akıllı Alarm doğrulandıysa): "Takımını seç; maç başlayınca ve futbolda veriyle anlamlı bir anda haber al. Her korner ve faulde değil."
+- Gövde (doğrulanmadıysa): "Takımını seç; maç başlayınca haber al. Dün, bugün, yarın tek ekranda."
+- CTA: **Google Play'den indir** · [Play rozeti] · [QR: `utm_source=whatsapp&utm_medium=status&utm_campaign=launch&utm_content=s10`]
+
+**Lansman duyurusu (Telegram kanalı; bildirim değil, kanal mesajı).** CTA: Google Play'den indir.
+> Skor+ artık Google Play'de. 14 gün boyunca test eden herkese teşekkürler; test bu sayede geçti.
+> APK kullanıyorsan: [imza anahtarı aynıysa] Play sürümü uygulamanın üstüne kurulur, takiplerin korunur. / [aynı değilse] Önce APK'yı kaldırıp Play'den kurman gerekiyor. Takiplerin taşınmıyor, bunun için üzgünüm. (Gerçek duruma göre **tek** cümle seçilir ⚠ strateji §12.)
+> Pro'yu 7 gün ücretsiz deneyebilirsin. Deneme bitince seçtiğin plan ücretlendirilir; Google Play > Abonelikler'den istediğin zaman iptal edebilirsin.
+> Google Play: [Play bağlantısı, `utm_source=telegram&utm_medium=social&utm_campaign=launch`]
+
+### 9.4 Ücretli edinme: Google App Campaigns (UAC)
+
+**Neden UAC:** Uygulama Play'de olunca reklam doğrudan mağaza sayfasına gider. Yükleme Play tarafından ölçülür, ara sayfa gerekmez. Meta→APK planı (7.6) emeklidir. UAC kreatifleri Google'ın envanterinde otomatik birleştirir: Arama, Play, YouTube, Discover, Görüntülü Reklam Ağı. Yerleşim tek tek seçilemez ⚠.
+
+**Başlama koşulları (hepsi gerekli; en erken H+4):**
+1. Uygulama %100 yayında. Android vitals'ta çökmesiz kullanıcı oranı ≥ %99 (KPI 14).
+2. Organik mağaza dönüşümü (KPI 2) en az 7 gün ölçülmüş olmalı. Ücretli trafik bu referansla karşılaştırılır.
+3. Mağaza puanı gerçek yorumlarla oluşmuş olmalı. Düşükse para önce ürüne gider.
+4. Bütçeyi kullanıcı onaylamış olmalı. Strateji Sürüm 3 "sıfır / düşük" bütçeyi varsayar.
+
+**Bütçe kademeleri (14 gün):**
+
+| Kademe | Toplam | Günlük | Yapı |
+|---|---|---|---|
+| Sinyal | ₺1000 | ~₺70 | Tek kampanya. Hedef: yükleme. Gün 1–7 öğrenme, gün 8–14 değerlendirme. |
+| Test | ₺2000 | ~₺140 | Tek kampanya, iki varlık grubu: NBA (L1 + S9 metinleri) ve futbol AI (L2 + S8). Gün 7'de zayıf grup durdurulur. |
+| Genişletme | ₺3000 | ~₺215 | "Test" kademesine ek: gün 8'den sonra kazanan gruba ek bütçe. `trial_start` verisi yeterliyse ikinci kampanya (aşağıya bak). |
+
+Dürüst not: Google, uygulama kampanyalarında günlük bütçenin hedef yükleme maliyetinin katları olmasını önerir ⚠ (güncel öneri doğrulanmalı). Bu bütçelerde öğrenme dönemi yavaş geçer. Sonuç **sinyaldir, kesin karar değildir.**
+
+**Türkiye hedeflemesi:**
+- Konum: Türkiye (konumda bulunan kişiler; "ilgilenen" seçeneği kapalı ⚠). Dil: Türkçe.
+- Cihaz: kampanya doğası gereği Android ve Play. iOS yok.
+- UAC'de yaş ve ilgi alanı hedeflemesi yoktur; Google otomatik hedefler. Kontrol, varlıklar (metin, görsel, video) ve kitle sinyalleriyle sağlanır ⚠.
+- **Bahis dışlama:** Hesap düzeyinde içerik dışlamaları ve hassas kategoriler (kumar) kapatılır ⚠. Arama metinlerinde ve varlıklarda bahis çağrıştıran kelime yoktur. Kampanya bunu destekliyorsa negatif anahtar kelime listesi eklenir: iddaa, bahis, kupon, tahmin, oran ⚠.
+- Zamanlama: UAC'de reklam zamanlaması sınırlıdır ⚠. Yoğunluk bütçe ile değil, varlık metniyle sağlanır: NBA sabahı ve hafta sonu maçı.
+
+**Varlıklar** (Türkçe; karakter sınırları ⚠ Google Ads'te doğrulanmalı):
+- Başlıklar (≤ 30): "Skoru gör, nedenini oku" · "Futbol ve NBA, Türkçe" · "Türkçe AI maç analizi" · "Gece maçının box score'u" · "Takımını seç, reklam yok"
+- Açıklamalar (≤ 90):
+  - "Futbolda kadro ve oyuncu puanları, NBA'de biten maçların box score'u. Reklam yok."
+  - "Maç sonu Türkçe AI taktik analizi Pro'da. 7 gün ücretsiz dene, sonra ücretlendirilir."
+  - "Takımını seç, maç başlayınca haber al. Tek geliştiricinin bağımsız projesi."
+- Görseller: S8, S9, S10 (logolar bulanık; 1,91:1 ve 1:1 oranlarında yeniden düzenlenir). Video: L1, L2 (9:16 ve 16:9).
+- Fiyat yazılmaz. "Ücretsiz" kelimesi yalnız ücretsiz özellik için ya da deneme cümlesinin içinde kullanılır.
+
+**Dönüşüm olayları:**
+
+| Olay | Kaynak | Kullanım | Not |
+|---|---|---|---|
+| `install` (Google Play ilk açılış/yükleme) | Google Ads'in Play bağlantısıyla otomatik ölçümü ⚠ | **Kampanya teklif hedefi** (Sinyal ve Test kademeleri) | SDK gerekmez. Play Console ile Google Ads hesapları bağlanır. |
+| `trial_start` | RevenueCat (deneme başladı olayı) | Ölçüm. Ancak yeterli hacimde teklif hedefi olur. | Google Ads'e iletmek için ya Firebase Analytics (Google Analytics for Firebase) SDK'sı gerekir, ya da çevrimdışı dönüşüm içe aktarma ⚠. Firebase eklenirse **Data Safety, gizlilik politikası ve KVKK metni güncellenir**. Reklam kimliği (AD_ID) izni ve beyanı gerekir ⚠. "Reklam içermez" beyanı etkilenmez; uygulamada reklam yine yoktur. |
+| `first_follow` (ilk takım takibi) | Supabase | Kalite ölçüsü (KPI 4) | Kampanyaya iletilmez. Ücretli ve organik karşılaştırması için kullanılır. |
+
+**Önerilen yol:**
+- Aşama 1 (₺1000–2000): Yalnız `install` hedefi. `trial_start` dahili ölçülür (aşağıdaki ölçüm bölümü). Firebase eklenmez.
+- Aşama 2: Ücretli kullanıcıların deneme oranı organikle aynı düzeydeyse ve günde ~10 `trial_start`'a yaklaşılıyorsa (⚠ Google'ın öğrenme eşiği doğrulanmalı) geliştiriciyle Firebase kararı verilir. Ardından "uygulama içi işlem" hedefli ikinci kampanya açılır.
+
+**Ölçüm (Play install referrer + UTM):**
+- UAC tıklamaları otomatik etiketlenir (`gclid`). Elle UTM eklenmez. Play Console edinme raporunda kaynak "Google Ads" olarak görünür ⚠.
+- Uygulama, planlanan Play Install Referrer kütüphanesiyle (strateji §9.1, RevenueCat ile aynı native build) ilk açılışta referrer'ı okur. Okunan değer hesapla birlikte saklanır: `utm_source` / `utm_medium` / `utm_campaign`, `gclid` var mı. **Bu kayıt bugün yoktur; geliştiriciye öneridir** (Data Safety'de "uygulama etkinliği" kapsamında beyan ⚠).
+- Bu kayıtla dahili ölçülenler: kaynağa göre aktivasyon (KPI 4), D7 (F4), `trial_start` (RevenueCat) ve deneme → ücretli (KPI 8).
+- **Karar metrikleri:**
+  - Ücretli yükleme başı maliyet (Google Ads).
+  - Ücretli kullanıcının aktivasyon oranı ÷ organik aktivasyon oranı. 0,5'in altındaysa kampanya durur: gelen kitle yanlıştır.
+  - `trial_start` başı maliyet. İlk testte hedef değer konmaz; referans olarak kaydedilir.
+- **Durdurma:** Gün 7'de ücretli kullanıcıların aktivasyon oranı organiğin yarısının altındaysa durdurulur. Çökmesiz oran %99'un altına düşerse durdurulur. Mağaza puanı belirgin düşerse durdurulup sebep incelenir.
+- Sonuçlar gerçek sayılarla yazılır. "X yükleme" ancak Play Console değeriyle paylaşılır.
+
+### 9.5 Play bağlantıları için `referrer` / UTM şeması
+
+**Temel biçim** (strateji §9.1). `referrer` değeri URL-encode edilir: `=` → `%3D`, `&` → `%26`.
+```
+https://play.google.com/store/apps/details?id=com.skorplus.app&referrer=utm_source%3D<kaynak>%26utm_medium%3D<ortam>%26utm_campaign%3D<kampanya>%26utm_content%3D<içerik>
+```
+Örnek (Telegram, lansman, S8):
+```
+https://play.google.com/store/apps/details?id=com.skorplus.app&referrer=utm_source%3Dtelegram%26utm_medium%3Dsocial%26utm_campaign%3Dlaunch%26utm_content%3Ds8
+```
+
+**Yazım kuralları:**
+- Değerler yalnız küçük harf, rakam ve alt çizgi içerir: `[a-z0-9_]`. Strateji §9.1'deki değerlerle uyum için kebab-case (8.4'teki `tt-n1` biçimi) **bırakıldı**.
+- `utm_source`, `utm_medium` ve `utm_campaign` her bağlantıda zorunludur. `utm_content` kreatif kimliğidir (`l1`, `s8`, `p1` …).
+- **İstisna:** Davetiyede `utm_content`, davet kodudur. Bu değeri yalnız uygulama üretir. Pazarlama bağlantısında davet kodu bulunmaz. Geliştiricinin kişisel kodu da yayınlanmaz.
+- Kısaltıcı kullanılmaz. QR doğrudan bu uzun bağlantıyı taşır.
+- Her yeni değer kullanılmadan önce ölçüm tablosundaki "utm sözlüğü" sekmesine yazılır.
+- Play Console edinme raporunun hangi UTM alanlarını gösterdiği doğrulanmalıdır ⚠. `utm_content` kreatif kırılımı Console'da görünmeyebilir. O zaman yalnız uygulamanın okuduğu referrer kaydında (9.4) görünür.
+
+**Değer tablosu:**
+
+| Kullanım | utm_source | utm_medium | utm_campaign | utm_content |
+|---|---|---|---|---|
+| Uygulama içi maç paylaşımı (F3) | `app` | `share` | `match_share` | (boş veya spor: `nba` / `football`) |
+| Uygulama içi davetiye (F3) | `app` | `invite` | `invite` | `<davet_kodu>` (yalnız uygulama) |
+| APK kullanıcılarına bant (OTA) | `apk_banner` | `in_app` | `migration` | — |
+| Eski destek sitesi / F13 `/m/` sayfası düğmesi | `site` | `web` | `support` / `match_page` | — |
+| Skor+ Telegram kanalı | `telegram` | `social` | `launch` / `nba_morning` / `ai_showcase` | kreatif kimliği |
+| İzinli Telegram/Discord grupları | `telegram_group` / `discord` | `community` | `launch` | grup takma adı (kişisel veri değil) |
+| WhatsApp durumu / birebir | `whatsapp` | `status` / `direct` | `launch` | kreatif kimliği |
+| Reddit / X / Ekşi | `reddit` / `x` / `eksi` | `social` | `launch` | kreatif kimliği |
+| TikTok / Instagram / YouTube Shorts (bio ve açıklama) | `tiktok` / `instagram` / `youtube` | `bio` / `video` | `launch` / `nba_morning` | `l1`, `l2`, `s9` … |
+| QR (afiş, video sonu, kart köşesi) | `qr` | `offline` / `video` / `card` | `launch` | kreatif kimliği |
+| İçerik üreticisi | `creator_<takma_ad>` | `referral` | `creator` | — |
+| Google App Campaigns | (otomatik, `gclid`) | — | — | Elle UTM eklenmez |
+
+**L'den önce (Play bağlantısı herkese açık değilken):** Test ekibi ve "Haber ver" formları destek sitesindedir. Bunlar Play bağlantısı olmadığı için sitedeki analitikle `?ref=` kullanır. Değerler aynı alt çizgi yazımıyla verilir: `tg_test`, `wa_test`, `rd_test`, `eksi_test`, `apk_banner_test`, `tg_haberver`. L'den sonra bu formlar kapanır ve yerlerine Play bağlantısı gelir.
+
+**8.4'ten geçiş:** Eski `?ref=` bağlantıları (QR çıktıları, bio'lar) L günü destek sitesinde aynı `ref` değerini taşıyan Play bağlantısına yönlenir: `utm_source=site&utm_medium=web&utm_campaign=legacy_<ref>`. Eski değerdeki tireler alt çizgiye çevrilir: `tt-n1` → `legacy_tt_n1`. Basılı QR'lar böylece ölmez.

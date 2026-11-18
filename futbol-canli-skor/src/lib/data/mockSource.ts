@@ -25,7 +25,11 @@ import {
   scenarioPayload,
 } from './mockData';
 import { NBA_SCENARIO_ID, nbaMatches, nbaScenarioBox, nbaScenarioPayload } from './nbaMockData';
-import type { DataSource } from './types';
+import { normalizeInviteInput } from '../share';
+import type { DataSource, InviteState } from './types';
+
+/** F3 önizleme: e2e (share_ui.mjs) bu değerlere dayanır. Geçerli başka kod: XYZ789 */
+const MOCK_INVITE: InviteState = { code: 'ABC234', total: 4, active: 2, invited: false, canRedeem: true };
 
 /**
  * Önizleme modu: Supabase Realtime + RPC davranışını bellekte taklit eder.
@@ -77,6 +81,24 @@ export function createMockSource(): DataSource {
   const halftimes = new Map<number, HalftimePayload>();
   const follows = new Set<number>();
   const teamFollows = new Map<string, FollowedTeam>();
+  // match_follows.source = 'team' ve match_unfollows taklidi (bkz. 0015_quality.sql)
+  const autoFollows = new Set<number>();
+  const unfollowed = new Set<number>();
+  // e2e: ?mockFail=list → liste istekleri, test globalThis.__skorMockOk = true diyene kadar ağ hatası verir
+  // (ana ekran "Tekrar dene" testi; uygulama öne gelince yapılan otomatik yenileme de başarısız kalır)
+  const failOn = (what: 'list' | 'prefs' | 'invite') => () =>
+    typeof globalThis.location !== 'undefined' &&
+    new RegExp(`[?&]mockFail=${what}(?:&|$)`).test(globalThis.location.search ?? '') &&
+    !(globalThis as { __skorMockOk?: boolean }).__skorMockOk;
+  const failList = failOn('list');
+  // e2e: ?mockFail=prefs → ayarlar okunamaz (anahtarlar kilitli + "Tekrar dene"; Döngü 3, bulgu 4)
+  const failPrefs = failOn('prefs');
+  // e2e: ?mockFail=invite → davet bilgisi okunamaz (kart içinde uyarı bandı + "Tekrar dene")
+  const failInvite = failOn('invite');
+  // e2e: ?paid=0 → ücretsiz API planı (takip bandı alarm vaat etmez), ?tester=0 → test kullanıcısı değil
+  // (ana ekran hapı '✦ Pro · yakında'). Tasarım B-7.
+  const urlOff = (name: 'paid' | 'nbapaid' | 'tester') =>
+    typeof globalThis.location !== 'undefined' && new RegExp(`[?&]${name}=0(?:&|$)`).test(globalThis.location.search ?? '');
   const alerts: MatchAlert[] = seedAlerts.map((a) => ({ ...a }));
   const alertListeners = new Set<(a: MatchAlert) => void>();
   let prefs: NotificationPrefs = { ...DEFAULT_PREFS };
@@ -84,6 +106,9 @@ export function createMockSource(): DataSource {
   const chatListeners = new Set<(m: ChatMessage) => void>();
   const listeners = new Set<(m: Match) => void>();
   let premium = false;
+  let invite: InviteState = { ...MOCK_INVITE };
+  // e2e: ?invite=0 → 0017 kurulmamış gibi (davet kartı gizli, paylaşım bağlantısında k yok)
+  const noInvite = () => typeof globalThis.location !== 'undefined' && /[?&]invite=0(?:&|$)/.test(globalThis.location.search ?? '');
   let timer: ReturnType<typeof setInterval> | null = null;
   const htTicks = new Map<number, number>();
 
@@ -231,6 +256,12 @@ export function createMockSource(): DataSource {
 
   return {
     async listMatches(sport) {
+      if (failList()) throw new TypeError('Failed to fetch');
+      // e2e: ?mockSlow=list → ilk liste isteği, test globalThis.__skorMockOk = true diyene kadar bekler
+      // (ana ekran iskeleti görünür kalsın; tasarım tur 3 §D-1)
+      if (/[?&]mockSlow=list(?:&|$)/.test(globalThis.location?.search ?? '')) {
+        while (!(globalThis as { __skorMockOk?: boolean }).__skorMockOk) await new Promise((r) => setTimeout(r, 100));
+      }
       return [...matches.values()].filter((m) => m.sport_type === sport).map((m) => ({ ...m }));
     },
     async getMatch(id) {
@@ -239,6 +270,19 @@ export function createMockSource(): DataSource {
     },
     subscribeMatches: (sport, cb) => subscribe((m) => m.sport_type === sport, cb),
     subscribeMatch: (id, cb) => subscribe((m) => m.fixture_id === id, cb),
+
+    async isApiPaid(sport = 'football') {
+      // Önizleme tüm özellikleri gösterir. ?paid=0 → iki spor da ücretsiz; ?nbapaid=0 → yalnız NBA ücretsiz
+      // (Pro futbol + ücretsiz NBA, 0018 senaryosu: e2e ?paid=1&nbapaid=0)
+      if (urlOff('paid')) return false;
+      return sport === 'nba' ? !urlOff('nbapaid') : true;
+    },
+
+    async fixtureDaysAhead() {
+      // e2e: ?days=3 → sunucu app_config.fixture_days_ahead = 3 (şerit −1…+3)
+      const m = /[?&]days=(\d+)(?:&|$)/.exec(globalThis.location?.search ?? '');
+      return m ? Number(m[1]) : 7;
+    },
 
     async requestAnalysis(id) {
       const m = matches.get(id);
@@ -304,8 +348,12 @@ export function createMockSource(): DataSource {
     },
 
     async toggleFollow(id) {
-      if (follows.has(id)) follows.delete(id);
-      else follows.add(id);
+      autoFollows.delete(id);
+      if (follows.delete(id)) unfollowed.add(id);
+      else {
+        follows.add(id);
+        unfollowed.delete(id);
+      }
       return follows.has(id);
     },
 
@@ -316,11 +364,24 @@ export function createMockSource(): DataSource {
     // toggle_team_follow taklidi: takip edilince takımın başlamamış maçları da takibe alınır
     async toggleTeamFollow(t) {
       const key = `${t.sport_type}:${t.team_id}`;
-      if (teamFollows.delete(key)) return false;
+      const plays = (m: Match, id: number) => m.sport_type === t.sport_type && (m.home_team_id === id || m.away_team_id === id);
+      const followsOther = (m: Match) =>
+        [m.home_team_id, m.away_team_id].some((id) => id != null && id !== t.team_id && teamFollows.has(`${m.sport_type}:${id}`));
+      if (teamFollows.delete(key)) {
+        // Bırakınca yalnız takımla otomatik eklenen, başlamamış maçlar silinir
+        for (const m of matches.values()) {
+          if (m.status_short === 'NS' && plays(m, t.team_id) && autoFollows.has(m.fixture_id) && !followsOther(m)) {
+            follows.delete(m.fixture_id);
+            autoFollows.delete(m.fixture_id);
+          }
+        }
+        return false;
+      }
       teamFollows.set(key, { ...t });
       for (const m of matches.values()) {
-        if (m.sport_type === t.sport_type && m.status_short === 'NS' && (m.home_team_id === t.team_id || m.away_team_id === t.team_id)) {
+        if (m.status_short === 'NS' && plays(m, t.team_id) && !follows.has(m.fixture_id) && !unfollowed.has(m.fixture_id)) {
           follows.add(m.fixture_id);
+          autoFollows.add(m.fixture_id);
         }
       }
       return true;
@@ -389,7 +450,7 @@ export function createMockSource(): DataSource {
     },
 
     async isTestUser() {
-      return true; // önizlemede test aboneliği açık
+      return !urlOff('tester'); // önizlemede test aboneliği açık (?tester=0 hariç)
     },
 
     async getAccountId() {
@@ -402,9 +463,34 @@ export function createMockSource(): DataSource {
       teamFollows.clear();
       chat.length = 0;
       prefs = { ...DEFAULT_PREFS };
+      invite = { ...MOCK_INVITE };
+    },
+
+    async touchActivity() {
+      return true;
+    },
+
+    async getInvite() {
+      if (failInvite()) throw new TypeError('Failed to fetch');
+      if (noInvite()) return null;
+      // e2e: ?invite=few → 2 davetli (KVKK: "Aktif olan" gizli; sunucu active'i null döner)
+      if (/[?&]invite=few(?:&|$)/.test(globalThis.location?.search ?? '')) return { ...invite, total: 2, active: null };
+      return { ...invite };
+    },
+
+    async redeemInvite(raw) {
+      const code = normalizeInviteInput(raw);
+      if (invite.invited) return 'already';
+      if (code === invite.code) return 'self';
+      if (code === 'XYZ789') {
+        invite = { ...invite, invited: true, canRedeem: false };
+        return 'ok';
+      }
+      return 'invalid';
     },
 
     async getNotificationPrefs() {
+      if (failPrefs()) throw new TypeError('Failed to fetch');
       return { ...prefs };
     },
 

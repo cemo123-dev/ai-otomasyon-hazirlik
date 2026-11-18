@@ -30,7 +30,7 @@ export function toBoxScore(players: NbaPlayerLine[]): NbaPlayerLine[] | null {
 /**
  * Yazılacak box score. Oyuncu verisi boşsa (boş yanıt / herkes 0 dk) ve markEmpty ise []:
  * "denendi, veri yok" işareti. Geri doldurma `.is('box_score', null)` ile seçtiği için
- * aynı maç tekrar istenmez (ortak günlük kota korunur). null = yazma.
+ * aynı maç tekrar istenmez (NBA'in günlük kotası korunur). null = yazma.
  */
 export function boxScoreToStore(players: NbaPlayerLine[], markEmpty: boolean): NbaPlayerLine[] | null {
   return toBoxScore(players) ?? (markEmpty ? [] : null);

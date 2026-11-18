@@ -18,27 +18,27 @@ const n = (v?: number) => String(v ?? 0);
 const pct = (m?: number, a?: number) => (a ? ((100 * (m ?? 0)) / a).toFixed(1) : '0.0');
 const sgn = (v: number) => (v > 0 ? `+${v}` : String(v));
 
-// NBA kutu skoru sütunları (yayınlardaki sıra)
+// NBA kutu skoru sütunları: önce sayı / ribaund / asist (360 pt'de kaydırmadan görünür), sonra yüzdeler ve ayrıntı
 const COLS: Col[] = [
   { label: 'DK', get: (p) => n(p.minutes), width: 34 },
-  { label: 'FGM', get: (p) => n(p.fgm), width: 38 },
-  { label: 'FGA', get: (p) => n(p.fga), width: 38 },
-  { label: 'FG%', get: (p) => pct(p.fgm, p.fga), width: 44 },
-  { label: '3PM', get: (p) => n(p.tpm), width: 38 },
-  { label: '3PA', get: (p) => n(p.tpa), width: 38 },
-  { label: '3P%', get: (p) => pct(p.tpm, p.tpa), width: 44 },
-  { label: 'FTM', get: (p) => n(p.ftm), width: 38 },
-  { label: 'FTA', get: (p) => n(p.fta), width: 38 },
-  { label: 'FT%', get: (p) => pct(p.ftm, p.fta), width: 44 },
-  { label: 'OREB', get: (p) => n(p.off_reb), width: 42 },
-  { label: 'DREB', get: (p) => n(p.def_reb), width: 42 },
+  { label: 'PTS', get: (p) => n(p.points), width: 38, strong: true },
   { label: 'REB', get: (p) => n(p.rebounds), width: 38 },
   { label: 'AST', get: (p) => n(p.assists), width: 38 },
+  { label: 'FG%', get: (p) => pct(p.fgm, p.fga), width: 44 },
+  { label: '3P%', get: (p) => pct(p.tpm, p.tpa), width: 44 },
+  { label: 'FT%', get: (p) => pct(p.ftm, p.fta), width: 44 },
+  { label: 'FGM', get: (p) => n(p.fgm), width: 38 },
+  { label: 'FGA', get: (p) => n(p.fga), width: 38 },
+  { label: '3PM', get: (p) => n(p.tpm), width: 38 },
+  { label: '3PA', get: (p) => n(p.tpa), width: 38 },
+  { label: 'FTM', get: (p) => n(p.ftm), width: 38 },
+  { label: 'FTA', get: (p) => n(p.fta), width: 38 },
+  { label: 'OREB', get: (p) => n(p.off_reb), width: 42 },
+  { label: 'DREB', get: (p) => n(p.def_reb), width: 42 },
   { label: 'STL', get: (p) => n(p.steals), width: 36 },
   { label: 'BLK', get: (p) => n(p.blocks), width: 36 },
   { label: 'TO', get: (p) => n(p.turnovers), width: 32 },
   { label: 'PF', get: (p) => n(p.fouls), width: 32 },
-  { label: 'PTS', get: (p) => n(p.points), width: 38, strong: true },
   { label: '+/-', get: (p) => sgn(p.plus_minus), width: 40 },
 ];
 
@@ -81,8 +81,8 @@ export function BoxScoreTab({ match }: { match: Match }) {
       <TeamBox match={match} side="home" rows={box.filter((p) => p && p.team === 'home')} />
       <TeamBox match={match} side="away" rows={box.filter((p) => p && p.team === 'away')} />
       <Text style={styles.legend}>
-        DK dakika · FGM/FGA saha içi isabet/deneme · 3PM/3PA üçlük · FTM/FTA serbest atış · OREB/DREB hücum/savunma ribaundu ·
-        REB ribaund · AST asist · STL top çalma · BLK blok · TO top kaybı · PF faul · PTS sayı · G guard · F forward · C pivot
+        DK dakika · PTS sayı · FG%/3P%/FT% isabet yüzdeleri · FGM/FGA saha içi isabet/deneme · 3PM/3PA üçlük · FTM/FTA serbest atış · OREB/DREB hücum/savunma ribaundu ·
+        REB ribaund · AST asist · STL top çalma · BLK blok · TO top kaybı · PF faul · ★ takımın en skoreri · G guard · F forward · C pivot
       </Text>
     </View>
   );
@@ -124,25 +124,35 @@ function TeamBox({ match, side, rows }: { match: Match; side: 'home' | 'away'; r
       <View style={styles.tableWrap}>
         {/* Sabit oyuncu sütunu */}
         <View style={{ width: NAME_W }}>
-          <Text style={[styles.th, styles.nameCell]}>OYUNCU</Text>
+          <Text style={[styles.th, styles.nameCell]} maxFontSizeMultiplier={1.3}>
+            OYUNCU
+          </Text>
           {ordered.map((p, i) => (
             <View key={`${p.name}-${i}`} style={[styles.nameRow, i === 0 && styles.firstRow]}>
-              <Text style={[styles.nameText, p === topScorer && { color: colors.pro }]} numberOfLines={1}>
+              {/* En skorer: altın değil (Pro'ya ayrılmış), "★" öneki */}
+              <Text style={styles.nameText} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+                {p === topScorer ? '★ ' : ''}
                 {p.name}
               </Text>
-              {p.starter && posLetter(p.position) ? <Text style={styles.pos}>{posLetter(p.position)}</Text> : null}
+              {p.starter && posLetter(p.position) ? (
+                <Text style={styles.pos} maxFontSizeMultiplier={1.3}>
+                  {posLetter(p.position)}
+                </Text>
+              ) : null}
             </View>
           ))}
           <View style={[styles.nameRow, styles.totalRow]}>
-            <Text style={[styles.nameText, styles.totalText]}>TOPLAM</Text>
+            <Text style={[styles.nameText, styles.totalText]} maxFontSizeMultiplier={1.3}>
+              TOPLAM
+            </Text>
           </View>
         </View>
         {/* Kaydırılabilir istatistik sütunları */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityLabel={`${team} box score tablosu`}>
+        <ScrollView horizontal showsHorizontalScrollIndicator accessibilityLabel={`${team} box score tablosu`}>
           <View>
             <View style={styles.row}>
               {COLS.map((c) => (
-                <Text key={c.label} style={[styles.th, styles.num, { width: c.width }]}>
+                <Text key={c.label} style={[styles.th, styles.num, { width: c.width }]} maxFontSizeMultiplier={1.3}>
                   {c.label}
                 </Text>
               ))}
@@ -150,7 +160,11 @@ function TeamBox({ match, side, rows }: { match: Match; side: 'home' | 'away'; r
             {ordered.map((p, i) => (
               <View key={`${p.name}-${i}`} style={[styles.row, styles.cellRow, i === 0 && styles.firstRow]}>
                 {COLS.map((c) => (
-                  <Text key={c.label} style={[styles.td, styles.num, { width: c.width }, c.strong && styles.strong]}>
+                  <Text
+                    key={c.label}
+                    style={[styles.td, styles.num, { width: c.width }, c.strong && styles.strong]}
+                    maxFontSizeMultiplier={1.3}
+                  >
                     {c.get(p)}
                   </Text>
                 ))}
@@ -158,7 +172,11 @@ function TeamBox({ match, side, rows }: { match: Match; side: 'home' | 'away'; r
             ))}
             <View style={[styles.row, styles.cellRow, styles.totalRow]}>
               {COLS.map((c) => (
-                <Text key={c.label} style={[styles.td, styles.num, styles.totalText, { width: c.width }]}>
+                <Text
+                  key={c.label}
+                  style={[styles.td, styles.num, styles.totalText, { width: c.width }]}
+                  maxFontSizeMultiplier={1.3}
+                >
                   {c.get(total)}
                 </Text>
               ))}
@@ -166,11 +184,12 @@ function TeamBox({ match, side, rows }: { match: Match; side: 'home' | 'away'; r
           </View>
         </ScrollView>
       </View>
+      <Text style={styles.scrollHint}>Tabloyu yana kaydır →</Text>
     </Card>
   );
 }
 
-const ROW_H = 34;
+const ROW_H = 36;
 
 const styles = StyleSheet.create({
   empty: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
@@ -196,7 +215,8 @@ const styles = StyleSheet.create({
   },
   nameText: { color: colors.text, fontSize: 13, fontWeight: '700', flexShrink: 1 },
   pos: { color: colors.textDim, fontSize: 10, fontWeight: '900' },
-  totalRow: { borderTopColor: colors.textDim },
+  totalRow: { borderTopColor: colors.borderStrong },
   totalText: { color: colors.text, fontWeight: '900' },
   legend: { color: colors.textDim, fontSize: 11, lineHeight: 16 },
+  scrollHint: { color: colors.textDim, fontSize: 12, lineHeight: 17 },
 });

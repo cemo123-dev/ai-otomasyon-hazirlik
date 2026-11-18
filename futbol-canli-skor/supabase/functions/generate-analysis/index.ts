@@ -30,6 +30,17 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason }, 200); // 200: pg_net yeniden denemesin, RPC'nin retry mantığı devrede
   };
 
+  // Veri henüz yok (senkron istatistiği yazmadı): 'failed' yerine 'none' + deneme iadesi.
+  // Böylece analiz kalıcı kilitlenmez; RPC (0015) veri gelene kadar zaten 'not_ready' döner.
+  const notReady = async (reason: string, attempts: number | null | undefined) => {
+    console.warn(`[generate-analysis] ${fixture_id}: ${reason} (deneme iade edildi)`);
+    await admin
+      .from('matches')
+      .update({ analysis_status: 'none', analysis_attempts: Math.max(0, (attempts ?? 1) - 1) })
+      .eq('fixture_id', fixture_id);
+    return json({ ok: false, reason, not_ready: true }, 200);
+  };
+
   try {
     // İdempotent: aynı iş iki kez gelirse ikinci LLM çağrısı yapılmaz
     const { data: existing } = await admin.from('match_analyses').select('fixture_id').eq('fixture_id', fixture_id).maybeSingle();
@@ -41,14 +52,15 @@ Deno.serve(async (req) => {
     const { data: match, error } = await admin.from('matches').select('*').eq('fixture_id', fixture_id).maybeSingle<MatchRow>();
     if (error || !match) return fail('maç bulunamadı');
     if (!FINISHED.includes(match.status_short)) return fail('maç bitmemiş');
-    if (!match.stats) return fail('istatistik yok');
+    const attempts = (match as { analysis_attempts?: number }).analysis_attempts;
+    if (!match.stats) return notReady('istatistik yok', attempts);
 
     const isNba = match.sport_type === 'nba';
     let payload: unknown;
     let usage;
     if (isNba) {
       const nba = match as unknown as NbaMatchRow;
-      if (!nba.stats?.metrics) return fail('NBA ön-hesaplama metrikleri yok');
+      if (!nba.stats?.metrics) return notReady('NBA ön-hesaplama metrikleri yok', attempts);
       const res = await generateJson<NbaLlmOut>({
         apiKey: Deno.env.get('GEMINI_API_KEY')!,
         model: MODEL,

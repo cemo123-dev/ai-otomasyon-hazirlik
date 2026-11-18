@@ -9,8 +9,10 @@ import {
   getLineups,
   getTeamLastFixtureIds,
   hasQuotaForOptional,
+  lastQuotaRemaining,
   mapPlayerMatchRows,
   PAID,
+  primeQuota,
   type PlayerMatchRow,
 } from '../_shared/apiFootball.ts';
 import { generateJson } from '../_shared/gemini.ts';
@@ -47,6 +49,27 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason }, 200); // RPC tekrar denemeye izin verir (preview_attempts < 4)
   };
 
+  // İlk 11 henüz açıklanmadı: 'failed' yerine 'none' + deneme iadesi (kalıcı kilit olmasın).
+  // preview_requested_at kalır: RPC 10 dk boyunca (0016; maç başına en fazla 4 ilk 11 sorgusu) 'not_ready' döner.
+  // refundCheck: ilk 11 hiç sorulmadıysa (kota yolu) RPC'nin artırdığı preview_lineup_checks de iade edilir;
+  // yoksa kota yüzünden 4 talepte maç kalıcı 'not_supported' olurdu (Döngü 4, bulgu 2).
+  const notReady = async (reason: string, attempts: number | null | undefined, refundCheck = false) => {
+    const patch: Record<string, unknown> = { preview_status: 'none', preview_attempts: Math.max(0, (attempts ?? 1) - 1) };
+    if (refundCheck) {
+      // Ayrı sorgu: 0016 kurulmamışsa kolon yoktur; hata yalnız sayaç iadesini atlar
+      const { data, error } = await admin
+        .from('matches')
+        .select('preview_lineup_checks')
+        .eq('fixture_id', fixture_id)
+        .maybeSingle();
+      const checks = (data as { preview_lineup_checks?: unknown } | null)?.preview_lineup_checks;
+      if (!error && typeof checks === 'number') patch.preview_lineup_checks = Math.max(0, checks - 1);
+    }
+    console.warn(`[generate-preview] ${fixture_id}: ${reason} (deneme${refundCheck ? ' ve ilk 11 sorgu hakkı' : ''} iade edildi)`);
+    await admin.from('matches').update(patch).eq('fixture_id', fixture_id);
+    return json({ ok: false, reason, not_ready: true }, 200);
+  };
+
   try {
     const { data: existing } = await admin.from('match_previews').select('fixture_id').eq('fixture_id', fixture_id).maybeSingle();
     if (existing) {
@@ -56,22 +79,34 @@ Deno.serve(async (req) => {
 
     const { data: match, error } = await admin
       .from('matches')
-      .select('fixture_id, sport_type, league_name, kickoff_at, home_team, away_team')
+      .select('fixture_id, sport_type, league_name, kickoff_at, home_team, away_team, preview_attempts')
       .eq('fixture_id', fixture_id)
       .maybeSingle();
     if (error || !match) return fail('maç bulunamadı');
     if (match.sport_type !== 'football') return fail('yalnızca futbol destekleniyor');
 
+    // Kota bekçisi: maç önü raporu isteğe bağlıdır; futbolun günlük sabit işlerinin rezervi yenmez
+    // (NBA kotası ayrıdır). Maç başına ilk 11 sorgusu ayrıca request_match_preview'da sınırlıdır
+    // (0016: en fazla 4, 10 dk arayla); burada sorgu atılmadığı için sorgu hakkı iade edilir.
+    await primeQuota(KEY);
+    if (!hasQuotaForOptional()) {
+      return notReady(`kota rezervi korunuyor (kalan ${lastQuotaRemaining()})`, match.preview_attempts, true);
+    }
+
     // 1) İlk 11'ler
     const lineups = parseLineups(await getLineups(fixture_id, KEY), match.home_team);
-    if (!lineups) return fail('ilk 11 henüz açıklanmadı');
+    if (!lineups) return notReady('ilk 11 henüz açıklanmadı', match.preview_attempts);
 
-    // 2) Sakat/cezalılar (kapsama lige göre değişir; hata analizi durdurmaz)
+    // 2) Sakat/cezalılar (kapsama lige göre değişir; hata analizi durdurmaz; kota azsa atlanır)
     let injuries: unknown[] = [];
-    try {
-      injuries = await getInjuries(fixture_id, KEY);
-    } catch (e) {
-      console.warn('[generate-preview] sakatlık verisi alınamadı:', e instanceof Error ? e.message : e);
+    if (hasQuotaForOptional()) {
+      try {
+        injuries = await getInjuries(fixture_id, KEY);
+      } catch (e) {
+        console.warn('[generate-preview] sakatlık verisi alınamadı:', e instanceof Error ? e.message : e);
+      }
+    } else {
+      console.warn('[generate-preview] kota rezervi: sakatlık verisi atlandı');
     }
 
     // 3) Form: önce kendi veritabanımız, eksikse (ücretli planda) API

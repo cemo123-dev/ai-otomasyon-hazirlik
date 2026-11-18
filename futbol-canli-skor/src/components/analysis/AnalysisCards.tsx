@@ -38,7 +38,7 @@ export function XgAuditCard({ p, match }: { p: TacticalPayload; match: Match }) 
   const vc = VERDICT_COLOR[a.verdict_type];
   return (
     <Card>
-      <CardTitle kicker="xG & Şut Kalitesi Denetimi" title={a.verdict_label} right={<Badge label={VERDICT_TR[a.verdict_type]} color={vc} />} />
+      <CardTitle kickerColor={colors.pro} kicker="XG & ŞUT KALİTESİ DENETİMİ" title={a.verdict_label} right={<Badge label={VERDICT_TR[a.verdict_type]} color={vc} />} />
       <View style={styles.auditGrid}>
         <AuditColumn team={match.home_team} color={colors.home} s={a.home} />
         <View style={styles.vDivider} />
@@ -66,7 +66,7 @@ export function MomentumCard({ p }: { p: TacticalPayload }) {
   const shifts = [...p.game_state_and_momentum_shifts].sort((a, b) => a.minute - b.minute);
   return (
     <Card>
-      <CardTitle kicker="Oyun Durumu & Momentum" title="Kırılma anları" />
+      <CardTitle kickerColor={colors.pro} kicker="OYUN DURUMU & MOMENTUM" title="Kırılma anları" />
       <View>
         {shifts.map((s, i) => {
           const c = teamColor(s.momentum);
@@ -100,7 +100,7 @@ export function ManagerAndSpotlightCard({ p, match }: { p: TacticalPayload; matc
   const spColor = sp.team === 'home' ? colors.home : colors.away;
   return (
     <Card>
-      <CardTitle kicker="Teknik Direktör & Kulübe" title="Etki deltası" />
+      <CardTitle kickerColor={colors.pro} kicker="TEKNİK DİREKTÖR & KULÜBE" title="Etki deltası" />
       {(['home', 'away'] as const).map((side) => {
         const x = m[side];
         const positive = x.delta > 0;
@@ -160,14 +160,22 @@ export function AnalysisReport({ p, match }: { p: TacticalPayload; match: Match 
       <XgAuditCard p={p} match={match} />
       <MomentumCard p={p} />
       <ManagerAndSpotlightCard p={p} match={match} />
+      <AiNote />
     </View>
   );
 }
 
+/** Maç sonu raporunun son kartının altında, sohbet kartından önce (tasarım §3.9, B-9) */
+export function AiNote() {
+  // Tasarım tur 2 R-3: kart içi metinle aynı hizada (ekran kenarı + kart iç boşluğu)
+  return <Text style={styles.aiNote}>✦ AI tarafından üretildi, maç verisine dayanır.</Text>;
+}
+
 const styles = StyleSheet.create({
+  aiNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17, paddingHorizontal: space(4) },
   headline: { color: colors.text, fontSize: 21, fontWeight: '900', lineHeight: 27 },
   headlineSmall: { color: colors.text, fontSize: 18, fontWeight: '900' },
-  body: { color: colors.text, fontSize: 14, lineHeight: 21, opacity: 0.92 },
+  body: { color: colors.text, fontSize: 14, lineHeight: 21 },
   bodySmall: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   meta: { color: colors.textMuted, fontSize: 12 },
   teamLabel: { fontSize: 12, fontWeight: '800' },

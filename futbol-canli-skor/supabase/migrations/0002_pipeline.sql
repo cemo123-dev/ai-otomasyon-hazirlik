@@ -75,8 +75,7 @@ create trigger on_analysis_job_created
 -- ŞU AN: API-Football ÜCRETSİZ plan (100 istek/gün) için ayarlı:
 --   canlı senkron 30 dakikada bir (~48 istek/gün + canlı maç detayları)
 --   fikstür günde 2 kez (~4 istek/gün)
--- Ücretli plana geçince gerçek canlı akış için:
---   select cron.alter_job((select jobid from cron.job where jobname = 'skor-sync-live'), schedule := '* * * * *');
+-- Ücretli geçiş: yalnız 0018 prosedürü (docs/ucretli-gecis.md; 0019 gerekir); nba-sync-live'a dokunmayın.
 select cron.unschedule(jobid) from cron.job where jobname in ('skor-sync-live', 'skor-sync-schedule');
 
 select cron.schedule('skor-sync-live', '*/30 * * * *',

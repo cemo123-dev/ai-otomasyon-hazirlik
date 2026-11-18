@@ -18,14 +18,17 @@ import {
 } from '../types';
 import { istanbulDayStartMs } from '../days';
 import { localizeTeams } from '../teamNames';
-import type { DataSource } from './types';
+import type { DataSource, RedeemResult } from './types';
 
-// preview_status/lineups 0005_prematch.sql, halftime_* 0006_halftime.sql ile gelir
-const MATCH_COLUMNS =
+// preview_status 0005_prematch.sql, halftime_* 0006_halftime.sql ile gelir.
+// Liste (3 günün tüm maçları) yalnız MatchRow'un kullandığı hafif kolonları çeker; ağır JSON
+// kolonları (events, stats, lineups) yalnız maç ekranında (getMatch). Realtime satırları tam gelir.
+const LIST_COLUMNS =
   'fixture_id, sport_type, league_name, league_country, league_priority, kickoff_at, home_team, away_team, ' +
   'home_score, away_score, status_short, elapsed_minute, status_detail, period_scores, summary_teaser, ' +
-  'analysis_status, events, stats, preview_status, lineups, halftime_status, halftime_teaser, ' +
+  'analysis_status, preview_status, halftime_status, halftime_teaser, ' +
   'home_team_id, away_team_id, home_logo, away_logo, updated_at';
+const MATCH_COLUMNS = `${LIST_COLUMNS}, events, stats, lineups`;
 
 // 0013_lineups_freshness.sql: kadro + oyuncu puanları yalnız maç ekranında (liste sorgusu hafif kalsın)
 const DETAIL_COLUMNS = `${MATCH_COLUMNS}, lineup_detail, player_ratings`;
@@ -34,6 +37,8 @@ const FULL_COLUMNS = `${DETAIL_COLUMNS}, box_score`;
 
 /** Postgres "undefined_column": migration henüz çalıştırılmadıysa uygulama eski kolonlarla çalışmaya devam eder */
 const isMissingColumn = (e: { code?: string } | null) => e?.code === '42703';
+/** PostgREST "fonksiyon bulunamadı" (PGRST202) / "tablo bulunamadı" (PGRST205): migration henüz kurulmadı */
+const isMissingRpc = (e: { code?: string } | null) => e?.code === 'PGRST202' || e?.code === 'PGRST205' || e?.code === '42883';
 
 let channelSeq = 0;
 
@@ -56,21 +61,22 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
   };
 
   return {
-    async listMatches(sport) {
-      // Tarih şeridi (Dün / Bugün / Yarın) Europe/Istanbul gününe göre süzer (bkz. useMatches):
-      // dünün başından yarının sonuna kadar tek sorgu. Gece yarısını geçen canlı maç da içeride kalır.
+    async listMatches(sport, daysAhead = 1) {
+      // Tarih şeridi (Dün / Bugün / Yarın; ücretli futbolda +7'ye kadar) Europe/Istanbul gününe göre süzer
+      // (bkz. useMatches): dünün başından son günün sonuna kadar tek sorgu. Gece yarısını geçen canlı maç da içeride kalır.
       const from = new Date(istanbulDayStartMs(-1)).toISOString();
-      const to = new Date(istanbulDayStartMs(2)).toISOString();
+      const to = new Date(istanbulDayStartMs(Math.max(1, Math.floor(daysAhead)) + 1)).toISOString();
       const { data, error } = await sb
         .from('matches')
-        .select(MATCH_COLUMNS)
+        .select(LIST_COLUMNS)
         .eq('sport_type', sport)
         .gte('kickoff_at', from)
         .lt('kickoff_at', to)
         .order('league_priority')
         .order('kickoff_at');
       if (error) throw error;
-      return ((data ?? []) as unknown as Match[]).map(localizeTeams);
+      // Liste satırında olmayan ağır kolonlar null: Match tipini kullanan kod tutarlı kalsın
+      return ((data ?? []) as unknown as Match[]).map((m) => localizeTeams({ ...m, events: null, stats: null }));
     },
 
     async getMatch(fixtureId) {
@@ -86,6 +92,26 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
     // Realtime filtre: yalnızca seçili sporun satırları gelir
     subscribeMatches: (sport, onChange) => listen(`sport_type=eq.${sport}`, onChange),
     subscribeMatch: (fixtureId, onChange) => listen(`fixture_id=eq.${fixtureId}`, onChange),
+
+    async isApiPaid(sport = 'football') {
+      // 0018: spor başına api_paid_for(p_sport). Kurulmadıysa 0015'in api_paid()'i (futbolun bayrağı):
+      // futbol için doğrudan; NBA için yalnız "false" güvenilir (futbol ücretsizse NBA de), "true" → bilinmiyor.
+      if (!(await ensureSession())) return null;
+      const { data, error } = await sb.rpc('api_paid_for', { p_sport: sport });
+      if (!error) return data === true;
+      if (!isMissingRpc(error)) return null;
+      const old = await sb.rpc('api_paid');
+      if (old.error) return null;
+      if (sport === 'nba') return old.data === true ? null : false;
+      return old.data === true;
+    },
+
+    async fixtureDaysAhead() {
+      if (!(await ensureSession())) return null;
+      const { data, error } = await sb.rpc('fixture_days_ahead');
+      if (!error) return typeof data === 'number' ? data : null;
+      return isMissingRpc(error) ? 7 : null; // 0019 yok: sunucu FIXTURE_DAYS_AHEAD (tanımsız → 7)
+    },
 
     async requestAnalysis(fixtureId) {
       // Oturum yoksa RPC "permission denied" verir; bunun yerine anlaşılır bir durum döndür
@@ -217,7 +243,8 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
     },
 
     async getNotificationPrefs() {
-      if (!(await ensureSession())) return DEFAULT_PREFS;
+      // Oturum yoksa varsayılan dönülmez: ekran varsayılanları kayıtlı tercih sanıp üzerine yazmasın
+      if (!(await ensureSession())) throw new Error('Oturum açılamadı');
       const { data, error } = await sb.from('notification_prefs').select('kickoff, halftime, pressure, nba_run, red_card').maybeSingle();
       if (error) throw error;
       return { ...DEFAULT_PREFS, ...((data as Partial<NotificationPrefs> | null) ?? {}) };
@@ -294,6 +321,44 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
       if (!uid) return false;
       const { data } = await sb.rpc('is_premium_user');
       return data === true;
+    },
+
+    // ── F3/F4 (0017_growth_invites.sql). Kurulmadıysa: davet kartı gizlenir, aktif gün atlanır.
+    async touchActivity() {
+      try {
+        if (!(await ensureSession())) return false;
+        const { error } = await sb.rpc('touch_activity');
+        if (!error || isMissingRpc(error)) return true; // 0017 yoksa sessiz; bugün yeniden denenmez
+        // Başka hata yalnız konsola (ölçüm akışı durdurmaz); sonraki açılışta yeniden denenir
+        console.warn('[growth] touch_activity:', error.message);
+        return false;
+      } catch {
+        return false;
+      }
+    },
+
+    async getInvite() {
+      if (!(await ensureSession())) return null;
+      const { data, error } = await sb.rpc('get_my_invite');
+      if (error) {
+        if (isMissingRpc(error)) return null; // 0017 kurulmadı: kart gizlenir
+        throw error; // ağ vb.: kart içinde "Davet bilgisi yüklenemedi" + "Tekrar dene"
+      }
+      const r = (Array.isArray(data) ? data[0] : data) as
+        | { code?: string; total?: number; active?: number | null; invited?: boolean; can_redeem?: boolean }
+        | undefined;
+      if (!r?.code) return null;
+      const total = r.total ?? 0;
+      // Sunucu active'i total < 3 iken null döner; istemci de aynı kuralı uygular (KVKK, Döngü 6 bulgu 5)
+      const active = total >= 3 && typeof r.active === 'number' ? r.active : null;
+      return { code: r.code, total, active, invited: !!r.invited, canRedeem: !!r.can_redeem };
+    },
+
+    async redeemInvite(code) {
+      if (!(await ensureSession())) return 'unauthenticated';
+      const { data, error } = await sb.rpc('redeem_invite', { p_code: code });
+      if (error) throw error;
+      return data as RedeemResult;
     },
 
     async simulateSubscription(plan) {

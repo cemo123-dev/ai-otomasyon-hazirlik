@@ -31,10 +31,12 @@ export async function generateJson<T>(opts: {
   // Geçici hatalar (aşırı yük 503, kota 429, 500) beklemeli yeniden denenir
   let res: Response | null = null;
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+    // Askıda kalan istek edge function'ı duvar saatine kadar bekletmesin (catch çalışsın, satır 'failed' olsun)
     res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'x-goog-api-key': opts.apiKey, 'Content-Type': 'application/json', 'Api-Revision': API_REVISION },
       body,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (res.ok || !RETRYABLE.has(res.status) || attempt === RETRY_DELAYS_MS.length) break;
     await res.body?.cancel();
@@ -47,6 +49,8 @@ export async function generateJson<T>(opts: {
 
 const RETRYABLE = new Set([429, 500, 503]);
 const RETRY_DELAYS_MS = [1000, 3000];
+/** Deneme başına zaman aşımı. En kötü durum ~3×25 sn + bekleme: Edge Function sınırının (150 sn) altında. */
+const REQUEST_TIMEOUT_MS = Number(Deno.env.get('GEMINI_TIMEOUT_MS') ?? 25_000);
 
 function parseResponse<T>(body: Json): { data: T; usage: GeminiUsage } {
   const text: string | undefined =

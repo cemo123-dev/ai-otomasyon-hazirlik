@@ -43,7 +43,7 @@ function FormationCard({ p, match }: { p: PreviewPayload; match: Match }) {
   );
   return (
     <Card>
-      <CardTitle kicker="İlk 11 & Diziliş" title="Formasyon çatışması" />
+      <CardTitle kickerColor={colors.pro} kicker="İLK 11 & DİZİLİŞ" title="Formasyon çatışması" />
       <View style={styles.grid}>
         {col('home')}
         <View style={styles.vDivider} />
@@ -80,7 +80,7 @@ function FormCard({ p, match }: { p: PreviewPayload; match: Match }) {
     hv != null && av != null ? <CompareBar label={label} home={hv} away={av} fmt={fmt} /> : null;
   return (
     <Card>
-      <CardTitle kicker="Form" title={`Son ${Math.max(h.n, a.n)} maç karşılaştırması`} />
+      <CardTitle kickerColor={colors.pro} kicker="FORM" title={`Son ${Math.max(h.n, a.n)} maç karşılaştırması`} />
       <View style={styles.grid}>
         {(['home', 'away'] as const).map((s) => (
           <View key={s} style={{ flex: 1, gap: 4 }}>
@@ -127,11 +127,12 @@ function KeyMatchupCard({ p, match }: { p: PreviewPayload; match: Match }) {
   const k = p.key_matchup_index != null ? p.matchups[p.key_matchup_index] : null;
   const label = k ? edgeLabel(k) : null;
   return (
-    <Card accent={colors.warning}>
+    <Card>
       <CardTitle
-        kicker={k ? 'Kilit Eşleşme' : 'Kilit Bölge'}
+        kickerColor={colors.pro}
+        kicker={k ? 'KİLİT EŞLEŞME' : 'KİLİT BÖLGE'}
         title={k ? `${teamName(match, k.attacking_side)} · ${k.zone}` : 'Dizilişten okuma'}
-        right={label ? <Badge label={label.toUpperCase()} color={edgeColor(k!)} /> : undefined}
+        right={label ? <Badge label={label.toLocaleUpperCase('tr-TR')} color={edgeColor(k!)} /> : undefined}
       />
       {k ? (
         <View style={styles.vs}>
@@ -152,7 +153,7 @@ function MatchupsCard({ p, match }: { p: PreviewPayload; match: Match }) {
   const duel = (v: number | null | undefined) => (v == null ? null : <Text style={styles.meta}> ({pct(v)})</Text>);
   return (
     <Card>
-      <CardTitle kicker="Kanat Eşleşmeleri" title="Bek ↔ kanat düelloları" />
+      <CardTitle kickerColor={colors.pro} kicker="KANAT EŞLEŞMELERİ" title="Bek ↔ kanat düelloları" />
       {p.matchups.map((m, i) => (
         <View key={i} style={[styles.mRow, i === p.key_matchup_index && styles.mRowKey]}>
           <View style={{ flex: 1 }}>
@@ -178,8 +179,8 @@ function MatchupsCard({ p, match }: { p: PreviewPayload; match: Match }) {
 // ─────────────────────────────────────────────── 6) Kırılma senaryosu
 function ScenarioCard({ p }: { p: PreviewPayload }) {
   return (
-    <Card accent={colors.pro}>
-      <CardTitle kicker="Kırılma Senaryosu" title="Maçın kilidi" />
+    <Card>
+      <CardTitle kickerColor={colors.pro} kicker="KIRILMA SENARYOSU" title="Maçın kilidi" />
       <Text style={styles.body}>{p.breaking_scenario}</Text>
       {p.watch_list.length ? (
         <View style={{ gap: space(1.5) }}>
@@ -200,7 +201,7 @@ function AbsencesCard({ p, match }: { p: PreviewPayload; match: Match }) {
   if (!p.absences.length) return null;
   return (
     <Card>
-      <CardTitle kicker="Eksikler" title="Sakat / cezalı oyuncular" />
+      <CardTitle kickerColor={colors.pro} kicker="EKSİKLER" title="Sakat / cezalı oyuncular" />
       {p.absences.map((a, i) => (
         <View key={i} style={styles.absRow}>
           {a.regular_starter ? <Badge label="DÜZENLİ İLK 11" color={colors.danger} /> : null}
@@ -225,6 +226,7 @@ export function PreviewReport({ p, match }: { p: PreviewPayload; match: Match })
       <MatchupsCard p={p} match={match} />
       <AbsencesCard p={p} match={match} />
       <Text style={styles.note}>{BASIS[p.data_basis]}. Kanat bazlı hücum yoğunluğu verisi kullanılmaz.</Text>
+      <Text style={styles.aiNote}>AI tarafından üretildi, maç verisine dayanır. Hata görürsen bildir.</Text>
     </View>
   );
 }
@@ -267,7 +269,8 @@ export function PreviewLocked({ match }: { match: Match }) {
 
 const styles = StyleSheet.create({
   headline: { color: colors.text, fontSize: 21, fontWeight: '900', lineHeight: 27 },
-  body: { color: colors.text, fontSize: 14, lineHeight: 21, opacity: 0.92 },
+  body: { color: colors.text, fontSize: 14, lineHeight: 21 },
+  aiNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
   bodySmall: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   meta: { color: colors.textMuted, fontSize: 12 },
   note: { color: colors.textDim, fontSize: 11, lineHeight: 15 },
@@ -289,7 +292,7 @@ const styles = StyleSheet.create({
   statLine: { color: colors.textMuted, fontSize: 12 },
   statVal: { color: colors.text, fontWeight: '800' },
   mRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingVertical: space(2), borderTopWidth: 1, borderTopColor: colors.border },
-  mRowKey: { backgroundColor: 'rgba(255,197,61,0.06)' },
+  mRowKey: { backgroundColor: 'rgba(255,162,58,0.06)' },
   mNames: { color: colors.text, fontWeight: '700', fontSize: 13, flexShrink: 1 },
   absRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), flexWrap: 'wrap' },
   lock: { fontSize: 26 },

@@ -1,20 +1,25 @@
 // pg_cron ile çağrılır (bkz. 0002_pipeline.sql):
 //   mode=live     → canlı maçların skor/dakika/olay/istatistikleri + yeni bitenler
-//   mode=schedule → dün/bugün/yarın fikstürü + biten maçların istatistikleri
+//   mode=schedule → fikstür (ücretsiz: dün/bugün/yarın; ücretli: −1…+FIXTURE_DAYS_AHEAD) + biten maçların istatistikleri
+// 0018 (Pro API): cron dakikalık tetikler ama app_config.api_paid false iken SQL yalnız ücretsiz takvim
+// dakikalarında çağırır; cadence='paid' gelip API_FOOTBALL_PAID kapalıysa burada da ücretsiz takvime inilir.
 import {
   apiGet,
   getFixturesByIds,
   hasQuotaForOptional,
+  hasQuotaForStatus,
   isTracked,
   lastQuotaRemaining,
   mapCore,
   mapDetails,
   mapPlayerMatchRows,
+  MAX_SINGLE_FETCH,
   PAID,
 } from '../_shared/apiFootball.ts';
 import { runFootballAlerts } from '../_shared/alertStore.ts';
 import { storeLineupFields } from '../_shared/lineups.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
+import { fixtureDayOffsets, isMinutelyCadence, kickoffWindowMinutes, shouldRunSync, uniqueLocalDates } from '../_shared/syncUtils.ts';
 import { followTeamFixtures, notifyKickoffs } from '../_shared/teamEvents.ts';
 import { buildTeaser } from '../_shared/teaser.ts';
 import { FINISHED, LIVE, type MatchRow } from '../_shared/types.ts';
@@ -27,11 +32,17 @@ const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknow
 
 Deno.serve(async (req) => {
   if (!(await authorized(req))) return json({ error: 'unauthorized' }, 401);
-  const { mode = 'live' } = await req.json().catch(() => ({}));
+  const { mode = 'live', cadence, slot } = await req.json().catch(() => ({}));
+
+  // İkinci emniyet (0018): DB "ücretli" dese de secret kapalıysa ücretsiz takvim dışında API'ye gidilmez
+  if (!shouldRunSync({ mode: mode === 'schedule' ? 'schedule' : 'live', paid: PAID, cadence, slot, now: new Date() })) {
+    console.log(`[sync-matches] ${mode} atlandı: ücretsiz plan takvimi dışında (API_FOOTBALL_PAID kapalı)`);
+    return json({ ok: true, skipped: 'free_plan_cadence', mode });
+  }
 
   // Ücretsiz planda istekler arası bekleme yüzünden iş ~1-2 dk sürebilir;
   // pg_net 60 sn'de zaman aşımına uğramasın diye hemen 202 dönülür, iş arka planda biter.
-  const task = (mode === 'schedule' ? syncSchedule() : syncLive())
+  const task = (mode === 'schedule' ? syncSchedule() : syncLive(isMinutelyCadence(PAID, cadence)))
     .then((r) => console.log(`[sync-matches] ${mode} ok`, JSON.stringify(r)))
     .catch((e) => console.error(`[sync-matches] ${mode} HATA`, e instanceof Error ? e.message : e));
 
@@ -49,9 +60,9 @@ async function syncSchedule() {
   const skipped: string[] = [];
   const finishedIds: number[] = [];
 
-  // Dün + bugün + yarın. Ücretsiz plan yalnızca dar bir tarih aralığına izin verir;
-  // reddedilen tarih atlanır, diğerleri işlenir.
-  for (const date of [day(-1), day(0), day(1)]) {
+  // Ücretsiz: dün + bugün + yarın (plan yalnızca dar bir tarih aralığına izin verir).
+  // Ücretli: −1…+FIXTURE_DAYS_AHEAD (varsayılan 7). Reddedilen tarih atlanır, diğerleri işlenir.
+  for (const date of fixtureDayOffsets(PAID, PAID ? await fixtureDaysAheadRaw() : undefined).map(day)) {
     let fixtures;
     try {
       fixtures = (await apiGet(`/fixtures?date=${date}&timezone=${TZ}`, KEY)).filter(isTracked);
@@ -99,7 +110,18 @@ async function syncSchedule() {
   return { scheduled: count, enriched, skipped, quota: lastQuotaRemaining() };
 }
 
-async function syncLive() {
+/**
+ * Ücretli planda kaç gün ileri (Döngü 8 bulgu 8): tek kaynak app_config.fixture_days_ahead (0019;
+ * istemci şeridi de aynı değeri okur). 0019 kurulmadıysa eski secret FIXTURE_DAYS_AHEAD (tanımsız → 7).
+ */
+async function fixtureDaysAheadRaw(): Promise<string | undefined> {
+  const { data, error } = await admin.rpc('fixture_days_ahead');
+  if (!error && typeof data === 'number') return String(data);
+  return Deno.env.get('FIXTURE_DAYS_AHEAD');
+}
+
+/** `minutely`: istek dakikalık ücretli takvimden mi (secret açık + cadence 'paid'); "maç başladı" penceresi buna göre */
+async function syncLive(minutely: boolean) {
   // 1) Şu an canlı olan takip edilen maçlar (1 istek): skor, dakika, durum
   const liveList = (await apiGet('/fixtures?live=all', KEY)).filter(isTracked);
   const liveIds = new Set(liveList.map((f) => f.fixture.id as number));
@@ -109,18 +131,21 @@ async function syncLive() {
     if (coreErr) throw coreErr;
   }
 
-  // 1a) "Maç başladı" bildirimi (senkron 30 dk'da bir olabildiğinden ilk 35 dk'da yakalananlar)
+  // 1a) "Maç başladı" bildirimi: 30 dk'lık senkronda → ilk 35 dk'da yakalananlar; dakikalık ücretli
+  //     takvimde → yalnız ilk 5 dk (geç bildirim gitmez). Pencere secret'tan değil istek temposundan (Döngü 8)
   const kickoffs = await notifyKickoffs(
     coreRows.filter((r) => r.status_short === '1H') as { fixture_id: number; home_team: string; away_team: string; elapsed_minute: number | null }[],
     'football',
-    35,
+    kickoffWindowMinutes(minutely),
   );
 
   // 1b) Devre arası tespiti → "Soyunma Odası Reçetesi" otomatik kuyruğa (singleflight; her rapor 1 istek).
   //     Ücretli planda cron dakikalık olduğundan HT ~1 dk içinde yakalanır.
   let halftimeQueued = 0;
   for (const r of coreRows.filter((x) => x.status_short === 'HT')) {
-    if (!hasQuotaForOptional()) break;
+    // Kuyruktaki işler henüz istek atmadı: her biri 1 istek harcayacağı için rezerv birikimli sınanır
+    // (kalan 8'de 4 maç aynı anda HT'ye girerse yalnız 1'i kuyruğa girer; 6'lık rezerv korunur).
+    if (!hasQuotaForOptional(halftimeQueued + 1)) break;
     const { data: claimed, error: cErr } = await admin.rpc('claim_halftime_job', { p_fixture_id: r.fixture_id });
     if (cErr) {
       console.warn('[sync-matches] claim_halftime_job:', cErr.message); // 0006 kurulmadıysa senkronu bozmaz
@@ -133,16 +158,61 @@ async function syncLive() {
   //    (sport_type filtresi şart: aksi halde canlı NBA maçları futbol API'sine sorulur)
   const { data: dbLive, error } = await admin
     .from('matches')
-    .select('fixture_id')
+    .select('fixture_id, kickoff_at')
     .eq('sport_type', 'football')
     .in('status_short', LIVE);
   if (error) throw error;
-  const gone = (dbLive ?? []).map((r) => r.fixture_id as number).filter((id) => !liveIds.has(id));
+  const goneRows = (dbLive ?? []).filter((r) => !liveIds.has(r.fixture_id as number));
+  const gone = goneRows.map((r) => r.fixture_id as number);
+
+  // 2a) Durum düzeltme: ücretsiz planda detay çalıştırma başına MAX_SINGLE_FETCH maçla sınırlı.
+  //     Aynı anda çok maç bitince (ya da kota rezervi doluysa) hepsinin durum/skoru başlama günü
+  //     başına TEK /fixtures?date= isteğiyle güncellenir (sync-nba ile aynı yöntem). Detay sonra gelir.
+  let statusDates = 0;
+  let statusFixed = 0;
+  if (!PAID && gone.length && (gone.length > MAX_SINGLE_FETCH || !hasQuotaForOptional())) {
+    const goneSet = new Set(gone);
+    for (const date of uniqueLocalDates(goneRows.map((r) => r.kickoff_at as string), TZ)) {
+      if (!hasQuotaForStatus()) break;
+      try {
+        const rows = (await apiGet(`/fixtures?date=${date}&timezone=${TZ}`, KEY))
+          .filter((f) => goneSet.has(f.fixture?.id))
+          .map(mapCore);
+        statusDates++;
+        if (!rows.length) continue;
+        const { error: stErr } = await admin.from('matches').upsert(rows, { onConflict: 'fixture_id' });
+        if (stErr) throw stErr;
+        statusFixed += rows.length;
+      } catch (e) {
+        console.warn(`[sync-matches] ${date} durum güncellemesi atlandı:`, e instanceof Error ? e.message : e);
+      }
+    }
+  }
+
+  // 2b) Biten ama detayı henüz hiç çekilmemiş son maçlar: tarih sorgusuyla MS olanlar artık "canlı"
+  //     listesinde olmadığından detayları sonraki çalıştırmalarda buradan tamamlanır. Ölçüt teaser:
+  //     detay çekimi her biten maça yazar (API istatistik vermese de) → aynı maç tekrar tekrar istenmez.
+  const { data: pending, error: pendErr } = await admin
+    .from('matches')
+    .select('fixture_id')
+    .eq('sport_type', 'football')
+    .in('status_short', FINISHED)
+    .is('summary_teaser', null)
+    .gte('kickoff_at', new Date(Date.now() - 4 * 3600_000).toISOString())
+    .order('kickoff_at', { ascending: false })
+    .limit(10);
+  if (pendErr) console.warn('[sync-matches] detaysız biten maçlar okunamadı:', pendErr.message);
+  const needDetail = [...new Set([...gone, ...(pending ?? []).map((r) => r.fixture_id as number)])];
 
   // 3) Detaylar (olay, istatistik, kadro). Ücretsiz planda kotayı korumak için yalnızca
-  //    yeni biten maçlar; ücretli planda canlı maçlar da (20 maç = 1 istek).
-  const ids = PAID ? [...new Set([...liveIds, ...gone])] : gone;
-  if (!ids.length) return { live: liveIds.size, finished: 0, halftime_queued: halftimeQueued, kickoffs, quota: lastQuotaRemaining() };
+  //    yeni biten maçlar; ücretli planda canlı maçlar da (20 maç = 1 istek). Döngü 8 bulgu 7: canlı maç
+  //    detayı ücretli planda da isteğe bağlıdır → kalan FOOTBALL_QUOTA_RESERVE_PAID'in (varsayılan 500) altına
+  //    inecekse yalnız biten maçlar çekilir (skor/dakika 1. adımdaki canlı listeden gelmeye devam eder).
+  const liveDetail = PAID && liveIds.size > 0 && hasQuotaForOptional(Math.ceil((liveIds.size + needDetail.length) / 20));
+  if (PAID && liveIds.size > 0 && !liveDetail) console.warn('[sync-matches] kota rezervi korunuyor; canlı maç detayı atlandı');
+  const ids = liveDetail ? [...new Set([...liveIds, ...needDetail])] : needDetail;
+  const base = { live: liveIds.size, status_dates: statusDates, status_fixed: statusFixed, halftime_queued: halftimeQueued, kickoffs };
+  if (!ids.length) return { ...base, finished: 0, quota: lastQuotaRemaining() };
   const fixtures = await getFixturesByIds(ids, KEY);
   let finished = 0;
   const rows: Partial<MatchRow>[] = fixtures.map((f) => {
@@ -164,7 +234,7 @@ async function syncLive() {
 
   // 4) Akıllı alarm (yalnız ücretli plan: canlı istatistik + dakikalık senkron gerekir)
   const alerts = PAID ? await runFootballAlerts(rows, LIVE) : 0;
-  return { live: liveIds.size, finished, halftime_queued: halftimeQueued, alerts, kickoffs, quota: lastQuotaRemaining() };
+  return { ...base, finished, alerts, quota: lastQuotaRemaining() };
 }
 
 /**

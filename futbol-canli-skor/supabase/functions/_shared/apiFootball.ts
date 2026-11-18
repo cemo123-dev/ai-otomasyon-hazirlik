@@ -1,3 +1,6 @@
+import { FOOTBALL_PAID } from './paidFlags.ts';
+import { createQuotaGuard, DEFAULT_RESERVES, envNumber, footballOptionalReserve, remainingFromHeader } from './quota.ts';
+import { remainingFromStatus } from './syncUtils.ts';
 import type { MatchEvent, MatchRow, MatchStats, TeamStats, TopPlayer } from './types.ts';
 
 // API-Football v3 (api-sports.io). Yalnızca sunucu tarafında çağrılır.
@@ -42,27 +45,59 @@ const NON_SENIOR_MEN = /\b(women|womens|féminine|femenino|frauen|W|U1[5-9]|U2[0
 type Json = any;
 
 // Ücretsiz plan: dakikada en fazla 10 istek → istekler arası ~6,5 sn bekle (ücretli planda bekleme yok)
-export const PAID = Deno.env.get('API_FOOTBALL_PAID') === '1';
+// Bayrak YALNIZ futbolun (API_FOOTBALL_PAID); NBA kendi bayrağını okur (bkz. paidFlags.ts)
+export const PAID = FOOTBALL_PAID;
 const MIN_GAP_MS = PAID ? 0 : 6500;
 let lastCallAt = 0;
 
 /**
- * KOTA BEKÇİSİ — API-Football ve API-NBA aynı günlük kotayı paylaşır.
- * Futbol işleri, gece NBA senkronu için en az QUOTA_RESERVE isteği bırakır;
- * isteğe bağlı detay çekimleri bu eşiğin altında atlanır.
+ * KOTA BEKÇİSİ — API-Football kendi 100/gün kotasına sahiptir (NBA ayrı; bkz. _shared/quota.ts).
+ * Rezerv yalnız futbolun günün kalan sabit işleri içindir; isteğe bağlı detay çekimleri bu eşiğin altında atlanır.
+ * Döngü 9: plana göre seçilir — ücretsiz FOOTBALL_QUOTA_RESERVE (varsayılan 6, en fazla 50),
+ * ücretli FOOTBALL_QUOTA_RESERVE_PAID (varsayılan 500). Geçişte/geri dönüşte rezerv secret'ı değiştirilmez.
  */
-const QUOTA_RESERVE = Number(Deno.env.get('FOOTBALL_QUOTA_RESERVE') ?? 45);
-let quotaRemaining: number | null = null;
-export const hasQuotaForOptional = () => PAID || quotaRemaining === null || quotaRemaining > QUOTA_RESERVE;
-export const lastQuotaRemaining = () => quotaRemaining;
+const QUOTA_RESERVE = footballOptionalReserve(
+  PAID,
+  Deno.env.get('FOOTBALL_QUOTA_RESERVE'),
+  Deno.env.get('FOOTBALL_QUOTA_RESERVE_PAID'),
+);
+const quota = createQuotaGuard({ paid: PAID });
+/** `needed`: bu çağrıdan sonra atılacak istek sayısı (ör. aynı döngüde kuyruğa alınan devre arası işleri + 1) */
+export const hasQuotaForOptional = (needed = 1) => quota.allows(QUOTA_RESERVE, needed);
+export const lastQuotaRemaining = () => quota.remaining();
+/**
+ * Biten maçların DURUMUNU (canlı → MS) düzeltmek isteğe bağlı detaydan önemlidir: tarih başına
+ * 1 istek, rezervin altında da yapılır; yalnız kota neredeyse bittiyse atlanır (varsayılan 3).
+ */
+const STATUS_QUOTA_FLOOR = envNumber(Deno.env.get('FOOTBALL_STATUS_QUOTA_FLOOR'), DEFAULT_RESERVES.footballStatusFloor);
+export const hasQuotaForStatus = () => quota.allows(STATUS_QUOTA_FLOOR);
+
+/**
+ * Yeni Edge instance'ında kota bilinmez (null → bekçi her isteğe izin verir). İsteğe bağlı çekimden
+ * önce kalan istek /status ile öğrenilir (bu uç günlük kotaya sayılmaz). Değer bilinse de önceki
+ * UTC gününe aitse (gece yarısı sıfırlama) ya da ~10 dk'dan eskiyse yeniden sorulur. Hata akışı durdurmaz.
+ */
+export async function primeQuota(key: string): Promise<void> {
+  if (PAID || !quota.stale()) return;
+  try {
+    const sentAt = Date.now();
+    const res = await fetch(`${BASE}/status`, { headers: { 'x-apisports-key': key } });
+    const rem = remainingFromStatus(await res.json());
+    if (rem !== null) quota.set(rem, sentAt);
+  } catch (e) {
+    console.warn('[api-football] kota durumu okunamadı:', e instanceof Error ? e.message : e);
+  }
+}
 
 export async function apiGet(path: string, key: string): Promise<Json[]> {
   const wait = lastCallAt + MIN_GAP_MS - Date.now();
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   lastCallAt = Date.now();
+  // Gönderim anı: gece yarısını geçen yanıttaki dünkü kalan bugüne yazılmasın (bkz. remainingFromHeader)
+  const sentAt = Date.now();
   const res = await fetch(`${BASE}${path}`, { headers: { 'x-apisports-key': key } });
-  const rem = Number(res.headers.get('x-ratelimit-requests-remaining'));
-  if (Number.isFinite(rem) && res.headers.has('x-ratelimit-requests-remaining')) quotaRemaining = rem;
+  const rem = remainingFromHeader(res.headers.get('x-ratelimit-requests-remaining'));
+  if (rem !== null) quota.set(rem, sentAt);
   if (!res.ok) throw new Error(`API-Football ${res.status} ${path}`);
   const body = await res.json();
   const errors = body.errors && (Array.isArray(body.errors) ? body.errors : Object.values(body.errors));
@@ -71,7 +106,7 @@ export async function apiGet(path: string, key: string): Promise<Json[]> {
 }
 
 /** Ücretsiz planda tek çalıştırmada tek tek çekilecek en fazla maç (günlük 100 istek kotası) */
-const MAX_SINGLE_FETCH = Number(Deno.env.get('API_FOOTBALL_MAX_SINGLE_FETCH') ?? 3);
+export const MAX_SINGLE_FETCH = Number(Deno.env.get('API_FOOTBALL_MAX_SINGLE_FETCH') ?? 3);
 // Ücretli plana geçince Edge Function secret'ı API_FOOTBALL_PAID=1 yapın (toplu ids= çekimi açılır)
 let idsParamBlocked = !PAID;
 

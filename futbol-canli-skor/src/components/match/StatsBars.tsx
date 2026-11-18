@@ -7,7 +7,7 @@ type Row = { key: keyof TeamStats; label: string; fmt?: (v: number) => string };
 
 const GROUPS: { title: string; kicker: string; rows: Row[] }[] = [
   {
-    kicker: 'Kontrol',
+    kicker: 'KONTROL',
     title: 'Topla Oynama & Pas',
     rows: [
       { key: 'possession', label: 'Topla oynama', fmt: (v) => `%${v}` },
@@ -15,7 +15,7 @@ const GROUPS: { title: string; kicker: string; rows: Row[] }[] = [
     ],
   },
   {
-    kicker: 'Tehdit',
+    kicker: 'TEHDİT',
     title: 'xG & Şutlar',
     rows: [
       { key: 'xg', label: 'xG (Gol beklentisi)', fmt: (v) => v.toFixed(2) },
@@ -26,7 +26,7 @@ const GROUPS: { title: string; kicker: string; rows: Row[] }[] = [
     ],
   },
   {
-    kicker: 'Diğer',
+    kicker: 'DİĞER',
     title: 'Duran Top & Disiplin',
     rows: [
       { key: 'corners', label: 'Korner' },

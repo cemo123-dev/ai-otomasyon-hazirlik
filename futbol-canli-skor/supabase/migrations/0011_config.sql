@@ -1,8 +1,7 @@
 -- Skor+ : uygulama yapılandırması — API planına bağlı davranışlar
 -- Supabase SQL Editor'de çalıştırın. Tekrar çalıştırılabilir (idempotent).
 --
--- Ücretli API-Sports planına geçince (API_FOOTBALL_PAID=1 secret'ı ile birlikte) çalıştırın:
---   update public.app_config set value = 'true'::jsonb where key = 'api_paid';
+-- Ücretli geçiş: yalnız 0018 prosedürü (docs/ucretli-gecis.md; 0019 gerekir); nba-sync-live'a dokunmayın.
 
 create table if not exists public.app_config (
   key text primary key,

@@ -1,11 +1,13 @@
 import type { NbaPlayerLine, NbaTeamBox } from './nbaMetrics.ts';
 import { normalizeNbaLogo } from './nbaBox.ts';
+import { NBA_PAID } from './paidFlags.ts';
+import { createQuotaGuard, DEFAULT_RESERVES, envNumber, remainingFromHeader } from './quota.ts';
 
 /**
  * API-NBA (api-sports.io, API-Football ile aynı anahtar).
  * Not: NBA'in kendi CDN'i (cdn.nba.com) sunuculardan gelen istekleri bot korumasıyla
  * engelliyor; bu yüzden lisanslı ve anahtarlı bu kaynak kullanılır.
- * Ücretsiz plan: günde 100, dakikada 10 istek.
+ * Ücretsiz plan: günde 100 (futbol kotasından ayrı), dakikada 10 istek.
  */
 const BASE = 'https://v2.nba.api-sports.io';
 
@@ -14,7 +16,12 @@ export const NBA_ID_OFFSET = 9_000_000_000;
 export const toFixtureId = (gameId: number) => NBA_ID_OFFSET + gameId;
 export const toGameId = (fixtureId: number) => fixtureId - NBA_ID_OFFSET;
 
-const PAID = Deno.env.get('API_FOOTBALL_PAID') === '1';
+/**
+ * NBA'in KENDİ plan bayrağı (API_NBA_PAID, varsayılan kapalı). API-Football Pro'ya geçse de NBA ücretsiz
+ * kalır: futbol bayrağı burada OKUNMAZ, yoksa NBA kota bekçisi kapanır (Döngü 7, bkz. paidFlags.ts).
+ */
+export { NBA_PAID };
+const PAID = NBA_PAID;
 const MIN_GAP_MS = PAID ? 0 : 6500;
 let lastCallAt = 0;
 
@@ -22,21 +29,25 @@ let lastCallAt = 0;
 type Json = any;
 
 /**
- * KOTA BEKÇİSİ — API-NBA, API-Football ile aynı günlük kotayı paylaşır.
- * İsteğe bağlı çekimler (kutu skoru) kalan kota NBA_QUOTA_RESERVE'in altına inecekse atlanır.
+ * KOTA BEKÇİSİ — API-NBA kendi 100/gün kotasına sahiptir; anahtar aynı olsa da sayaç
+ * API-Football'dan AYRIDIR (bkz. _shared/quota.ts). İsteğe bağlı çekimler (kutu skoru)
+ * kalan kota NBA_QUOTA_RESERVE'in altına inecekse atlanır. Önceki UTC gününden kalan değer
+ * geçersiz sayılır (gece yarısı sıfırlama).
  */
-const QUOTA_RESERVE = Number(Deno.env.get('NBA_QUOTA_RESERVE') ?? 5);
-let quotaRemaining: number | null = null;
-export const hasNbaQuota = (needed = 1) => PAID || quotaRemaining === null || quotaRemaining - needed >= QUOTA_RESERVE;
-export const lastNbaQuota = () => quotaRemaining;
+const QUOTA_RESERVE = envNumber(Deno.env.get('NBA_QUOTA_RESERVE'), DEFAULT_RESERVES.nbaOptional);
+const quota = createQuotaGuard({ paid: PAID });
+export const hasNbaQuota = (needed = 1) => quota.allows(QUOTA_RESERVE, needed);
+export const lastNbaQuota = () => quota.remaining();
 
 export async function nbaGet(path: string, key: string): Promise<Json[]> {
   const wait = lastCallAt + MIN_GAP_MS - Date.now();
   if (wait > 0) await new Promise((r) => setTimeout(r, wait));
   lastCallAt = Date.now();
+  // Gönderim anı: gece yarısını geçen yanıttaki dünkü kalan bugüne yazılmasın (bkz. remainingFromHeader)
+  const sentAt = Date.now();
   const res = await fetch(`${BASE}${path}`, { headers: { 'x-apisports-key': key } });
-  const rem = Number(res.headers.get('x-ratelimit-requests-remaining'));
-  if (res.headers.has('x-ratelimit-requests-remaining') && Number.isFinite(rem)) quotaRemaining = rem;
+  const rem = remainingFromHeader(res.headers.get('x-ratelimit-requests-remaining'));
+  if (rem !== null) quota.set(rem, sentAt);
   if (!res.ok) throw new Error(`API-NBA ${res.status} ${path}`);
   const body = await res.json();
   const errors = body.errors && (Array.isArray(body.errors) ? body.errors : Object.values(body.errors));

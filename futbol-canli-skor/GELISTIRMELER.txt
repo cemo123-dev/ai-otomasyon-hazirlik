@@ -46,14 +46,19 @@ Temel kurallar:
 
 
 3. GELİŞTİRME ADIMLARI (KRONOLOJİK)
+   Ajan rolleri: Ana oturum = Claude Code ana sohbet (planlama, doğrulama, deploy, OTA). Ajanlar: test (kalite döngüleri),
+   geliştirici (kod), tasarımcı (UI rehberi + ekran incelemesi), pazarlama, araştırma, reklam, inovasyon (yalnız dokümanlar).
+   Saatler git commit zamanı ve oturum dökümünden; bitiş saati ajan raporunun geldiği andır.
 --------------------------------------------------------------------------
 
 3.1  Araç kurulumu (Claude Code)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 16 Kas ~23:50
      - GitHub'daki popüler token/kodlama verimliliği repoları kuruldu:
        andrej-karpathy-skills, caveman, context-mode, codegraph.
      - Node.js 26 LTS kuruldu.
 
 3.2  Mobil uygulama iskeleti (futbol)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 00:20
      - Expo + TypeScript + Expo Router projesi oluşturuldu.
      - Ekranlar: maç listesi (lige göre gruplu, canlı/biten filtresi),
        maç detayı (Özet / İstatistik / AI Taktik sekmeleri), paywall modalı.
@@ -63,6 +68,7 @@ Temel kurallar:
      - Supabase olmadan çalışan ÖNİZLEME (mock) modu.
 
 3.3  Supabase şeması (0001_init.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 00:20
      - Tablolar: profiles, matches, match_analyses, analysis_jobs.
      - RLS: maçlar herkese açık; analizler yalnızca aktif abonelere.
      - request_match_analysis RPC: singleflight (aynı maç için LLM yalnızca
@@ -70,6 +76,7 @@ Temel kurallar:
      - simulate_subscription RPC (YALNIZCA TEST — yayından önce kaldırılmalı).
 
 3.4  AI analiz hattı (Gemini) — token verimliliği
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 00:20
      - generate-analysis Edge Function.
      - Ham API JSON'u yerine sıkıştırılmış satırlar gönderilir (~450 karakter).
      - Kısa anahtarlı JSON şeması; thinking "minimal"; store:false.
@@ -77,16 +84,19 @@ Temel kurallar:
      - Ölçülen maliyet (futbol): ~586 girdi + ~527 çıktı token ≈ $0,0015/maç.
 
 3.5  Veri toplama (0002_pipeline.sql + sync-matches)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 02:07
      - API-Football → matches senkronu; pg_cron ile zamanlanır.
      - Edge Function iç anahtarı Vault'ta rastgele üretilir; elle secret
        girmeye gerek yoktur (check_internal_secret RPC).
 
 3.6  Hata düzeltmeleri (uygulama)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 00:47
      - Expo Router SDK 58'de <Link asChild> web'de çöküyordu → router.push.
      - Önizleme modunda "örnek veri" uyarısı eklendi.
      - Oturum/RPC hatalarında anlaşılır mesajlar.
 
 3.7  Lig filtresi — yalnızca erkek A takımları
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 02:07
      - Süper Lig; Dünya Kupası, EURO, elemeler, UEFA Uluslar Ligi,
        Türkiye'nin hazırlık maçları; UEFA kulüp kupaları; Premier League,
        LaLiga, Serie A, Bundesliga, Ligue 1.
@@ -95,6 +105,7 @@ Temel kurallar:
        (ör. "UEFA Uluslar Ligi · Lig A", "… Elemeleri · Grup C").
 
 3.8  Gerçek verilere geçiş
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 02:07
      - Supabase projesi, MCP bağlantısı, Edge Function deploy'ları.
      - API-Football ücretsiz plan uyumu: ±1 gün tarih penceresi, toplu
        "ids=" yerine tek tek "id=", dakikada 10 istek sınırına uygun bekleme,
@@ -102,6 +113,7 @@ Temel kurallar:
      - Gemini'nin yeni "AQ." anahtar biçimi doğrulandı.
 
 3.9  NBA desteği (0003_nba.sql + sync-nba)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 02:37
      - matches tablosuna sport_type, period_scores, status_detail eklendi.
      - Veri kaynağı: API-NBA (cdn.nba.com sunucu isteklerini engellediği için
        kullanılmadı).
@@ -117,20 +129,25 @@ Temel kurallar:
        barları (FG%, 3P%, TS%, ribaund, asist, top kaybı), NBA AI kartları.
      - Ölçülen maliyet (NBA): ~660 girdi + ~317 çıktı token ≈ $0,001/maç.
 
-3.10 Ortak kota yönetimi (0004_quota.sql)
-     - API-Football ve API-NBA günlük 100 isteği PAYLAŞIR.
+3.10 Kota yönetimi (0004_quota.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 02:45
+     - DÜZELTME (3.31): API-Football ve API-NBA kotaları AYRIDIR (her biri 100/gün;
+       prod logu 2026-11-17). İlk sürümdeki "ortak kota" varsayımı ve 0004_quota.sql
+       başlık yorumu eskidir (uygulanmış migration'a dokunulmadı); güncel bilgi
+       supabase/functions/_shared/quota.ts başlığında.
      - Zamanlama (TSİ):
          Futbol canlı   15:00–01:30, 30 dk'da bir
          Futbol fikstür günde 1 (12:00)
          NBA canlı      02:00–09:30, 30 dk'da bir
          NBA fikstür    günde 1 (23:00)
-       Tahmini kullanım ~80 istek/gün.
-     - Kota bekçisi: yanıttaki x-ratelimit-requests-remaining izlenir;
-       futbol işleri gece NBA için 45 istek bırakır.
+       Tahmini kullanım ~80 istek/gün (iki ürünün toplamı; her biri kendi 100'ünden).
+     - Kota bekçisi: yanıttaki x-ratelimit-requests-remaining izlenir; her ürün yalnız
+       kendi sabit işleri için küçük rezerv bırakır (3.31; eskiden futbol "NBA için" 45).
      - Hata düzeltmesi: futbol canlı senkronu canlı NBA maçlarını futbol
        API'sine soruyordu (sport_type filtresi eklendi).
 
 3.11 NBA analiz kalitesi
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 03:10
      - Bench yorumları: kod, her takım için "hangi ünite farkı açtı/kapattı"
        hükmünü üretir (BENCH OKUMA); LLM bunu yoruma çevirir.
      - Oyuncu etkisi: Hollinger Game Score'un hücum ve savunma bileşenleri
@@ -144,6 +161,7 @@ Temel kurallar:
      - Uygulamada yeni "Oyuncu Etkisi" kartı.
 
 3.12 Maç öncesi AI: "Taktiksel Eşleşme & Kırılma Senaryosu" (0005_prematch.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 04:54
      - İlk 11'ler açıklanınca (başlamaya ≤45 dk) Pro kullanıcı isteğiyle
        maç başına bir kez üretilir (request_match_preview, singleflight).
      - Kod: dizilişten bek ↔ kanat eşleşmeleri, son 5 maç oyuncu formu
@@ -152,6 +170,7 @@ Temel kurallar:
        yazar; sayılar doğrulanır.
 
 3.13 Canlı devre arası: "Soyunma Odası Reçetesi" (0006_halftime.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 05:37
      - Devre arasında ilk yarı verisiyle ~150 kelimelik "İkinci Yarıda Ne
        Olmalı?" raporu: durum tespiti, iki takım için 2-4 hamle, ikinci
        yarının kilidi. Maç başına 1 API isteği + 1 Gemini çağrısı.
@@ -176,6 +195,7 @@ Temel kurallar:
        bildirimi desteklemez): EAS projectId + Android FCM / iOS APNs.
 
 3.14 Android development build ve push bildirimi kurulumu
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 07:09
      - expo-dev-client eklendi; eas.json profilleri: development (dev client,
        .apk), preview (dahili .apk), production.
      - app.json: android.package = com.skorplus.app, googleServicesFile,
@@ -195,6 +215,7 @@ Temel kurallar:
        gönderdiği için gerçek bildirimler etkilenmez.
 
 3.15 Akıllı Alarm — gürültüsüz bildirimler (0007_alerts.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 07:31
      - Her korner/faulde değil, yalnız veriyle anlamlı anlarda alarm:
          🚨 Baskı Alarmı   : bir takım ~10 dk içinde ≥3 isabetli şut ve ≥0.80 xG
                              bulup gol atamadıysa ("gol kapıda"); aynı takım için
@@ -207,8 +228,9 @@ Temel kurallar:
                              güncellendi" ile gider.
      - Tespit tamamen kodla (0 token), dakikalık anlık görüntülerle
        (match_snapshots, 6 saat saklanır). Ek API isteği yok.
-     - YALNIZ ÜCRETLİ PLAN: API_FOOTBALL_PAID=1 + dakikalık canlı cron
-       (0007 sonundaki cron.alter_job satırları). Ücretsiz planda kapalı.
+     - YALNIZ ÜCRETLİ PLAN: API_FOOTBALL_PAID=1 + dakikalık canlı cron. Ücretsiz planda kapalı.
+       Ücretli geçiş: yalnız 0018 prosedürü (docs/ucretli-gecis.md); nba-sync-live'a dokunmayın.
+       (0007 sonundaki eski cron.alter_job notu Döngü 8'de kaldırıldı; çalıştırılmaz.)
      - Alarmlar yalnız 🔔 takip edilen maçlara ve kullanıcının açık bıraktığı
        türlere gider (notification_prefs; ana sayfada ⚙️ Bildirim Ayarları).
        Devre arası raporu da bu tercihe bağlandı.
@@ -221,6 +243,7 @@ Temel kurallar:
        deploy edilecek (ücretsiz planda davranış değişmez).
 
 3.16 "Taktik Asistana Sor" — maç içi bağlamsal mini sohbet (0008_assistant.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 07:56
      - Pro analiz ekranının (maç sonu AI) altında; kullanıcı başına maç
        başına 3 soru. Doğrulanamayan/başarısız sorular hakka sayılmaz.
      - Hızlı soru çipleri: futbol [Maçın kırılma anı neydi?] [Hakem
@@ -327,6 +350,7 @@ google-services.json           Firebase (Android FCM) yapılandırması
 
 
 3.17 Taktik Asistan iyileştirmesi (yorumcu modu)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 18:56
      - Kök neden 1: "Rövanş" sorusu sayı doğrulamasına değil Gemini 503
        (model aşırı yük) hatasına takılmıştı. gemini.ts'e 429/500/503 için
        beklemeli yeniden deneme eklendi (1 sn, 3 sn). [ask-assistant'ta
@@ -351,6 +375,7 @@ google-services.json           Firebase (Android FCM) yapılandırması
        ASSISTANT_MODEL ile daha güçlü bir model denenebilir.
 
 3.18 Teknik borç temizliği (0009_maintenance.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 19:27
      - Supabase güvenlik/performans denetimi çalıştırıldı:
          · İç fonksiyonlar (check_internal_secret, call_edge_function,
            claim_*, dispatch_*) dışarıya kapalı — doğrulandı.
@@ -381,6 +406,7 @@ google-services.json           Firebase (Android FCM) yapılandırması
        "npx supabase login" gerekir.
 
 3.19 Takımlar: logo, Türkçe ad, takım takibi, "maç başladı" (0010_teams.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 19:40
      - Takım logoları: senkron API'deki takım kimliği ve logo adresini
        matches tablosuna yazar (home/away_team_id, home/away_logo). Liste ve
        maç ekranında logo; logo yoksa/yüklenmezse baş harf rozeti. Eski
@@ -404,6 +430,7 @@ google-services.json           Firebase (Android FCM) yapılandırması
        senkron yeni kolonlara yazamaz ve hata verir.
 
 3.20 Sadeleştirmeler (0011_config.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 19:51
      - Yükleme ekranı: sahte adım listesi ve sahte yüzde kaldırıldı. Yerine
        belirsiz ilerleme çubuğu ve AI'ın neye baktığını sırayla gösteren
        tek satır ("Bakılıyor: xG ve şut kalitesi").
@@ -419,6 +446,7 @@ google-services.json           Firebase (Android FCM) yapılandırması
      - npm run test:functions artık npx ile Deno'yu kendisi indiriyor.
 
 3.21 Yayın öncesi — 1. aşama (0012_release.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 20:27
      - GÜVENLİK AÇIĞI KAPATILDI: simulate_subscription artık yalnız
        app_config.test_user_ids listesindeki hesaplarda çalışır (önceden
        herkes kendine Pro verebiliyordu). Mevcut 3 test hesabı listeye
@@ -438,6 +466,7 @@ google-services.json           Firebase (Android FCM) yapılandırması
        (ikisi de native modül → yeni development build).
 
 3.22 APK ile dağıtım (Play Store olmadan)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 17 Kas 20:27
      - "preview" EAS profili bağımsız APK üretir (dev client değil, örnek
        veri yok). Supabase URL ve publishable anahtar EAS ortam
        değişkenlerinde (preview + production, plaintext: istemcide zaten
@@ -459,6 +488,7 @@ google-services.json           Firebase (Android FCM) yapılandırması
 
 3.23 Kadro + oyuncu puanları, tarih şeridi, veri tazeliği (0013_lineups_freshness.sql)
      Kaynak: docs/rakip-arastirmasi.md "İlk turda yapılacaklar" A/B/C.
+     - Yapan / zaman (TSİ, yaklaşık): Geliştirici ajanı 17 Kas 21:02–21:27 (limit) + 23:28–23:40; test/güvenlik ajanı 21:17–23:37; pazarlama, araştırma, reklam ajanları 20:57–21:05; commit 23:44
      - Kadro (ek API isteği YOK): mevcut /fixtures?id(s)= detay yanıtı
        _shared/lineups.ts (saf modül) ile eşlenir → matches.lineup_detail
        (formation, coach, start_xi/substitutes: id, ad, numara, G/D/M/F,
@@ -512,6 +542,7 @@ google-services.json           Firebase (Android FCM) yapılandırması
        Uygulama 0013'ten önce güncellenirse maç ekranı eski kolonlarla açılır.
 
 3.24 NBA box score + NBA logoları (0014_nba_box.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 18 Kas 00:10
      - NBA maç ekranında "Box Score" sekmesi: takım seçimi, İlk 5 / Yedekler,
        DK, SAY, RİB, AST, SAHA, ÜÇ, SA, TÇ, BLK, TK, F, +/-; takım toplamı;
        en skorer oyuncu vurgulu; yatay kaydırmalı tablo, oyuncu sütunu sabit.
@@ -531,6 +562,7 @@ google-services.json           Firebase (Android FCM) yapılandırması
      - Sıra: 0014 → npm run deploy:functions → npm run update:apk.
 
 3.25 Maç önü AI: veri yokken yorumcu modu
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 18 Kas 00:20
      - Sorun: ücretsiz planda oyuncu formu yokken rapor ve ekran "veri
        yetersiz / belirlenemedi" ile doluyordu; AI takım adlarını İngilizce
        yazıyordu (Wales).
@@ -551,6 +583,7 @@ google-services.json           Firebase (Android FCM) yapılandırması
      - Sıra: npm run deploy:functions → npm run update:apk.
 
 3.26 NBA düzeltmeleri: logolar, box score, basketbol dili
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 18 Kas 01:22
      - Logolar: Wikimedia, Android'in HTTP istemcisine (okhttp) 403 dönüyordu.
        sync-nba artık her takımın 120 px PNG logosunu sunucudan, kendini tanıtan
        User-Agent ile bir kez indirip herkese açık 'team-logos' Storage kovasına
@@ -575,6 +608,7 @@ google-services.json           Firebase (Android FCM) yapılandırması
      - Sıra: npm run deploy:functions → npm run update:apk.
 
 3.27 NBA Box Score: iki takım alt alta, tam kutu skoru
+     - Yapan / zaman (TSİ, yaklaşık): Ana oturum (Claude Code) · 18 Kas 02:08
      - Takım seçimi kaldırıldı; iki takımın tablosu aynı sekmede alt alta.
      - Sütunlar NBA yayınlarındaki sırayla: DK, FGM, FGA, FG%, 3PM, 3PA, 3P%, FTM, FTA,
        FT%, OREB, DREB, REB, AST, STL, BLK, TO, PF, PTS, +/-. Yüzdeler isabet/denemeden.
@@ -586,12 +620,13 @@ google-services.json           Firebase (Android FCM) yapılandırması
        yeniden başlatılmalı); "preview" diyorsa npm run update:apk gerekir.
 
 3.28 Test bulguları düzeltmeleri (docs/test-raporu.md, 11 bulgu)
+     - Yapan / zaman (TSİ, yaklaşık): Test ajanı (döngü 1) 18 Kas 02:08–04:20 (limit arası); geliştirici ajanı 04:23–04:40; pazarlama 02:09–02:12, reklam 02:09–02:15, araştırma 02:09–04:21; commit 04:42
      - Box score kotası (yüksek): oyuncu verisi boş gelen maç geri doldurmada
        box_score = [] ile işaretlenir ("denendi, veri yok"); .is('box_score', null)
        sorgusu onu bir daha seçmez. Boşlar sayaca katılmaz. İlk zenginleştirmede boş
        yanıt işaretlenmez (veri gecikebilir); sonraki çalıştırmada bir kez denenir.
        NBA_MAX_BOX_BACKFILL varsayılanı 5 → 3; geri doldurma yalnız kotada
-       NBA_QUOTA_RESERVE + NBA_BOX_BACKFILL_RESERVE (varsayılan 20) kadar pay varsa.
+       NBA_QUOTA_RESERVE + NBA_BOX_BACKFILL_RESERVE (varsayılan 20; 3.31 ile 6) kadar pay varsa.
        Arayüz: [] olan biten maçta "oyuncu istatistiği yayınlanmadı; box score yok".
        Migration yok.
      - Logo kopyası: kova listesi hata verirse önbelleğe alınmaz; küme bilinmiyorsa
@@ -617,6 +652,409 @@ google-services.json           Firebase (Android FCM) yapılandırması
        sportTerms.edge.test.ts (ignore kaldırıldı, +1), sportTerms.test.ts (+1).
        Toplam 69 test.
      - Sıra: npm run deploy:functions → npm run update:apk.
+
+3.29 Kalite döngüsü 2 (docs/test-raporu.md "Döngü 2", 15 bulgu; 0015_quality.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Test ajanı (döngü 2) 18 Kas 04:44–04:55; geliştirici ajanı 04:56–05:40; inovasyon ajanı 04:46–04:55; pazarlama değerlendirmesi 04:55–04:59; migration 0015 + deploy + OTA ana oturum ~05:45
+     - AI deneme sayaçları (yüksek): veri yokken deneme yanmaz. request_match_analysis
+       stats NULL ise (NBA: stats->'metrics') sayaç artırmadan 'not_ready' döner;
+       request_match_preview ilk 11 son 5 dk içinde denenmişse 'not_ready' (maç başına
+       5 dk'da en fazla 1 API isteği). generate-analysis / generate-preview "veri yok"
+       durumunda 'failed' yerine 'none' yazar ve denemeyi iade eder. Takılı 'generating'
+       yeniden denemesi deneme sınırına tabi. matches_reset_ai_attempts tetikleyicisi:
+       senkron yeni stats / lineups / lineup_detail yazınca 'failed' → 'none', attempts 0.
+       İstemci: "Maç verisi bekleniyor" / "İlk 11 henüz açıklanmadı" + Tekrar kontrol et.
+     - Biten maçlar "canlı 90'" kalmaz (yüksek): sync-matches canlı modda listeden düşen
+       maç sayısı MAX_SINGLE_FETCH'i aşınca (veya kota rezervi doluysa) başlama günü başına
+       TEK /fixtures?date= isteğiyle durum/skor günceller (hasQuotaForStatus: kalan > 10,
+       FOOTBALL_STATUS_QUOTA_FLOOR). Detay sonraki çalıştırmalarda summary_teaser'ı boş
+       biten maçlardan (son 4 saat) 3'erli tamamlanır. Gece: 23:15 UTC skor-sync-cleanup.
+     - Ana ekran hata durumu: Türkçe metin (lib/errors.ts), Tekrar dene butonu, çekip
+       yenileme. Uygulama öne gelince liste ve maç ekranı yeniden çekilir (AppState).
+     - useMatch: hata yakalanır ("Maç bulunamadı" yerine hata + Tekrar dene), maç ekranında
+       RefreshControl; geç dönen çekim updated_at'e göre daha yeni Realtime satırını ezmez.
+     - ensureSession tek uçuş: ilk açılışta tek anonim kullanıcı.
+     - Asistan: Gemini isteğine deneme başına 25 sn zaman aşımı (GEMINI_TIMEOUT_MS);
+       ask_assistant 2 dk'dan eski kendi pending sorusunu kapatır (hakka sayılmaz),
+       run_maintenance 5 dk'dan eskileri kapatır; istemci 2 dk sonra başarısız gösterir.
+     - Durumlar: src/lib/status.ts (saf). SUSP istemcide de canlı; PST/CANC/ABD/AWD/WO
+       için Ert./İptal/Yarıda/Hükmen etiketi, zil ve AI üretimi yok; TBD'de saat yerine —.
+     - Takip kaynağı: match_follows.source ('manual' | 'team') + match_unfollows. Takım
+       bırakılınca yalnız otomatik eklenen başlamamış maçlar silinir; elle bırakılan maç
+       günlük senkronda yeniden eklenmez. Mevcut veride takip edilen takımın başlamamış
+       maçları bir kez 'team' sayılır.
+     - Vaatler plana uygun: "Maç başladı" metni syncUtils.kickoffBody (ücretsiz: yalnız
+       "başladı"; NBA'de devre arası yok). api_paid() istemciye açıldı (useApiPaid);
+       ücretsiz planda ayarlarda akıllı alarmlar "Yakında", takip çubuğu nötr.
+     - Sohbet girişi: keyboardShouldPersistTaps="handled", iOS klavye iç boşluğu, Android
+       KeyboardAvoidingView; soru metni yalnız 'queued' olunca silinir.
+     - OTA: reloadAsync yalnız güncelleme açılıştan ≤3 sn içinde indiyse ve kullanıcı ana
+       ekrandan ayrılmadıysa; aksi halde sonraki açılışta. Bildirim yönlendirmesi
+       useLastNotificationResponse + clearLastNotificationResponse (soğuk açılış dahil).
+     - notify.ts: uid/token listeleri 100'lük parçalarla; hatalar loglanır.
+     - Liste sorgusu hafif (events, stats, lineups yalnız maç ekranında).
+     - Takip hatasında 4 sn'lik uyarı; filtre çipleri, Pro butonu ve maç satırı için
+       erişilebilirlik rol/etiketleri; filtre satırı flexWrap.
+     - Testler: tests/syncUtils.test.ts (5), tests/status.test.ts (4). Toplam 78 test.
+       e2e/home_error_ui.mjs (yeni, npm run e2e'de; ?mockFail=list).
+     - docs/inovasyon-onerileri.md önerilen migration numaraları 0016–0018'e kaydırıldı.
+       Not: 0015 run_maintenance / ask_assistant / toggle_* fonksiyonlarını yeniden
+       tanımlar; sonraki migration'lar bu sürümün üzerine yazılmalı.
+     - Sıra: 0015_quality.sql (SQL Editor) → npm run deploy:functions → OTA
+       (npm run update:apk). 0015 çalışmadan deploy edilirse senkron ve AI durmaz; yalnız
+       maç önü "veri yok" iadesi 5 dk bekleme olmadan tekrar denenebilir.
+
+3.30 Kalite döngüsü 3 + tasarım (docs/test-raporu.md "Döngü 3", 11 bulgu;
+     docs/tasarim-rehberi.md; 0016_quality3.sql)
+     - Yapan / zaman (TSİ, yaklaşık): Test ajanı (döngü 3) 18 Kas 05:48–05:58; tasarımcı ajanı (rehber) 05:56–06:03; geliştirici ajanı 06:04–06:11 (limit) + 09:25–09:45
+     - Arka plan yenileme hatası: yüklü liste kalır, üstünde "Liste yenilenemedi" bandı;
+       tam ekran hata yalnız elde liste yokken (useMatches refreshError). Liste yüklemesi
+       useMatch.mergeMatch ile updated_at'e göre birleşir (geç dönen çekim yeni skoru ezmez).
+     - AI sekmesi: RPC 'generating' dönünce istemcideki eski analysis_status /
+       preview_status (none / failed) satır değişene kadar "üretim sürüyor" sayılır.
+     - Maç önü raporu: generate-preview ilk 11 öncesi kota bekçisi (primeQuota: /status,
+       günlük kotaya sayılmaz; hasQuotaForOptional), sakatlık isteği de kotaya bağlı.
+       0016: maç başına en fazla 4 ilk 11 sorgusu (preview_lineup_checks), "veri yok"
+       sonrası 10 dk bekleme; sınır dolunca 'not_supported'. Yeni kadro sayacı sıfırlar.
+     - Ayarlar: tercihler okunamazsa anahtarlar kilitli + "Tekrar dene" (varsayılanlarla
+       kayıt yok; oturum yoksa getNotificationPrefs hata verir); kayıt hatası Türkçe;
+       takım bırakma hatası FollowErrorNotice ile görünür.
+     - NBA satırı ekran okuyucuda "3. çeyrek" / "uzatma" (statusSpeech sport parametresi).
+     - Asistan bayatlığı istemcide ilk görülme anından ölçülür (cihaz saati ileri olsa da).
+     - 0016: match_unfollows yalnız takım kaynaklı takip bırakılınca ya da kullanıcı maçın
+       takımını takip ederken yazılır; takım takibi başlayınca o takımın kayıtları silinir;
+       eski gereksiz kayıtlar temizlenir. notify.ts takipçileri .range() ile 1000'lik
+       sayfalarla okur (sayfa sayısı loglanır).
+     - Tasarım (P0 + P1 S/M): theme.ts token'ları (textDim #7D8A9C, warning #FFA23A,
+       borderStrong, onFill, radius.pill, hit, motion, type); lig grubu alt köşeleri;
+       LiveMinute yalnız nokta nabız atar (İY/askıda ve "Hareketi azalt"ta sabit);
+       canlı satırda sol yeşil şerit + 16/900 skor; kadroda koyu forma numarası, 10 px puan
+       rozeti, çakışma yok; skor başlığında logolar hizalı, ≥100 skor 30 px, uzun adlar
+       kelime ortasından bölünmez; 44 pt dokunma alanları; kırmızı kart alarmı kırmızı;
+       Switch renkleri; ÖNİZLEME rozeti tarih yanında; Pro hapı test kullanıcısı dışında
+       "✦ Pro · yakında"; takip çubuğu ücretsiz planda "maç başlayınca bildirim";
+       box score PTS/REB/AST önde, kaydırma çubuğu + ipucu, ROW_H 36, en skorer "★";
+       derin bağlantıda "‹ Maçlar"; hata/boş durum düzeni (StateMessage, "Tüm maçlar");
+       sohbet balonları + "✦ AI"; AI raporlarında yalnız manşet altın kenarlı; rozet 11 px.
+       Ayrıntı: docs/tasarim-rehberi.md "Uygulama durumu".
+     - Testler: 79 Deno testi (+ remainingFromStatus, NBA statusSpeech). e2e:
+       refresh_error_ui.mjs ve settings_error_ui.mjs (yeni, ?mockFail=prefs) npm run e2e'de;
+       narrow_ui.mjs derin bağlantı geri dönüşünü de dener.
+     - docs/inovasyon-onerileri.md önerilen migration numaraları 0017–0019'a kaydırıldı.
+     - Sıra: 0016_quality3.sql (SQL Editor) → npm run deploy:functions → OTA. Sıra bozulursa
+       bir şey durmaz: generate-preview yeni kolonu okumaz; 0016 olmadan yalnız 4 sorgu
+       sınırı ve unfollow düzeltmesi devreye girmez.
+
+3.31 Kalite döngüsü 4 + kota ayrımı (docs/test-raporu.md "Döngü 4", 12 bulgu;
+     docs/tasarim-rehberi.md "Tasarım incelemesi (tur 1)" B-1..B-9;
+     docs/inovasyon-onerileri.md §4.4 F12a)
+     - Yapan / zaman (TSİ, yaklaşık): Test ajanı (döngü 4) 18 Kas 09:47–09:55; tasarımcı (inceleme tur 1) 09:46–09:50; geliştirici ajanı 09:56–10:20; araştırma tur 2 09:38–09:42 (kota ayrımı bulgusu; doğrulama ana oturum 09:45); inovasyon tur 2 09:38–09:50; pazarlama tur 3 09:56–09:58; reklam tur 2 10:17–10:20
+     - Kota ayrımı (F12a, bulgu 1): API-Football ve API-NBA kotaları AYRI (her biri
+       100/gün). Yeni saf modül _shared/quota.ts (createQuotaGuard, Deno testli): her ürün
+       kendi bekçisini kullanır, çapraz rezerv yok. Varsayılanlar: FOOTBALL_QUOTA_RESERVE
+       45 → 6 (günün kalan sabit işleri: schedule ~3 + cleanup ~2 + 1 pay),
+       FOOTBALL_STATUS_QUOTA_FLOOR 10 → 3, NBA_QUOTA_RESERVE 5 (aynı),
+       NBA_BOX_BACKFILL_RESERVE 20 → 6. Boş/geçersiz env değeri varsayılana döner.
+       "Ortak kota" yorumları düzeltildi (apiFootball.ts, nbaApi.ts, sync-nba, nbaBox.ts,
+       3.10). 0004_quota.sql uygulanmış olduğu için değiştirilmedi; başlık yorumu eskidir,
+       doğru bilgi _shared/quota.ts başlığında.
+     - Kota önbelleği (bulgu 7): değer öğrenildiği anla saklanır. Önceki UTC gününe aitse
+       geçersiz (gece yarısı sıfırlaması), 10 dk'dan eskiyse primeQuota /status'u yeniden
+       sorar. Sıcak örnek gece yarısından sonra maç önü taleplerini reddetmez.
+     - Maç önü (bulgu 2): kota yolunda generate-preview ilk 11 sorgu hakkını da iade eder
+       (preview_lineup_checks - 1; 0016 yoksa ayrı sorgu hata verir, iade atlanır).
+     - 0016 (henüz prod'da değil, yerinde düzenlendi; idempotent): sayaç 4 + bayat
+       'generating' → 'not_supported' (bulgu 6); toggle_follow insert'ü
+       on conflict do nothing (çift dokunuş, bulgu 12).
+     - notify.ts (bulgu 11): tercih parçası okunamazsa bir kez yeniden denenir; yine
+       okunamazsa o parçanın kullanıcılarına bu bildirim gönderilmez (tablo/kolon yoksa
+       eskisi gibi herkes açık).
+     - useMatches (bulgu 3): spor değiştikten sonra geç dönen eski istek yazılmaz;
+       hata yalnız aynı sporunsa temizlenir.
+     - useAssistant (bulgu 4): created_at 10 dk'dan eskiyse ilk görülme = created_at
+       (takılı eski soru girişi 2 dk kilitlemez); değilse yerel "şimdi".
+     - MatchRow (bulgu 5): satıra "Takip et / Takibi bırak" erişilebilirlik eylemi
+       (iOS VoiceOver); zil etiketi takım adlarını söyler ("A - B maçını takip et").
+     - usePreview / useAnalysis (bulgu 8): bayat durum updated_at'e değil, durumun bir kez
+       değişmesine bakar; yedek yoklama try/catch içinde.
+     - Erişilebilirlik (bulgu 9, 10): Switch kapalı izi yeni token colors.trackOff #5E6B7E
+       (surface üstünde 3.29:1); kilitli opaklık kaldırıldı. Asistan çipleri minHeight 44,
+       maç sekmeleri 40 + dikey hitSlop = 44.
+     - Tasarım tur 1: B-1 iki takım adı aynı puntoda (ScoreHeader'da birlikte hesap);
+       B-2 takip hapları altta hizalı (scoreCard stretch + marginTop auto); B-3 ayarlar
+       yüklenemezse bildirim kartı çizilmez; B-4 6.5–7.4 puan rozeti gri (textMuted);
+       B-5 yenileme hatası bandı sol şeritli, gövde textMuted; B-6 tüm kicker'lar kaynakta
+       Türkçe büyük harfle (KİLİT, İKİNCİ, DİZİLİŞ…), CardTitle'da textTransform yok;
+       B-7 mock ?paid=0&tester=0 + preview_ui.mjs ücretsiz plan senaryosu; B-8 orta saha
+       boşluğu daire yarıçapından büyük; B-9 maç sonu raporlarına "AI tarafından üretildi"
+       notu.
+     - Testler: 88 Deno testi (+9 quota.test.ts). e2e seçicileri büyük harf kicker'lara
+       ve yeni zil etiketine göre güncellendi; settings_error_ui.mjs hata anında anahtar
+       olmadığını doğrular.
+     - Sıra: 0016_quality3.sql (SQL Editor) → npm run deploy:functions → OTA.
+       Secrets'ta FOOTBALL_QUOTA_RESERVE, FOOTBALL_STATUS_QUOTA_FLOOR,
+       NBA_BOX_BACKFILL_RESERVE tanımlıysa silinmeli (yeni varsayılanlar geçerli olsun).
+
+3.32 Kalite döngüsü 5 + F3/F4 paylaş ve davet (docs/test-raporu.md "Döngü 5", 11 bulgu;
+     docs/tasarim-rehberi.md "Tasarım incelemesi (tur 2)" R-1..R-4 + tur 1 madde 21 + §D;
+     docs/inovasyon-onerileri.md §4.3)
+     - Yapan / zaman (TSİ, yaklaşık): Test ajanı (döngü 5) 18 Kas 10:22–10:26 (limit) + 14:47–14:50; tasarımcı (inceleme tur 2) 10:22–10:25; geliştirici ajanı 14:51–15:20; inovasyon (F12b hazırlığı) 15:17–15:22
+     - Kota (bulgu 1): devre arası kuyruğu aynı döngüde rezervi birikimli sınar:
+       sync-matches hasQuotaForOptional(halftimeQueued + 1); apiFootball.hasQuotaForOptional
+       artık needed alır. Kalan 8 / rezerv 6 iken en fazla 2 iş kuyruğa girer.
+     - Kota (bulgu 2): yeni quota.remainingFromHeader (boş/boşluk/sayı olmayan başlık → null).
+       apiGet, nbaGet ve primeQuota değeri isteğin GÖNDERİLDİĞİ anla damgalar
+       (quota.set(rem, sentAt)): gece yarısını geçen yanıttaki dünkü kalan yeni günü kilitlemez.
+     - Büyük yazı (bulgu 3–5): maç sekmeleri 2 satıra kadar ("✦ AI / Taktik"), Pro sekme
+       etiketi "AI Taktik, Pro"; skor başlığındaki takım adı sistem yazı ölçeğiyle büyümez
+       (maxFontSizeMultiplier 1; ×1,3'te "Boğazi / çi SK" bölünmesi bitti); olay satırı
+       oyuncu adı/ayrıntısı ve ana ekran tarihi 2 satıra kadar; liste takım adları en fazla
+       ×1,2. Yeni ui.maxFontScale(n): native maxFontSizeMultiplier + web'de yalnız e2e'nin
+       okuduğu data-maxfontscale. e2e/largefont_ui.mjs artık kırpılan metinde hata verir ve
+       npm run e2e zincirinde.
+     - Erişilebilirlik (bulgu 6, 7): kadro işaretleri tek öğe ("Demir, 1 numara, puan 6.3");
+       maç satırı etiketi takipteyse ", takip ediliyor"; takip eyleminden sonra
+       announceForAccessibility ("Maç takip ediliyor" / "Takip bırakıldı").
+     - Hata metni (bulgu 8): usePreview / useAnalysis / useHalftime / hesap silme
+       friendlyError kullanır (ham "TypeError: Failed to fetch" yok).
+     - Maç önü (bulgu 9): not_ready kartı "Maç önü analizi şu an hazırlanamıyor … ~10 dk
+       sonra tekrar dene" (neden ilk 11 de olabilir, kota koruması da).
+     - Belgeler (bulgu 10): rakip-arastirmasi.md iki satıra "Çözüldü" notu.
+     - Türkçe (bulgu 11): "İLK 5 VS YEDEKLER"; kilit eşleşme rozeti toLocaleUpperCase('tr-TR').
+     - Tasarım tur 2: R-1 Timeline başlamamış maçta "Maç başlamadı" + açıklama, başlamış
+       ve olaysız maçta "Henüz olay yok" (bitmiş ve olaysız: "Olay kaydı yok"); "0 kritik
+       olay" hiç yazılmaz. R-2 ortak ui.InfoStrip (sol turuncu şerit) ana ekran ve ayar
+       hatasında. R-3 AiNote kart içi hizada + "✦ ". R-4 sohbet sayacı "Kalan: 2/3" /
+       "Hak doldu" (textMuted). Madde 21: önizleme bandı tek satır + "Ayrıntı" aç/kapa.
+     - F3/F4 (yeni; migration 0017_growth_invites.sql, Edge Function değişikliği yok):
+       * src/lib/share.ts (saf, Deno testli): metinler, matchLink
+         (<DOWNLOAD_URL>/m/?id=<id>&ref=app-share&k=<kod>), withRef (davet:
+         ?ref=invite&k=), davet kodu doğrulama, redeemMessage, BANNED_SHARE_TERMS.
+       * Paylaş: maç başlığı sağında; yalnız biten (FT/AET/PEN) ve başlamamış (NS/TBD)
+         maçta; Share.share({ message }). Başlıkta uzun lig adı "…" ile kesilir.
+       * Davet kartı (Ayarlar, Takımlarım ile Hesap arası): kod "ABC 234", Davetiye gönder,
+         sayaç + 3 nokta, ilk 7 günde kod girme. Kopyala düğmesi yok. Ağ hatasında kart içi
+         uyarı bandı + Tekrar dene. Hesap silinince önbellek sıfırlanır.
+       * F4 aktif gün: _layout startActivityTracking (soğuk açılış + öne gelme, saatte en
+         fazla 1 RPC). touch_activity / get_my_invite yoksa (PGRST202/PGRST205/42883)
+         sessizce atlanır, kart gizlenir; Paylaş k'siz çalışır.
+       * EXPO_PUBLIC_DOWNLOAD_URL (src/lib/growth.ts getDownloadUrl): yeni, gizli değil.
+         Boşsa Paylaş ve davet kartı hiç çizilmez. Önizlemede https://ornek.invalid/skorplus
+         (e2e: ?dl=0 boş, ?invite=0 0017 yok, ?mockFail=invite ağ hatası). .env.example'a
+         eklendi.
+       * 0017 (spesifikasyondaki SQL + 2 ek): user_activity_days tablosundan anon/
+         authenticated yetkileri kaldırılır; redeem_invite biçim dışı kodu sorgulamadan
+         hatalı deneme sayar. 0016'ya bağımlı değil.
+       * ⚠ Gizlilik/KVKK metni (src/lib/legal.ts) kullanım günleri + davet bilgisi +
+         saklama (120 gün) ile güncellendi; KVKK'ya "Saklama süresi" bölümü eklendi.
+         HUKUKÇU KONTROLÜ GEREKİR (meşru menfaat dayanağı, pazarlama Ek-5).
+     - Testler: 113 Deno testi (+16 share.test.ts, +3 quota_edge). e2e: share_ui.mjs ve
+       largefont_ui.mjs zincire eklendi (13 betik); chat_ui yeni sayaç, account_ui
+       gizlilik maddeleri + silme sonrası davet kartı. Yeni görüntüler: f3-paylas-nba,
+       f3-paylas-360, f3-davet, f3-davet-kaydedildi, r1-mac-baslamadi.
+     - Sıra: 0016_quality3.sql → 0017_growth_invites.sql (SQL Editor; §4.3 SQL kontrol
+       listesi test hesaplarıyla) → npm run deploy:functions (bulgu 1, 2) → EAS preview
+       ortamına EXPO_PUBLIC_DOWNLOAD_URL → OTA (npm run update:apk).
+
+3.33 Kalite döngüsü 6 (davet sağlamlaştırma) + iskelet (docs/test-raporu.md "Döngü 6",
+     13 bulgu; docs/tasarim-rehberi.md "Tasarım incelemesi (tur 3)" T3-1, T3-2, §B, §D-1)
+     - Yapan / zaman (TSİ, yaklaşık): Test ajanı (döngü 6) 18 Kas 15:23–15:32; tasarımcı (inceleme tur 3) 15:22–15:25; geliştirici ajanı 15:33–16:00; araştırma tur 3 (gelir modeli) 15:47–15:50; tasarımcı (inceleme tur 4) 16:02–16:05
+     - 0017_growth_invites.sql YERİNDE düzeltildi (prod'da henüz çalıştırılmadı; hâlâ
+       tekrar çalıştırılabilir):
+       * Bulgu 1: profiles.invite_active_at (yeni sütun). touch_activity bir kez yazar;
+         get_my_invite ve admin_invite_leaderboard bunu sayar. 120 günlük temizlik sayacı
+         ve sıralamayı artık düşürmez.
+       * Bulgu 2: aktiflik yalnız kodun girildiği TSİ gününden SONRAKİ günlerle; iki gün
+         arasında en az bir tam gün (max(day) - min(day) >= 2; 23:59 + 00:01 yetmez).
+         Davet eden başına 24 saatte en fazla 5 yeni aktif davetli (fazlası sonraki
+         açılışlara kalır, advisory lock ile). admin_invite_leaderboard'a quick_redeem
+         (hesap açılışından ≤ 5 dk sonra kod girilen) sütunu; dönüş tipi değiştiği için
+         önce drop function if exists. CAPTCHA: yalnız not (Supabase Auth ayarı, elle).
+       * Bulgu 3: redeem_invite çift için pg_advisory_xact_lock(hashtextextended(least ||
+         greatest)) alır ve davet edeni yeniden okur; eşzamanlı A→B / B→A'da ikincisi
+         'not_allowed'. Davet eden bu arada silindiyse 'invalid'.
+       * Bulgu 4: already / invited / can_redeem invited_at'e bakar (FK set null'dan
+         etkilenmez); davet eden silinse de ikinci kod girilemez.
+       * Bulgu 5: get_my_invite active'i yalnız total >= 3 iken döner (aksi null).
+     - İstemci:
+       * Bulgu 5: davet kartı 3'ten az davetlide "Aktif olan" ve noktaları göstermez,
+         "Aktif sayısı, davetinle en az 3 kişi gelince görünür." yazar. Gizlilik ve KVKK
+         metinlerine "sizi davet eden kişi yalnız 'aktif davetli' sayısında sayıldığınızı
+         görebilir; bu sayı en az 3 kişi gelmeden gösterilmez" eklendi (HUKUKÇU KONTROLÜ).
+         Kart açıklaması: "Aktif: kodu girdikten sonra uygulamayı en az bir gün arayla
+         2 farklı gün açan davetli." InviteState.active: number | null.
+       * Bulgu 6–7: ShareButton davet kodunu yalnız basınca ister (useInvite.loadInviteCode,
+         en fazla 1,5 sn bekler, gelmezse k'siz). Maç açılışında get_my_invite çağrılmaz;
+         paylaşmayan kullanıcıya kod üretilmez. useInviteCode kaldırıldı.
+       * Bulgu 8: growth.ts AsyncStorage'a TSİ gün anahtarı (skor.activity.lastDay) yazar;
+         yalnız touchActivity true dönerse (DataSource.touchActivity artık Promise<boolean>;
+         0017 yoksa da true). Gece yarısı ve çevrimdışı açılış doğru; günde 1 RPC.
+       * Bulgu 9: kod 'ok' sonrası önbellek yerelde güncellenir (invited true, canRedeem
+         false), sunucudan sessiz yenileme; hata olursa kart hata bandına dönmez.
+       * Bulgu 10: hesap silme onayı "… davet kodun, davet bilgin ve kullanım günlerin".
+       * Bulgu 11: biten maçta skorlardan biri null ise buildShareText null; Paylaş hiç
+         çizilmez (görünürlük artık buildShareText ile).
+       * Bulgu 12: BANNED_SHARE_TERMS pazarlama §8'in tamamı (37 ifade) +
+         findBannedShareTerms (sözcük sınırlı, tr küçük harf). e2e/share_ui.mjs aynı listeyi
+         src/lib/share.ts'ten içe aktarır (Node .ts tip ayıklama).
+       * Bulgu 13: ShareMatch'e period_scores / status_detail; NBA uzatmasında "(MS, uzatma)".
+     - Tasarım tur 3: T3-1 "Son güncelleme" skor kartında kendi tam genişlik satırında
+       (caption, textDim, marginTop space(3), tek satır, ×1,3); scoreMid maxWidth 40%.
+       T3-2 sekme etiketleri en fazla ×1,2. §B TEAM_NAME_MAX_SCALE kabul: TeamSide kimliği
+       tek erişilebilir öğe "Boğaziçi SK, ev sahibi" / ", deplasman"; kapsam yorumu sabitin
+       yanında. T3-3: growth_largefont_ui.mjs ×1,3 360 pt'de taşma yok, değişiklik
+       gerekmedi. D-1 yeni src/components/SkeletonList.tsx: ana ekran ilk yüklemede 3
+       iskelet kart (2/1/2 satır), tek opacity döngüsü 0.55↔1 (900 ms), hareketi azalt →
+       0.8 sabit, progressbar "Maçlar yükleniyor". D-2 (tazelik metni) F12b ile gelecek.
+     - Testler: 116 Deno testi (+3 share.test.ts). supabase/sql-tests/
+       0017_growth_invites.pglite.mjs 44/44 (BULGU kontrolleri DÜZELTME olarak çevrildi;
+       çalıştırma: npm i --no-save @electric-sql/pglite@0.2.17 && node …). e2e zinciri 15
+       betik: + growth_largefont_ui.mjs, + skeleton_ui.mjs (önizleme ?mockSlow=list);
+       share_ui ?invite=few (3'ten az davetli), account_ui silme onayı + KVKK cümlesi;
+       teams_ui "★ Takip" çipi exact eşleşme (maç ekranındaki "★ Takipte" hapıyla yarış).
+     - Sıra (değişmedi): 0016 → 0017 (yeni hâli) → deploy:functions → OTA.
+
+3.34 Pro API hazırlığı (P0) + NBA bayrak ayrımı + Play düzeltmeleri (docs/inovasyon-onerileri.md
+     Sürüm 4 §0.7; docs/test-raporu.md "Döngü 7" bulgu 3–12; pazarlama Sürüm 3 §7 / yasak listesi)
+     - Yapan / zaman (TSİ, yaklaşık): Geliştirici ajanı (döngü 7) 18 Kas 16:58–17:28
+     - KRİTİK — NBA bayrağı ayrıldı: yeni supabase/functions/_shared/paidFlags.ts plan env'lerini
+       okuyan TEK yer (API_FOOTBALL_PAID → FOOTBALL_PAID, API_NBA_PAID → NBA_PAID, varsayılan kapalı;
+       env izni yoksa kapalı). apiFootball.ts PAID = FOOTBALL_PAID; nbaApi.ts PAID = NBA_PAID (kota
+       bekçisi + bekleme); sync-nba seri alarmı NBA_PAID; teamEvents "maç başladı" metni
+       paidFor(sport). Futbol Pro açılınca NBA'in 100/gün bekçisi artık kapanmaz.
+       tests/paidFlags.test.ts: saf okuma + kaynak taraması (paidFlags.ts dışında env.get yok, NBA
+       dosyalarında FOOTBALL_PAID / apiFootball PAID yok) → karışma kalıcı olarak yakalanır.
+     - 0018_pro_api.sql (YENİ, tekrar çalıştırılabilir; planı AÇMAZ):
+       * app_config 'nba_api_paid' = false; api_paid_for(p_sport) security definer,
+         search_path '', authenticated + service_role (anon kapalı). api_paid = futbol.
+       * apply_football_sync_schedule(): api_paid false → skor-sync-live / skor-sync-schedule
+         0004 ile BİREBİR (aynı takvim ve gövde; API isteği artmaz). true → canlı '* 9-23 * * *',
+         fikstür '0 3,15 * * *', gövdede "cadence":"paid". app_config tetikleyicisi api_paid
+         değişince takvimi kendisi uyarlar (açma / geri dönüş = tek update). NBA işleri ve
+         skor-sync-cleanup değişmez.
+       * İkinci emniyet (Edge): sync-matches cadence 'paid' gelip API_FOOTBALL_PAID kapalıysa
+         yalnız ücretsiz takvim dakikalarında çalışır (syncUtils.shouldRunSync / isFreePlanSlot).
+       * Döngü 7 bulgu 5: touch_activity / get_my_invite / redeem_invite silinmiş hesapta
+         sessiz (sırasıyla dönüş yok / satır yok / 'unauthenticated'). Bulgu 6: KARAR — 3'lü
+         halka (A→B→C→A) 'not_allowed'; daha uzun halka ve farklı çiftlerin eşzamanlı kapattığı
+         halka kabul edilen risk (ödül öncesi elle inceleme). Bulgu 7: lider tablosu önek 4
+         karakter. Bulgu 8: aktiflik kararı invite_try_activate'te; saatlik cron
+         skor-invite-recount sınırda bekleyenleri (son 60 gün) sınır boşaldıkça sayar.
+       * Sonunda GERİ DÖNÜŞ bloğu (yorum).
+     - sync-matches: fikstür fixtureDayOffsets(PAID, FIXTURE_DAYS_AHEAD) → ücretsiz hep −1…+1
+       (env yok sayılır), ücretli −1…+7 (1…7). "Maç başladı" penceresi ücretsiz 35 dk, ücretli 5 dk.
+       quota.ts yorumu: Pro'da futbol bekçisi paid (FOOTBALL_QUOTA_RESERVE yalnız ücretsiz yolda etkili).
+     - İstemci: DataSource.isApiPaid(sport) (api_paid_for; yoksa api_paid yedeği, NBA için yalnız
+       "false" güvenilir) + listMatches(sport, daysAhead). useApiPaid(sport) spor başına önbellek.
+       Ayarlar paidOnly: Sport (baskı / kırmızı kart → futbol, NBA seri → nba). FollowBar futbol
+       planı. days.ts DayOffset −1…7, dayOffsetsFor(paid), 2+ gün etiketi "Cmt / 21 Kas". Ana
+       ekran DayStrip: 3 gün eskisi gibi; 9 gün yatay kaydırılır, seçili gün görünür alana
+       kaydırılır; spor değişince şeritte olmayan gün Bugün'e döner (NBA hep 3 gün). Canlı
+       tazelik notu: futbol YALNIZ api_paid true iken "Futbolda maç sırasında skorlar sık
+       güncellenir; …" (pazarlama §7 F1, dakika rakamı yok); diğer her durumda eski ~30 dk metni.
+       Mock: ?paid=0 iki spor ücretsiz, ?nbapaid=0 yalnız NBA ücretsiz.
+     - Döngü 7 kod bulguları:
+       * #3 app.json android.blockedPermissions (SDK 58 app config dokümanı:
+         android.blockedPermissions, tools:node="remove"): READ/WRITE_EXTERNAL_STORAGE,
+         SYSTEM_ALERT_WINDOW. expo config --type introspect: üçü [remove]. Native: Play build'inde gelir.
+       * #4 package.json "update:prod" (--channel production --environment production). Geçiş
+         döneminde HER OTA iki kanala: npm run update:apk && npm run update:prod.
+         EXPO_PUBLIC_DOWNLOAD_URL EAS production ortamında Play adresi olmalı. updates.ts yorumu.
+       * eas.json: build.production.android.buildType "app-bundle"; submit.production.android
+         { track: "internal", releaseStatus: "draft" } (EAS eas.json dokümanı; hiç yayınlanmamış
+         Play uygulaması ilk yüklemede taslak ister). Kimlik bilgisi YOK: servis hesabı anahtarı
+         Expo sunucusuna (eas credentials) ya da serviceAccountKeyPath ile elle.
+       * #9/#10 findBannedShareTerms: kesme işaretleri silinir (’ dahil), NBSP / çoklu boşluk /
+         harf arası tire normalize; Türkçe + kök küçültme (ASCII I); baş sınırı + Türkçe ad
+         çekim ekleri (fiil ekleri yok: "kazandı" temiz); izin listesi BANNED_TERM_ALLOW (mc oran,
+         rubin kazan, resmiye) + ignore parametresi (takım adları).
+       * #11 ShareButton: busy ref (çift basış yok sayılır), bekleme boyunca opaklık 0,5 +
+         ActivityIndicator, accessibilityState busy.
+       * #12 Ayarlar sürüm satırı " · uygulama içi sürüm"; davetiye "Skor+. İndir: …" / Play
+         adresiyse "Google Play'den indir: …" (isPlayStoreUrl); "play store'da" yasak listesinden
+         çıktı (Sürüm 3); _layout / updates.ts APK yorumları.
+     - Native modül EKLENMEDİ (RevenueCat, install referrer, store review → P1/P2).
+     - Testler: Deno 133 (+17: paidFlags 7, days 4, syncUtils 3, share 3 yeni/güncel). SQL zincir
+       testi (supabase/sql-tests/chain_0001_0017.pglite.mjs, adı korundu) 0001→0018 + 0015–0018
+       tekrar + 17→16→18 + 0018 davranışı: 74/74 OK. 0017 testi 78/78 (değişmedi). e2e: lineup_ui
+       ?paid=1 (9 gün, +7 seçilir, NBA 3 gün) / ?paid=0 (3 gün, eski not); alerts_ui
+       ?paid=1&nbapaid=0 (futbol alarmları açık, NBA seri "yakında") ve ?paid=0.
+       Kapılar: tsc 0, eslint src 0, Deno 133/133, deno check 7/7, npm run e2e 15/15 (çıkış 0),
+       narrow_ui OK. e2e bir gerçek hata yakaladı: 9 günlük yatay ScrollView iskelet altında 0
+       yüksekliğe eziliyordu (skeleton_ui kayma 52 pt) → daysScroll flexShrink 0.
+     - Sıra: Döngü 8'de doğrulanan prosedürle değişti → 3.35 ve docs/ucretli-gecis.md.
+
+3.35 Ücretli plan geçiş güvenliği (Döngü 8) (docs/test-raporu.md "Döngü 8": 1 yüksek, 2 orta,
+     7 düşük; hepsi ele alındı)
+     - Yapan / zaman (TSİ, date): Geliştirici ajanı (döngü 8) · 19 Kas 00:56 bitiş
+     - 0018 üretimde UYGULANDI (Döngü 7 içeriği). 0018'de yalnız yorum değişti (başlık = doğrulanmış
+       prosedür; GERİ DÖNÜŞ'e 0019 notu). Tüm Döngü 8 SQL'i YENİ 0019_paid_switch_safety.sql'de
+       (idempotent; 0001–0018 gerekir; api_paid false iken 0 API isteği). docs/inovasyon-onerileri.md
+       öneri migration numaraları bir kaydırıldı (0019 → 0020 … 0023 → 0024).
+     - #1 (yüksek) Eski "ücretliye geçince cron.alter_job" notları kaldırıldı: 0002, 0003, 0004, 0006,
+       0007, 0011 (YALNIZ yorum satırları; uygulanmış SQL anlamı değişmedi), GELISTIRMELER 3.x alarm
+       notu + 3.34 sıra + §8 B, inovasyon-onerileri §0.7 taslağı (alter_job'lu 0018 taslağı silindi)
+       ve F12b notu. Yerine: "Ücretli geçiş: yalnız 0018 prosedürü; nba-sync-live'a dokunmayın."
+     - #2 (orta) 0018 başlığı doğrulanmış sıraya çevrildi: deploy (bayraklar kapalı) → 0018+0019 → OTA;
+       /status → secret → deploy → app_config; doğrulama; geri dönüş R1 → R2 → R3.
+     - #3 (orta) syncUtils.shouldRunSync: mode 'schedule' her zaman çalışır. DB ücretli + secret
+       kapalıyken 03:00 / 15:00 çağrıları ücretsiz yolla (−1…+1 = 3 istek) → günde 6 istek; canlı
+       yine 22/gün. Ücretli cron takvimi değişmedi ('0 3,15'). Test: syncUtils (gün simülasyonu) + PGlite
+       (cron takvimi × shouldRunSync: canlı 22, fikstür 2).
+     - #4 0019: tetikleyici after insert or update or DELETE; api_paid satırı silinince
+       apply_football_sync_schedule → ücretsiz (0004) takvim.
+     - #5 0019: api_paid ücretliye GEÇTİĞİ AN tetikleyici call_edge_function('sync-matches',
+       {"mode":"schedule","cadence":"paid"}) kuyruğa alır (bir kez; aynı değer / ücretsize dönüş /
+       silme almaz; hata planı geri almaz, uyarı). Prosedür adım 10 artık doğrulama + gerekirse elle.
+     - #6 "Maç başladı" penceresi isteğin temposundan: isMinutelyCadence(PAID, cadence) → yalnız
+       secret açık + "cadence":"paid" 5 dk, diğer her durumda 35 dk (syncLive(minutely)).
+     - #7 quota.allows ücretli planda da kalan − gerekli ≥ rezerv şartını uygular (ücretsiz davranış
+       aynı). sync-matches ücretli yolda canlı maç detayı (ids=) hasQuotaForOptional(⌈n/20⌉) ile;
+       rezervin altında yalnız biten maçlar çekilir. FOOTBALL_QUOTA_RESERVE=500 artık gerçek fren.
+       (Döngü 9 / 3.36: ücretli rezerv FOOTBALL_QUOTA_RESERVE_PAID'e taşındı, varsayılan 500.)
+     - #8 Tek kaynak: app_config.fixture_days_ahead (0019, varsayılan 7) + fixture_days_ahead()
+       (1…7'ye kırpar; sayı değilse 7; authenticated + service_role). sync-matches bunu okur (0019
+       yoksa eski FIXTURE_DAYS_AHEAD secret'ı). İstemci DataSource.fixtureDaysAhead() +
+       useFixtureDaysAhead; dayOffsetsFor(paid, ahead) → boş gün yok. Mock ?days=N.
+     - #9 findBannedShareTerms: SUFFIX'e -lığ/-liğ/-luğ/-lüğ; TERM_FORMS (bahis → bahs; resmi →
+       resmen + resmileş*; resmî → resmîleş*; kazandırır → kazandır*); izin listesine "asm oran".
+       Soyadlar (Kazancı, Ödül) ignore ile (testler oyuncu adlarını geçer). "bahsetti" temiz kalır.
+     - #10 useApiPaid: tek AppState dinleyicisi; arka plandan ön plana dönüşte önbellek boşalır, açık
+       ekranlar yeniden sorar (başarısız yenilemede son bilinen değer kalır).
+     - e2e: daystrip_ui npm e2e zincirine eklendi (16 betik) + ?days=3 → 5 gün senaryosu.
+     - PGlite: zincir testi 0001→0019 + 0015–0019 tekrar + bölüm 6h (0019); 0018_paid_switch testi
+       net.http_post kaydıyla #3/#4/#5 + 0019 tekrar/geri dönüş.
+     - YENİ docs/ucretli-gecis.md: kopyala-yapıştır kontrol listesi (hazırlık, geçiş, doğrulama, geri dönüş).
+     - Kapılar: bkz. docs/test-raporu.md "Döngü 8" Durum.
+
+3.36 Ücretli geçiş kılavuzu düzeltmeleri (Döngü 9) (docs/test-raporu.md "Döngü 9": 1 yüksek, 4 orta,
+     2 düşük; 1–5 ve 7 ele alındı, 6 kullanıcıya bırakıldı)
+     - Yapan / zaman (TSİ, date): Geliştirici ajanı (döngü 9) · Thu Nov 19 01:28 TSS 2026 başlangıç, 01:29:58 bitiş
+     - #1 (yüksek) Futbol isteğe bağlı rezervi plana göre (quota.footballOptionalReserve):
+       ücretli → FOOTBALL_QUOTA_RESERVE_PAID (varsayılan 500), ücretsiz → FOOTBALL_QUOTA_RESERVE
+       (varsayılan 6, en fazla FREE_FOOTBALL_RESERVE_MAX = 50). Geri dönüşte unutulmuş eski
+       FOOTBALL_QUOTA_RESERVE=500 artık ücretsiz planı kilitlemez. B6 artık rezerv secret'ı AYARLAMAZ
+       (yalnız API_FOOTBALL_PAID=1); A1 ve R2: "eski FOOTBALL_QUOTA_RESERVE tanımlıysa silin".
+       Kılavuza Kural 7 (rezerv secret'larına dokunmayın). Deno testi: plan × env × kırpma.
+       Not: 0018 başlık yorumu (satır 19) hâlâ "FOOTBALL_QUOTA_RESERVE=500" der; uygulanmış dosyaya
+       dokunulmadı — geçerli prosedür docs/ucretli-gecis.md'dir.
+     - #2 (orta) B5: PowerShell 5.1 için curl.exe + Read-Host (anahtar geçmişe/dosyaya yazılmaz),
+       bash alternatifi read -rs; anahtarın kaynağı (API-Football panosu); beklenen JSON alanları
+       ("plan":"Pro", "active":true, "limit_day":7500) ve Free / token hatası durumları.
+     - #3 (orta) A4: ikinci blok tek select'e indirildi (tetikleyici_tam, gun_fonksiyonu, api_paid,
+       nba_api_paid, fixture_days_ahead sütunları). Kılavuzdaki her doğrulama bloğu tek ifade.
+     - #4 (orta) B10: log biçimi {"scheduled","enriched","skipped":[],"quota"} ve anlamları
+       (scheduled = maç satırı sayısı); gün farkına göre futbol maçı sayımı (sport_type =
+       'football'; B8 öncesi en büyük 1, sonrası 2…7); net._http_response sorgusu kaldırıldı
+       (URL yok, canlı çağrılar da 202); elle çağrı koşulu netleşti.
+     - #5 (orta) Kural 3 penceresi 09:00–19:30 UTC (ücretli canlı iş * 9-23). B11: live ok dakikada
+       bir; /status artışı maç yokken 1/dk, canlı maç varken 2–3/dk; NBA log kontrolü yerine tek
+       select (nba-sync-live, nba-sync-schedule, nba_api_paid).
+     - #7 (düşük) A4 tam 8 satırlık cron tablosu, B9 tam 5 satırlık tablo (skor-sync-cleanup dahil).
+     - PGlite 0019_runbook: bloklar içerikle bulunur (12 blok); A4/B9 tabloları dokümandan okunup
+       sorgu sonucuyla birebir (sıra dahil) karşılaştırılır; tek ifade kontrolü; B10 veri sorgusu
+       (B8 öncesi ≤ 1, benzetimle 0…7, NBA hariç); B11 sorgusu; doküman metin kontrolleri
+       (FOOTBALL_QUOTA_RESERVE=500 yok, R2 silme, curl.exe, 09:00–19:30).
+     - Kapılar: bkz. docs/test-raporu.md "Döngü 9" Durum.
 
 8. YAPILACAKLAR VE İNCELEME NOTLARI (genel gözden geçirme)
 --------------------------------------------------------------------------
@@ -653,9 +1091,10 @@ B) YAYIN ÖNCESİ ZORUNLU
      (Google Play şartı), Data Safety formu, uygulama ikonu/splash.
    - iOS: Apple Developer hesabı + APNs anahtarı (push için).
    - Ücretli API-Sports planı: dakikalık canlı skor, canlı istatistik, akıllı
-     alarm ve otomatik devre arası raporu için şart. Geçince: secret
-     API_FOOTBALL_PAID=1, app_config.api_paid = true (0011), 0006/0007 sonundaki cron.alter_job satırları,
-     sync-matches ve sync-nba deploy.
+     alarm ve otomatik devre arası raporu için şart. Ücretli geçiş: yalnız 0018
+     prosedürü (docs/ucretli-gecis.md; 0019 gerekir); nba-sync-live'a dokunmayın.
+     0002/0006/0007'deki eski cron.alter_job notları kaldırıldı ve ASLA çalıştırılmaz
+     (NBA kotasını bir gecede bitirir, tetikleyiciyi atlar).
    - API-Sports kullanım koşulları ticari kullanım için kontrol edilmeli.
 
 C) TEKNİK BORÇ  [büyük kısmı tamamlandı — bkz. 3.18; kalan: Sentry, CLI ile ilk deploy]

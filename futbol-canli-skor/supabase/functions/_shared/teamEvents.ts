@@ -4,6 +4,11 @@
  */
 import { notifyFollowers } from './notify.ts';
 import { admin } from './supabaseAdmin.ts';
+import { PAID_FLAGS, paidFor } from './paidFlags.ts';
+import { kickoffBody } from './syncUtils.ts';
+
+// Akıllı alarmlar yalnız ücretli planda üretilir: bildirim metni SPORUN KENDİ bayrağına göre
+// (futbol API_FOOTBALL_PAID, NBA API_NBA_PAID; bkz. paidFlags.ts, syncUtils.kickoffBody)
 
 /** Yeni/güncel fikstürleri takımı takip eden kullanıcıların maç takibine ekler */
 export async function followTeamFixtures(fixtureIds: number[]): Promise<number> {
@@ -40,12 +45,11 @@ export async function notifyKickoffs(rows: LiveRow[], sport: 'football' | 'nba',
   let sent = 0;
   for (const { fixture_id } of data ?? []) {
     const r = fresh.find((x) => x.fixture_id === fixture_id)!;
-    const late = sport === 'football' && (r.elapsed_minute ?? 0) > 5 ? ` (${r.elapsed_minute}')` : '';
     sent += await notifyFollowers(
       fixture_id,
       'kickoff',
       sport === 'nba' ? '🏀 Maç başladı' : '⚽ Maç başladı',
-      `${r.home_team} - ${r.away_team} başladı${late}. Devre arası raporu ve akıllı alarmlar takipte.`,
+      kickoffBody({ sport, paid: paidFor(sport, PAID_FLAGS), home: r.home_team, away: r.away_team, minute: r.elapsed_minute }),
     );
   }
   return sent;

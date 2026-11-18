@@ -13,6 +13,7 @@ type Side = 'home' | 'away';
 
 const POS_ORDER = ['G', 'D', 'M', 'F'];
 const POS_LABEL: Record<string, string> = { G: 'KL', D: 'DF', M: 'OS', F: 'FV' };
+const POS_SPEECH: Record<string, string> = { G: 'kaleci', D: 'defans', M: 'orta saha', F: 'forvet' };
 
 /**
  * Kadro kaynağı: tam kadro (matches.lineup_detail, 0013). Yoksa maç önü AI'nın yazdığı
@@ -61,7 +62,8 @@ const shortName = (name: string) => {
   return parts[parts.length - 1] || '—';
 };
 
-const ratingColor = (r: number) => (r >= 7.5 ? colors.live : r >= 6.5 ? colors.warning : colors.danger);
+// Orta aralık gri (textMuted; onFill ile 6.51:1): turuncu rozet deplasman formasıyla kaynaşıyordu (tasarım B-4)
+const ratingColor = (r: number) => (r >= 7.5 ? colors.live : r >= 6.5 ? colors.textMuted : colors.danger);
 
 function ratingOf(ratings: PlayerRating[] | null, side: Side, p: LineupPlayer): number | null {
   if (!ratings) return null;
@@ -69,18 +71,32 @@ function ratingOf(ratings: PlayerRating[] | null, side: Side, p: LineupPlayer): 
   return hit ? hit.rating : null;
 }
 
+/** Ekran okuyucu: "Demir, 1 numara, puan 6.3" (Döngü 5, bulgu 6); rozet rengi sayıyla aynı bilgiyi verir */
+function markerLabel(p: LineupPlayer, rating: number | null): string {
+  const parts = [String(p.name ?? '—')];
+  if (p.number != null) parts.push(`${p.number} numara`);
+  else if (p.pos && POS_SPEECH[p.pos]) parts.push(POS_SPEECH[p.pos]);
+  if (rating != null) parts.push(`puan ${rating.toFixed(1)}`);
+  return parts.join(', ');
+}
+
 function Marker({ p, side, rating }: { p: LineupPlayer; side: Side; rating: number | null }) {
   return (
-    <View style={styles.marker}>
+    // Tek öğe olarak okunsun: aksi hâlde "1", "6.3", "Demir" ayrı ayrı okunur
+    <View style={styles.marker} accessible accessibilityLabel={markerLabel(p, rating)}>
       <View style={[styles.shirt, { backgroundColor: side === 'home' ? colors.home : colors.away }]}>
-        <Text style={styles.shirtText}>{p.number ?? POS_LABEL[p.pos ?? ''] ?? '•'}</Text>
+        <Text style={styles.shirtText} maxFontSizeMultiplier={1.2}>
+          {p.number ?? POS_LABEL[p.pos ?? ''] ?? '•'}
+        </Text>
         {rating != null ? (
           <View style={[styles.ratingDot, { backgroundColor: ratingColor(rating) }]}>
-            <Text style={styles.ratingDotText}>{rating.toFixed(1)}</Text>
+            <Text style={styles.ratingDotText} maxFontSizeMultiplier={1.2}>
+              {rating.toFixed(1)}
+            </Text>
           </View>
         ) : null}
       </View>
-      <Text style={styles.markerName} numberOfLines={1}>
+      <Text style={styles.markerName} numberOfLines={1} maxFontSizeMultiplier={1.2}>
         {shortName(p.name)}
       </Text>
     </View>
@@ -117,13 +133,13 @@ function Bench({ m, side, team }: { m: Match; side: Side; team: TeamLineupDetail
   const name = side === 'home' ? m.home_team : m.away_team;
   return (
     <Card>
-      <CardTitle kicker={team?.formation ? `Diziliş ${team.formation}` : 'Kadro'} title={name} />
+      <CardTitle kicker={team?.formation ? `DİZİLİŞ ${team.formation}` : 'KADRO'} title={name} />
       <Text style={styles.coach}>
         Teknik direktör: <Text style={styles.coachName}>{team?.coach ?? '—'}</Text>
       </Text>
       {team?.substitutes.length ? (
         <View style={{ gap: space(1.5) }}>
-          <Text style={styles.subTitle}>Yedekler</Text>
+          <Text style={styles.subTitle}>YEDEKLER</Text>
           {team.substitutes.map((p, i) => (
             <View key={`${p.id ?? p.name}-${i}`} style={styles.subRow}>
               <Text style={styles.subNo}>{p.number ?? '–'}</Text>
@@ -146,7 +162,7 @@ function Ratings({ m, ratings }: { m: Match; ratings: PlayerRating[] }) {
   const team = (s: Side) => (s === 'home' ? m.home_team : m.away_team);
   return (
     <Card accent={colors.pro}>
-      <CardTitle kicker="Maç Sonu" title="Oyuncu Puanları" />
+      <CardTitle kicker="MAÇ SONU" title="Oyuncu Puanları" />
       <View style={styles.motm}>
         <Badge label="★ MAÇIN OYUNCUSU" color={colors.pro} />
         <View style={styles.rateRow}>
@@ -190,7 +206,7 @@ export function LineupTab({ match: m }: { match: Match }) {
     return (
       <View style={{ gap: space(3) }}>
         <Card>
-          <CardTitle kicker="Kadro" title={done ? 'Bu maç için kadro verisi yok' : 'Kadrolar henüz açıklanmadı'} />
+          <CardTitle kicker="KADRO" title={done ? 'Bu maç için kadro verisi yok' : 'Kadrolar henüz açıklanmadı'} />
           <Text style={styles.muted}>
             Kadrolar maçtan ~20-40 dk önce açıklanır. Ücretsiz veri planında tam kadro ve oyuncu puanları maç bitince
             eklenir.
@@ -230,6 +246,9 @@ export function LineupTab({ match: m }: { match: Match }) {
   );
 }
 
+/** Orta saha dairesinin yarıçapı (px) */
+const MID_R = 24;
+
 const styles = StyleSheet.create({
   muted: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   pitch: {
@@ -242,20 +261,24 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   pitchLabel: { color: colors.textMuted, fontSize: 11, fontWeight: '800', textAlign: 'center', paddingVertical: space(1) },
-  half: { minHeight: 220, justifyContent: 'space-around', paddingVertical: space(1), gap: space(1) },
+  half: { minHeight: 220, justifyContent: 'space-around', paddingVertical: space(1), gap: space(2) },
   halfEmpty: { alignItems: 'center', justifyContent: 'center' },
   pitchRow: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-start' },
-  midLine: { height: 1, backgroundColor: '#2C6145', marginVertical: space(1), alignItems: 'center', justifyContent: 'center' },
-  midCircle: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, borderColor: '#2C6145', position: 'absolute' },
-  marker: { alignItems: 'center', width: 62 },
+  // Santrfor adı orta saha dairesinin çizgisine binmesin (tasarım B-8): dikey boşluk dairenin yarıçapından
+  // büyük olmalı (space(3) = 12 px, 28 px'lik yarıçapa yetmiyordu). Daire 48 px, boşluk yarıçap + 4.
+  midLine: { height: 1, backgroundColor: '#2C6145', marginVertical: MID_R + space(1), alignItems: 'center', justifyContent: 'center' },
+  midCircle: { width: MID_R * 2, height: MID_R * 2, borderRadius: MID_R, borderWidth: 1, borderColor: '#2C6145', position: 'absolute' },
+  // Üst boşluk: puan rozeti üst satırdaki ismin üstüne binmesin
+  marker: { alignItems: 'center', width: 62, paddingTop: space(2) },
   shirt: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  shirtText: { color: '#fff', fontSize: 12, fontWeight: '900', fontVariant: ['tabular-nums'] },
-  ratingDot: { position: 'absolute', top: -7, right: -18, borderRadius: 6, paddingHorizontal: 3, paddingVertical: 1 },
-  ratingDotText: { color: colors.bg, fontSize: 9, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  // Koyu numara: beyaz, turuncu/mavi üstünde AA geçmiyordu
+  shirtText: { color: colors.onFill, fontSize: 12, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  ratingDot: { position: 'absolute', top: -6, right: -16, borderRadius: 6, paddingHorizontal: 3, paddingVertical: 1 },
+  ratingDotText: { color: colors.onFill, fontSize: 10, fontWeight: '900', fontVariant: ['tabular-nums'] },
   markerName: { color: colors.text, fontSize: 10, fontWeight: '700', marginTop: 3, maxWidth: 62, textAlign: 'center' },
   coach: { color: colors.textMuted, fontSize: 13 },
   coachName: { color: colors.text, fontWeight: '700' },
-  subTitle: { color: colors.textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
+  subTitle: { color: colors.textMuted, fontSize: 11, fontWeight: '800', letterSpacing: 1 },
   subRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   subNo: { width: 24, color: colors.textMuted, fontSize: 13, fontWeight: '700', textAlign: 'right', fontVariant: ['tabular-nums'] },
   subName: { flex: 1, color: colors.text, fontSize: 14 },

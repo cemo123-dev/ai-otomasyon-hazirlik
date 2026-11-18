@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { dataSource } from '@/lib/data';
 import { dayKeyFromToday, istanbulDayKey, istanbulDayStartMs, type DayOffset } from '@/lib/days';
+import { friendlyError } from '@/lib/errors';
 import { isFinished, isLive, type Match, type Sport } from '@/lib/types';
+import { mergeMatch } from './useMatch';
 
 export type MatchFilter = 'all' | 'live' | 'finished' | 'followed';
 
@@ -20,27 +22,42 @@ export type LeagueGroup = {
 const stateRank = (m: Match) => (isLive(m.status_short) ? 0 : isFinished(m.status_short) ? 1 : 2);
 
 /**
- * day: tarih şeridi (-1 Dün, 0 Bugün, 1 Yarın; Europe/Istanbul günü). Filtreler seçili günle birlikte çalışır.
- * Gece yarısını geçen canlı maç "Bugün"de de görünür (kendi gününde de kalır).
+ * day: tarih şeridi (-1 Dün, 0 Bugün, 1 Yarın, 2…7 ücretli futbol planında; Europe/Istanbul günü).
+ * Filtreler seçili günle birlikte çalışır. Gece yarısını geçen canlı maç "Bugün"de de görünür (kendi gününde de kalır).
+ * daysAhead: listenin kapsadığı son gün (şeridin son günü; ücretsiz plan 1 → sorgu eskisiyle aynı).
  */
-export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSets, day: DayOffset = 0) {
+export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSets, day: DayOffset = 0, daysAhead = 1) {
   // Liste ve hata, yüklendikleri spora göre anahtarlanır: spor değişince eski liste
   // effect içinde temizlenmez, render sırasında türetilerek gizlenir
   const [data, setData] = useState<{ sport: Sport; map: Map<number, Match> } | null>(null);
   const [failure, setFailure] = useState<{ sport: Sport; message: string } | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const list = await dataSource.listMatches(sport);
-      setData({ sport, map: new Map(list.map((m) => [m.fixture_id, m])) });
-      setFailure(null);
-    } catch (e) {
-      setFailure({ sport, message: (e as { message?: string } | null)?.message ?? 'Maçlar yüklenemedi' });
-    }
+  // Seçili spor: spor değiştikten sonra geç dönen eski istek yeni sporun listesini/hatasını ezmesin
+  const sportRef = useRef(sport);
+  useEffect(() => {
+    sportRef.current = sport;
   }, [sport]);
 
+  const load = useCallback(async () => {
+    try {
+      const list = await dataSource.listMatches(sport, daysAhead);
+      if (sportRef.current !== sport) return;
+      // Geç dönen liste, arada gelen daha yeni Realtime satırını ezmez (updated_at karşılaştırması)
+      setData((prev) => {
+        const old = prev?.sport === sport ? prev.map : null;
+        return { sport, map: new Map(list.map((m) => [m.fixture_id, mergeMatch(old?.get(m.fixture_id), m)])) };
+      });
+      setFailure((f) => (f?.sport === sport ? null : f));
+    } catch (e) {
+      if (sportRef.current !== sport) return;
+      setFailure({ sport, message: friendlyError(e, 'Maçlar yüklenemedi. Tekrar dene.') });
+    }
+  }, [sport, daysAhead]);
+
   // İstanbul'da gün dönünce (uygulama gece yarısını açık geçirirse) gün anahtarı ve sorgu penceresi
-  // tazelenir: bir sonraki gece yarısına kurulan zamanlayıcı + uygulama öne gelince kontrol
+  // tazelenir: bir sonraki gece yarısına kurulan zamanlayıcı + uygulama öne gelince kontrol.
+  // Öne gelince liste her durumda yeniden çekilir: arka planda kapanan WebSocket'in kaçırdığı
+  // Realtime olayları yeniden gönderilmez (ve ağ hatasıyla açılan ekran kendiliğinden toparlanır).
   const [today, setToday] = useState(() => dayKeyFromToday(0));
   const todayRef = useRef(today);
   const loadRef = useRef(load);
@@ -49,11 +66,12 @@ export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSe
   }, [load]);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const check = () => {
+    const check = (force = false) => {
       const k = dayKeyFromToday(0);
-      if (k === todayRef.current) return;
-      todayRef.current = k;
-      setToday(k);
+      if (k !== todayRef.current) {
+        todayRef.current = k;
+        setToday(k);
+      } else if (!force) return;
       loadRef.current();
     };
     const schedule = () => {
@@ -64,7 +82,7 @@ export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSe
     };
     schedule();
     const sub = AppState.addEventListener('change', (s) => {
-      if (s === 'active') check();
+      if (s === 'active') check(true);
     });
     return () => {
       if (timer) clearTimeout(timer);
@@ -79,15 +97,19 @@ export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSe
       setData((prev) => {
         if (!prev || prev.sport !== sport) return prev;
         const map = new Map(prev.map);
-        map.set(m.fixture_id, { ...prev.map.get(m.fixture_id), ...m });
+        map.set(m.fixture_id, mergeMatch(prev.map.get(m.fixture_id), m));
         return { sport, map };
       }),
     );
   }, [sport, load]);
 
   const matches = useMemo(() => (data?.sport === sport ? data.map : new Map<number, Match>()), [data, sport]);
-  const error = failure?.sport === sport ? failure.message : null;
-  const loading = data?.sport !== sport && !error;
+  const hasData = data?.sport === sport;
+  const failed = failure?.sport === sport ? failure.message : null;
+  // Elde liste varken yenileme hatası tam ekran hata değil, liste üstünde kısa uyarı olur
+  const error = hasData ? null : failed;
+  const refreshError = hasData ? failed : null;
+  const loading = !hasData && !failed;
 
   // Seçili günün anahtarı "bugün" durumundan türetilir (gün dönünce yukarıdaki kontrol günceller)
   const dayKey = dayKeyFromToday(day, Date.parse(`${today}T12:00:00+03:00`));
@@ -132,5 +154,5 @@ export function useMatches(sport: Sport, filter: MatchFilter, follows?: FollowSe
     [matches, day, dayKey],
   );
 
-  return { groups, liveCount, loading, error, reload: load };
+  return { groups, liveCount, loading, error, refreshError, reload: load };
 }

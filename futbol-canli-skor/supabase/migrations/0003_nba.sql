@@ -35,7 +35,7 @@ revoke execute on function public.dispatch_analysis_job() from public, anon, aut
 
 -- ─────────────────────────────────────────────── NBA zamanlanmış senkron
 -- Maç saatleri TSİ 02:00-09:30 = UTC 23:00-06:30 (pg_cron UTC çalışır).
--- API-NBA ücretsiz plan (100 istek/gün) için 15 dakikada bir; ücretli planda '* 23,0-6 * * *' yapılabilir.
+-- API-NBA ücretsiz plan (100 istek/gün) için 15 dakikada bir. Ücretli geçiş: yalnız 0018 prosedürü (docs/ucretli-gecis.md; 0019 gerekir); nba-sync-live'a dokunmayın.
 select cron.unschedule(jobid) from cron.job where jobname in ('nba-sync-live', 'nba-sync-schedule');
 
 select cron.schedule('nba-sync-live', '*/15 23,0-6 * * *',

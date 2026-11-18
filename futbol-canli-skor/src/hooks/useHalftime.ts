@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { dataSource } from '@/lib/data';
 import type { HalftimePayload, Match } from '@/lib/types';
 import { usePremium } from './usePremium';
+import { friendlyError } from '@/lib/errors';
 
 export type HalftimeState =
   | { kind: 'idle' }
@@ -55,8 +56,8 @@ export function useHalftime(match: Match | null, active: boolean) {
           return setState({ kind: 'error', message: FAILED_MSG });
       }
     } catch (e) {
-      const msg = (e as { message?: string } | null)?.message;
-      if (my === reqId.current) setState({ kind: 'error', message: msg ? `Devre arası raporu alınamadı: ${msg}` : FAILED_MSG });
+      // Ham İngilizce hata metni ekrana yazılmaz (Döngü 5, bulgu 8)
+      if (my === reqId.current) setState({ kind: 'error', message: friendlyError(e, 'Devre arası raporu alınamadı. Tekrar dene.') });
     }
   }, [fixtureId, loadPayload]);
 

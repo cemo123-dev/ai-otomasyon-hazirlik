@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import type { Match, NbaEfficiencyVerdict, NbaTacticalPayload } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
-import { VerdictCard } from '../analysis/AnalysisCards';
+import { AiNote, VerdictCard } from '../analysis/AnalysisCards';
 import { CompareBar } from '../match/StatsBars';
 import { Badge, Card, CardTitle } from '../ui';
 
@@ -36,7 +36,7 @@ export function EfficiencyCard({ p, match }: { p: NbaTacticalPayload; match: Mat
   );
   return (
     <Card>
-      <CardTitle kicker="TS% & Hücum Verimliliği" title={e.verdict_label} right={<Badge label={v.label} color={v.color} />} />
+      <CardTitle kickerColor={colors.pro} kicker="TS% & HÜCUM VERİMLİLİĞİ" title={e.verdict_label} right={<Badge label={v.label} color={v.color} />} />
       <View style={styles.grid}>
         {col('home', match.home_team)}
         <View style={styles.vDivider} />
@@ -61,7 +61,7 @@ export function QuarterRunsCard({ p, match }: { p: NbaTacticalPayload; match: Ma
   const max = Math.max(1, ...runs.map((r) => Math.abs(r.swing)));
   return (
     <Card>
-      <CardTitle kicker="Çeyrek Kırılmaları" title="Momentumun el değiştirdiği periyotlar" />
+      <CardTitle kickerColor={colors.pro} kicker="ÇEYREK KIRILMALARI" title="Momentumun el değiştirdiği periyotlar" />
       {runs.map((r, i) => {
         const side: Side | 'neutral' = r.swing > 0 ? 'home' : r.swing < 0 ? 'away' : 'neutral';
         const c = teamColor(r.momentum);
@@ -111,7 +111,7 @@ export function BenchImpactCard({ p, match }: { p: NbaTacticalPayload; match: Ma
   };
   return (
     <Card>
-      <CardTitle kicker="İlk 5 vs Bench" title="+/- etkisi (oyuncu başına ortalama)" />
+      <CardTitle kickerColor={colors.pro} kicker="İLK 5 VS YEDEKLER" title="+/- etkisi (oyuncu başına ortalama)" />
       {(['home', 'away'] as const).map((side) => (
         <View key={side} style={styles.benchRow}>
           <View style={{ flex: 1, gap: 3 }}>
@@ -181,7 +181,7 @@ export function PlayerImpactCard({ p, match }: { p: NbaTacticalPayload; match: M
 
   return (
     <Card>
-      <CardTitle kicker="Oyuncu Etkisi" title="Hücum, savunma ve faul problemi" />
+      <CardTitle kickerColor={colors.pro} kicker="OYUNCU ETKİSİ" title="Hücum, savunma ve faul problemi" />
       {list('Hücumda en etkili', '🔥', pi.offense)}
       {list('Savunmada en etkili', '🛡', pi.defense)}
       {pi.commentary ? <Text style={styles.body}>{pi.commentary}</Text> : null}
@@ -221,12 +221,13 @@ export function NbaAnalysisReport({ p, match }: { p: NbaTacticalPayload; match: 
       <QuarterRunsCard p={p} match={match} />
       <BenchImpactCard p={p} match={match} />
       <PlayerImpactCard p={p} match={match} />
+      <AiNote />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  body: { color: colors.text, fontSize: 14, lineHeight: 21, opacity: 0.92 },
+  body: { color: colors.text, fontSize: 14, lineHeight: 21 },
   bodySmall: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   meta: { color: colors.textMuted, fontSize: 12 },
   teamLabel: { fontSize: 12, fontWeight: '800' },
