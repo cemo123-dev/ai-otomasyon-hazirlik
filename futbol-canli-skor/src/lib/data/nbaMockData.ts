@@ -124,7 +124,7 @@ export const nbaScenarioPayload: NbaTacticalPayload = {
   },
   quarter_runs: [
     { quarter: 1, label: '1. Çeyrek', home_pts: 28, away_pts: 25, swing: 3, score_after: '28-25', title: 'Comets erken öne geçti', description: 'İlk çeyrekte üçlükler düştü ve ev sahibi 3 sayı önde kapattı.', momentum: 'home' },
-    { quarter: 3, label: '3. Çeyrek', home_pts: 22, away_pts: 34, swing: -12, score_after: '77-89', title: 'Vipers\'ın 12 sayılık serisi', description: 'Devre arasında 55-55 olan skor, boyalı alan atakları ve top kayıplarından gelen sayılarla 12 farka açıldı.', momentum: 'away' },
+    { quarter: 3, label: '3. Çeyrek', home_pts: 22, away_pts: 34, swing: -12, score_after: '77-89', title: 'Vipers\'ın 12 sayılık serisi', description: 'İlk yarıyı 55-55 kapatan skor, boyalı alan atakları ve top kayıplarından gelen sayılarla 12 farka açıldı.', momentum: 'away' },
     { quarter: 4, label: '4. Çeyrek', home_pts: 27, away_pts: 26, swing: 1, score_after: '104-115', title: 'Geri dönüş gelmedi', description: 'Comets son çeyreği 1 sayı farkla kazandı ama 12 sayılık açığı kapatamadı.', momentum: 'neutral' },
   ],
   late_game: {

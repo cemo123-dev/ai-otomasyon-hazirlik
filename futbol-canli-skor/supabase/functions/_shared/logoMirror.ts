@@ -4,36 +4,47 @@
 // bir User-Agent ile (Wikimedia kullanıcı aracısı politikası) BİR KEZ indirilir, herkese açık
 // 'team-logos' kovasına yazılır ve maç satırları bu adresi kullanır.
 import { admin } from './supabaseAdmin.ts';
-import { normalizeNbaLogo, thumb120, wikiFileName } from './nbaBox.ts';
+import { applyMirroredLogos, normalizeNbaLogo, thumb120, wikiFileName } from './nbaBox.ts';
 
 const BUCKET = 'team-logos';
 const UA = 'SkorPlus/1.0 (+https://github.com/cemo123-dev/ai-otomasyon-hazirlik)';
-/** Tek çalıştırmada indirilecek en fazla logo (Wikimedia'ya nazik olmak için) */
+/** Tek çalıştırmada denenecek en fazla logo (Wikimedia'ya nazik olmak için; başarısızlar da sayılır) */
 const MAX_PER_RUN = 12;
 const MAX_BYTES = 300_000;
 
 const path = (teamId: number) => `nba/${teamId}.png`;
 export const nbaLogoUrl = (teamId: number) => admin.storage.from(BUCKET).getPublicUrl(path(teamId)).data.publicUrl;
 
-/** Kovadaki takım kimlikleri (çalıştırma başına bir kez okunur) */
+/** Bir istekte en fazla bekleme (sıralı indirmeler edge süre sınırını aşmasın) */
+const FETCH_TIMEOUT_MS = 8000;
+/** Logo kaynağı için taranan maç penceresi (tam tablo taraması yok) */
+const SCAN_DAYS = 30;
+
+/**
+ * Kovadaki takım kimlikleri (sıcak worker'da önbellekte).
+ * Liste hatası önbelleğe alınmaz: null = bilinmiyor (sonraki çağrı yeniden dener).
+ */
 let mirrored: Set<number> | null = null;
-async function loadMirrored(): Promise<Set<number>> {
+async function loadMirrored(): Promise<Set<number> | null> {
   if (mirrored) return mirrored;
   const { data, error } = await admin.storage.from(BUCKET).list('nba', { limit: 200 });
-  mirrored = new Set(
-    (error ? [] : (data ?? [])).map((f) => Number(f.name.replace(/\.png$/, ''))).filter((n) => Number.isInteger(n) && n > 0),
-  );
+  if (error) {
+    console.warn('[logos] kova listelenemedi:', error.message);
+    return null;
+  }
+  mirrored = new Set((data ?? []).map((f) => Number(f.name.replace(/\.png$/, ''))).filter((n) => Number.isInteger(n) && n > 0));
   return mirrored;
 }
 
 type LogoRow = { home_team_id?: unknown; away_team_id?: unknown; home_logo?: unknown; away_logo?: unknown };
 
-/** Kopyası olan takımların logosunu Storage adresiyle değiştirir (upsert öncesi; logo gidip gelmesin) */
+/**
+ * Kopyası olan takımların logosunu Storage adresiyle değiştirir (upsert öncesi; logo gidip gelmesin).
+ * Kova okunamazsa logo alanları upsert'ten çıkarılır: mevcut logo Wikimedia adresiyle ezilmez.
+ */
 export async function withMirroredLogos<T extends LogoRow>(rows: T[]): Promise<T[]> {
   if (!rows.length) return rows;
-  const set = await loadMirrored();
-  const pick = (id: unknown, cur: unknown) => (typeof id === 'number' && set.has(id) ? nbaLogoUrl(id) : cur);
-  return rows.map((r) => ({ ...r, home_logo: pick(r.home_team_id, r.home_logo), away_logo: pick(r.away_team_id, r.away_logo) }));
+  return applyMirroredLogos(rows, await loadMirrored(), nbaLogoUrl);
 }
 
 async function ensureBucket(): Promise<boolean> {
@@ -64,7 +75,7 @@ async function resolveViaApi(url: string): Promise<string | null> {
   for (const host of wikis) {
     const api = `https://${host}/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url&iiurlwidth=120&titles=${encodeURIComponent('File:' + name)}`;
     try {
-      const res = await fetch(api, { headers: { 'User-Agent': UA } });
+      const res = await fetch(api, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       if (!res.ok) continue;
       const pages = (await res.json())?.query?.pages ?? {};
       for (const pg of Object.values(pages) as { imageinfo?: { thumburl?: string }[] }[]) {
@@ -82,7 +93,7 @@ async function resolveViaApi(url: string): Promise<string | null> {
 async function resolveByTeam(team: string): Promise<string | null> {
   const api = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageimages&piprop=thumbnail&pithumbsize=120&pilicense=any&redirects=1&titles=${encodeURIComponent(team)}`;
   try {
-    const res = await fetch(api, { headers: { 'User-Agent': UA } });
+    const res = await fetch(api, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     if (!res.ok) return null;
     const pages = (await res.json())?.query?.pages ?? {};
     for (const pg of Object.values(pages) as { thumbnail?: { source?: string } }[]) {
@@ -107,7 +118,7 @@ async function download(src: string | null, team: string): Promise<Uint8Array | 
 }
 
 async function fetchPng(url: string): Promise<Uint8Array | null> {
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  const res = await fetch(url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   const type = res.headers.get('content-type') ?? '';
   if (!res.ok || !type.startsWith('image/png')) {
     await res.body?.cancel();
@@ -125,12 +136,17 @@ async function fetchPng(url: string): Promise<Uint8Array | null> {
 export async function mirrorNbaLogos(): Promise<{ copied: number; teams_updated: number }> {
   if (!(await ensureBucket())) return { copied: 0, teams_updated: 0 };
   const set = await loadMirrored();
+  // Kova okunamadı: hepsini yeniden indirmek yerine sonraki çalıştırmaya bırak
+  if (!set) return { copied: 0, teams_updated: 0 };
 
+  // Yalnız son 30 günün maçları (takım satırları güncellemesi zaten takım kimliğiyle tüm maçlara uygulanır)
+  const since = new Date(Date.now() - SCAN_DAYS * 86400_000).toISOString();
   const { data: rows, error } = await admin
     .from('matches')
     .select('home_team_id, away_team_id, home_team, away_team, home_logo, away_logo')
     .eq('sport_type', 'nba')
-    .not('home_team_id', 'is', null);
+    .not('home_team_id', 'is', null)
+    .gte('kickoff_at', since);
   if (error) throw error;
 
   const sources = new Map<number, { src: string | null; team: string }>();
@@ -148,9 +164,13 @@ export async function mirrorNbaLogos(): Promise<{ copied: number; teams_updated:
     }
   }
 
+  // Denemeler sayılır (yalnız başarılar değil): hiç inmeyen logolar her çalıştırmada sınırsız istek yapmasın
   let copied = 0;
+  let attempts = 0;
   for (const [id, { src, team }] of sources) {
-    if (set.has(id) || copied >= MAX_PER_RUN) continue;
+    if (set.has(id)) continue;
+    if (attempts >= MAX_PER_RUN) break;
+    attempts++;
     try {
       const bytes = await download(src, team);
       if (!bytes) continue;

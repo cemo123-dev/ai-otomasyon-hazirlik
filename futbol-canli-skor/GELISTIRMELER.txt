@@ -585,6 +585,39 @@ google-services.json           Firebase (Android FCM) yapılandırması
        "development" diyorsa geliştirme build'i Metro'ya bağlıdır (Metro --clear ile
        yeniden başlatılmalı); "preview" diyorsa npm run update:apk gerekir.
 
+3.28 Test bulguları düzeltmeleri (docs/test-raporu.md, 11 bulgu)
+     - Box score kotası (yüksek): oyuncu verisi boş gelen maç geri doldurmada
+       box_score = [] ile işaretlenir ("denendi, veri yok"); .is('box_score', null)
+       sorgusu onu bir daha seçmez. Boşlar sayaca katılmaz. İlk zenginleştirmede boş
+       yanıt işaretlenmez (veri gecikebilir); sonraki çalıştırmada bir kez denenir.
+       NBA_MAX_BOX_BACKFILL varsayılanı 5 → 3; geri doldurma yalnız kotada
+       NBA_QUOTA_RESERVE + NBA_BOX_BACKFILL_RESERVE (varsayılan 20) kadar pay varsa.
+       Arayüz: [] olan biten maçta "oyuncu istatistiği yayınlanmadı; box score yok".
+       Migration yok.
+     - Logo kopyası: kova listesi hata verirse önbelleğe alınmaz; küme bilinmiyorsa
+       upsert'ten home_logo/away_logo TÜM satırlardan çıkarılır (mevcut logo
+       korunur, Wikimedia'ya geri dönmez) ve kopyalama o çalıştırmada atlanır.
+       Tarama son 30 gün (kickoff_at), deneme sayısı sınırı (başarısızlar da sayılır),
+       her istekte 8 sn zaman aşımı.
+     - Futbol terimi bekçisi: metin toLocaleLowerCase('tr') ile küçültülüp test edilir
+       (İLK 11, PENALTI, DEVRE ARASI, TEKNİK DİREKTÖR yakalanır); VAR/xG büyük harfe
+       duyarlı, orijinal metinle. Çok kelimeli terimlerde \s+ (Golden State dahil),
+       "korner üçlüğü" hariç, gol yalnız Türkçe eklerle (Golf, Golan, golden geçer).
+       Kullanılmayan dropFootballSentences silindi.
+     - Sohbet temizliği (sanitizeAnswer): önce satır, sonra cümle bölünür; satır
+       yapısı korunur (madde işaretli yanıtta yalnız ilgili satır düşer).
+     - NBA analizi: verdict_label bekçiden geçer (yedek etiket), LLM kırılmalarının
+       hepsi atılırsa kırılma periyodundan deterministik tek satır, spotlight başlığı
+       hiç boş kalmaz; skor null/eşitse nötr cümle ("0-0 kazandı" yok).
+     - Taktik asistan: box score'u [] olan veya başlamasından 9 saat geçen NBA maçının
+       dosyası box score'suz da önbelleğe alınır.
+     - Önizleme: "Devre arasında" → "İlk yarıyı 55-55 kapatan"; sohbet şablonları
+       NBA için basketbol diliyle ayrı.
+     - Testler: tests/nbaAnalysis.test.ts (yeni, 5), nbaBox.test.ts (+3),
+       sportTerms.edge.test.ts (ignore kaldırıldı, +1), sportTerms.test.ts (+1).
+       Toplam 69 test.
+     - Sıra: npm run deploy:functions → npm run update:apk.
+
 8. YAPILACAKLAR VE İNCELEME NOTLARI (genel gözden geçirme)
 --------------------------------------------------------------------------
 A) [ÇÖZÜLDÜ — bkz. 3.17] Taktik Asistan çok "kuru" yanıt veriyordu

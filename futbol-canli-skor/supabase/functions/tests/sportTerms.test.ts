@@ -1,6 +1,6 @@
 // NBA metinlerinde futbol terimi bekçisi + NBA sohbet dosyası — çalıştırma: supabase/functions içinde `deno test`
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { basketballOr, dropFootballSentences, hasFootballTerm } from '../_shared/sportTerms.ts';
+import { basketballOr, hasFootballTerm } from '../_shared/sportTerms.ts';
 import { assistantInstruction, buildDossier, nbaInferences, sanitizeAnswer, ASSISTANT_SYSTEM_INSTRUCTION, NBA_ASSISTANT_SYSTEM_INSTRUCTION } from '../_shared/dossier.ts';
 
 Deno.test('futbol terimleri yakalanır', () => {
@@ -32,11 +32,10 @@ Deno.test('basketbol metinleri ve özel adlar geçer', () => {
   }
 });
 
-Deno.test('basketballOr ve cümle ayıklama', () => {
+Deno.test('basketballOr', () => {
   assertEquals(basketballOr('Grizzlies ikinci golü buldu', 'yedek'), 'yedek');
   assertEquals(basketballOr('Grizzlies 136-120 kazandı', 'yedek'), 'Grizzlies 136-120 kazandı');
   assertEquals(basketballOr('', 'yedek'), 'yedek');
-  assertEquals(dropFootballSentences('Bench iyi oynadı. Forvet değişikliği işe yaradı.'), 'Bench iyi oynadı.');
 });
 
 const nbaMatch = {
@@ -88,4 +87,13 @@ Deno.test('NBA sohbet yanıtında futbol cümlesi atılır, futbolda dokunulmaz'
   assertEquals(sanitizeAnswer(ans, d, 'Maç nasıl koptu?'), 'Memphis üçüncü çeyrekte farkı açtı ve bench katkısı belirleyici oldu.');
   const fb = buildDossier({ match: { ...nbaMatch, sport_type: 'football', box_score: null }, analysis: null, halftime: null, alerts: [] });
   assertEquals(sanitizeAnswer(ans, fb, 'Maç nasıl koptu?'), ans);
+});
+
+Deno.test('sanitizeAnswer: madde işaretli NBA yanıtında satır yapısı korunur, yalnız futbol satırı düşer', () => {
+  const d = buildDossier({ match: nbaMatch, analysis: null, halftime: null, alerts: [] });
+  const ans = 'Üçüncü çeyrekte fark açıldı ve Memphis kontrolü aldı.\n\n- Bench iyi oynadı ve rotasyon işe yaradı.\n- Gol yok.\nSon çeyrekte Memphis farkı korudu.';
+  assertEquals(
+    sanitizeAnswer(ans, d, 'Maç nasıl koptu?'),
+    'Üçüncü çeyrekte fark açıldı ve Memphis kontrolü aldı.\n\n- Bench iyi oynadı ve rotasyon işe yaradı.\nSon çeyrekte Memphis farkı korudu.',
+  );
 });

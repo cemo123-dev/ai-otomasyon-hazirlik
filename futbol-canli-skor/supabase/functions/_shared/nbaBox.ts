@@ -28,6 +28,31 @@ export function toBoxScore(players: NbaPlayerLine[]): NbaPlayerLine[] | null {
 }
 
 /**
+ * Yazılacak box score. Oyuncu verisi boşsa (boş yanıt / herkes 0 dk) ve markEmpty ise []:
+ * "denendi, veri yok" işareti. Geri doldurma `.is('box_score', null)` ile seçtiği için
+ * aynı maç tekrar istenmez (ortak günlük kota korunur). null = yazma.
+ */
+export function boxScoreToStore(players: NbaPlayerLine[], markEmpty: boolean): NbaPlayerLine[] | null {
+  return toBoxScore(players) ?? (markEmpty ? [] : null);
+}
+
+/** Box score gelmemiş maçta dosya bu süreden sonra yine de önbelleğe alınır (başlama + ~3 sa maç + 6 sa) */
+export const BOX_WAIT_MS = 9 * 3600_000;
+
+/**
+ * NBA box score hâlâ bekleniyor mu (dosya önbelleğe alınmasın)?
+ * [] = denendi/veri yok → beklenmez. Kolon yok (undefined) veya null → başlamadan 9 sa geçene kadar beklenir.
+ */
+export function isNbaBoxPending(
+  m: { sport_type?: string | null; box_score?: unknown; kickoff_at?: string | null },
+  now = Date.now(),
+): boolean {
+  if (m.sport_type !== 'nba' || Array.isArray(m.box_score)) return false;
+  const ko = m.kickoff_at ? Date.parse(m.kickoff_at) : NaN;
+  return Number.isNaN(ko) || now - ko < BOX_WAIT_MS;
+}
+
+/**
  * API-NBA logoları çoğunlukla Wikimedia SVG'si; Android'deki Image bileşeni SVG çizemez.
  * Wikimedia'nın aynı dosya için ürettiği 120 px PNG küçük resmine çevrilir
  * (bu boyut CDN önbelleğinde hazır; büyük boyutlar ilk istekte 429 dönebiliyor).
@@ -50,6 +75,24 @@ export const isMissingBoxColumn = (e: { code?: string; message?: string } | null
 export function wikiFileName(url: string): string | null {
   const m = url.match(/\/thumb\/[0-9a-f]\/[0-9a-f]{2}\/([^/]+)\/[^/]+$/i) ?? url.match(/\/[0-9a-f]\/[0-9a-f]{2}\/([^/]+)$/i);
   return m ? decodeURIComponent(m[1]) : null;
+}
+
+type LogoRow = { home_team_id?: unknown; away_team_id?: unknown; home_logo?: unknown; away_logo?: unknown };
+
+/**
+ * Kopyası olan takımların logosu Storage adresiyle değiştirilir.
+ * mirrored === null (kova listesi okunamadı): logo alanları TÜM satırlardan çıkarılır; upsert
+ * kolonları satırların birleşiminden kurduğu için mevcut DB logosu korunur (Wikimedia'ya geri dönmez).
+ */
+export function applyMirroredLogos<T extends LogoRow>(rows: T[], mirrored: Set<number> | null, urlOf: (id: number) => string): T[] {
+  if (!mirrored) {
+    return rows.map((r) => {
+      const { home_logo: _h, away_logo: _a, ...rest } = r;
+      return rest as T;
+    });
+  }
+  const pick = (id: unknown, cur: unknown) => (typeof id === 'number' && mirrored.has(id) ? urlOf(id) : cur);
+  return rows.map((r) => ({ ...r, home_logo: pick(r.home_team_id, r.home_logo), away_logo: pick(r.away_team_id, r.away_logo) }));
 }
 
 /** Thumb boyutunu 120 px'e sabitler (1200px gibi boyutlar 400/429 dönebiliyor) */

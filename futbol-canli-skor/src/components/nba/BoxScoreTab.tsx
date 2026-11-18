@@ -57,6 +57,8 @@ const posLetter = (pos?: string) =>
 /** NBA "Box Score" sekmesi: iki takımın tam kutu skoru alt alta (yatay kaydırmalı tablo) */
 export function BoxScoreTab({ match }: { match: Match }) {
   const box = Array.isArray(match.box_score) ? match.box_score : [];
+  // [] = sunucu denedi ama oyuncu verisi gelmedi (null = henüz denenmedi)
+  const checkedEmpty = Array.isArray(match.box_score) && !match.box_score.length;
 
   if (!box.length) {
     return (
@@ -65,7 +67,9 @@ export function BoxScoreTab({ match }: { match: Match }) {
           {isLive(match.status_short)
             ? 'Box score maç bitince yüklenir. Canlı skor ve çeyrekler Özet sekmesinde.'
             : match.status_short === 'FT'
-              ? 'Box score hazırlanıyor; maçtan kısa süre sonra burada olacak.'
+              ? checkedEmpty
+                ? 'Bu maç için oyuncu istatistiği yayınlanmadı; box score yok. Takım istatistikleri ve çeyrekler Özet sekmesinde.'
+                : 'Box score hazırlanıyor; maçtan kısa süre sonra burada olacak.'
               : 'Box score maç bittiğinde görünecek.'}
         </Text>
       </Card>

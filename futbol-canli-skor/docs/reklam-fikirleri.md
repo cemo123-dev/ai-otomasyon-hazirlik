@@ -1,5 +1,17 @@
 # Skor+ — Reklam ve Kreatif Fikirler (Türkiye, ~0 TL)
 
+> **Değişiklik notu — 18 Kasım 2026**
+> - Yeni **7. bölüm** eklendi: güncel özelliklere (GELISTIRMELER 3.20–3.27) göre yeni kreatif turu.
+>   - 7.1 Özellik doğruluk tablosu: hangi özellik ücretsiz, hangisi Pro (Pro henüz satışta değil, "yakında").
+>   - 7.2 **Ticari marka ve logo kuralı** (yeni, zorunlu): reklam kreatiflerinde resmî NBA, lig ve kulüp logosu ya da markası kullanılmaz.
+>   - 7.3 Üç yeni kısa video: NBA box score + Türkçe AI analizi, futbol devre arası raporu, taktik asistan sohbeti.
+>   - 7.4 Beş statik gönderi/hikâye metni. CTA: "APK'yı indir" + QR/bağlantı yer tutucusu.
+>   - 7.5 Sıfır bütçe organik plan (2 hafta).
+>   - 7.6 ₺1000–3000 ücretli test planı. 5. bölümdeki 500–1000 TL planın yerine geçer; 5.1'deki "önce Play Store kaydı" önerisi geçerliliğini korur.
+>   - 7.7 APK kurulumunu ölçme: UTM, kanal başına bağlantı sayacı, kanal başına APK dosyası, backend'de yeni hesap sayısı.
+> - 0. bölümdeki kontrol listesine 9. soru eklendi: marka/logo kuralı.
+> - Eski bölümler silinmedi. Eski Video 4 (NBA) ve 2.7 (indirme sayfası) hâlâ geçerli. 2.7'deki "Yakında: skorun nedeni" maddesi de doğru: AI özellikleri uygulamada hazır ama Pro satın alınamıyor.
+
 > Hazırlanma tarihi: 17 Kasım 2026. Kaynak brief: `docs/pazarlama-stratejisi.md`, 7. bölüm. Bu belge o stratejiye bağlıdır; çelişki olursa strateji belgesi geçerlidir.
 > **Köşeli parantezli her alan** (`[Ev sahibi]`, `[dk]`, `[xG]`, `[indirme-sayfası]`) gerçek maç verisi ve gerçek uygulama çıktısıyla doldurulur. Kurgu alarm, kurgu analiz, uydurma sayı yok.
 > "⚠ doğrulanmalı" işaretli maddeler platform kuralı, ücret veya tarih içerir. Uygulamadan önce kontrol edilir.
@@ -23,6 +35,7 @@
 6. Kulüp/lig logosu, oyuncu fotoğrafı, yayın görüntüsü var mı? Çıkar.
 7. Tek CTA mı? "İndirme sayfası" **veya** "bekleme listesi". İkisi aynı anda değil.
 8. Tanıtımsa "Bu uygulamayı ben geliştiriyorum" ifadesi var mı? Yoksa ekle.
+9. Kreatifte resmî NBA, lig veya kulüp logosu, takım logosu, forma/renk kimliği ya da markayı slogan gibi kullanan bir ifade var mı? Varsa çıkar. Ekran kaydındaki takım logoları bulanıklaştırılır. Ayrıntı: 7.2.
 
 **Alarm dili kuralı:** Uygulamanın alarm metinleri ("gol kapıda!" gibi) yalnız **gerçek ekran görüntüsü** olarak, gerçek maçtan gösterilir. Reklam metni bu ifadeyi kendi sesiyle tekrarlamaz. Reklam cümlesi her zaman **"baskıyı veriyle gösterir"** çizgisinde kalır, "golü bilir" çizgisine geçmez. Alarmın gelip golün gelmediği vakalar da paylaşılır ("Alarm geldi, kaleci kurtardı"). Bu, "tahmin uygulaması" algısını ve bahis çağrışımını önler.
 
@@ -451,6 +464,8 @@ UTM etiketleri: x / ig / tiktok / yt / reddit / tg
 
 ## 5. Ücretli deneme planı (500-1000 TL çıkarsa) ve bütçesiz yol
 
+> 18 Kasım notu: Güncel ücretli test planı **7.6** (₺1000–3000), ölçüm planı **7.7**. 5.1'deki "önce Play Store kaydı" önerisi geçerli.
+
 ### 5.1 Önce: bu parayı reklama değil Play Store'a harcamak daha verimli olabilir
 Strateji belgesine göre en büyük büyüme engeli APK ve Play Store kayıt ücreti tek seferlik ~25 $ (⚠ doğrulanmalı: güncel ücret, kur ve Türkiye'den kabul edilen ödeme yöntemi). Bu ücret 500-1000 TL'nin içinde kalıyorsa **önerim parayı önce Play Console kaydına ayırmaktır.** Gerekçe: APK sayfasına reklamla gelen kullanıcının önemli bir kısmı "bilinmeyen kaynak" uyarısında kaybolur. Aynı para kalıcı bir dönüşüm engelini kaldırır; reklam ise tek seferlik trafik getirir.
 
@@ -487,3 +502,214 @@ Sonuçlar gerçek sayılarla, yuvarlanmadan Google Sheets'e yazılır. "X kişi 
 1. **"Skor küçük, sebep büyük" maç sonu kartı (Konsept A + Kart 1):** Sıfır maliyetli, uygulamanın kendi ürettiği gerçek analizle her büyük maçtan sonra tekrar eden içerik makinesi. Pro talebini satış yapmadan ölçer.
 2. **Dürüst alarm vakaları ("Alarm golü bilmez, baskıyı gösterir" — Video 3 + Kart 2):** Golle biten ve bitmeyen gerçek vakaları birlikte paylaşmak hem en paylaşılabilir anı yakalar hem de bahis/tahmin algısını baştan keser.
 3. **"Bir takım. Bir bildirim. Yeter." (Konsept B + Video 2):** Bugün çalışan ücretsiz özelliği, her taraftara aynı tarafsız mesajla, 15 saniyede anlatır. Telegram/Discord gruplarında ve kısa videoda en kolay dönüşen mesaj.
+4. **(18 Kasım) "Gece maçının tam kutu skoru, sabah kahvenle." (Video N1 + S1):** Bugün çalışan, ücretsiz ve yeni NBA box score'u sabah penceresinde anlatır. Ücretli testte ilk aday budur. Ayrıntı 7. bölümde.
+
+---
+
+## 7. Yeni kreatif turu — 18 Kasım 2026 (güncel özelliklere göre)
+
+> Bu bölüm GELISTIRMELER.txt 3.20–3.27'ye göre yazıldı. 0. bölümdeki kontrol listesi (9 soru) ve alarm dili kuralı burada da geçerlidir.
+
+### 7.1 Özellik doğruluk tablosu — reklamda ne söylenebilir?
+
+Pro şu an satın alınamaz. Uygulama APK ile dağıtılıyor ve Play Store'da değil. Test hesapları dışındaki kullanıcılar paywall'da **"Pro abonelik çok yakında"** görür (3.21, 3.22). Bu yüzden Pro özellikleri reklamda her zaman **"Pro · yakında"** etiketiyle anılır. "Hemen kullan", "şimdi aç" veya fiyat yazılmaz.
+
+| Özellik | Durum | Reklamda nasıl söylenir |
+|---|---|---|
+| Canlı skor, Dün / Bugün / Yarın şeridi | Ücretsiz | "Dün, bugün, yarın: tek ekranda." |
+| Takım takibi + "Maç başladı" bildirimi | Ücretsiz | "Takımını seç, maç başlayınca haber gelsin." |
+| "Son güncelleme HH:MM" damgası | Ücretsiz | "Verinin ne zaman güncellendiğini görürsün." Canlı veri ~30 dk aralıkla güncellenir. "Anlık" veya "saniye saniye" **denmez**. |
+| Futbol Kadro sekmesi: diziliş, yedekler, teknik direktör; maç sonu oyuncu puanları ve "Maçın oyuncusu" | Ücretsiz (veri varsa) | "Maç bitince oyuncu puanları." |
+| NBA çeyrek skorları, "Kısa bakış", "Kırılma anı" | Ücretsiz (veri varsa) | "Maç hangi çeyrekte kırıldı?" |
+| NBA Box Score: iki takım alt alta; DK, FGM/FGA/FG%, 3PM/3PA/3P%, FTM/FTA/FT%, OREB/DREB/REB, AST, STL, BLK, TO, PF, PTS, +/-; TOPLAM satırı | Ücretsiz, **yalnız biten maçlarda** | "Gece maçının tam kutu skoru sabah hazır." **Canlı box score yok**, "canlı" denmez. |
+| Maç sonu AI taktik analizi (futbol + NBA, Türkçe, NBA'de basketbol diliyle) | Pro · yakında | "Maç sonu Türkçe taktik analiz. Pro'da, yakında." |
+| Maç önü AI raporu (veri azsa dizilişten okuma) | Pro · yakında | "Maç önü: dizilişten kilit bölge." "Tahmin" denmez. |
+| Devre arası "Soyunma Odası Reçetesi" | Pro · yakında | "Devre arasında ikinci yarı için hamleler." |
+| Akıllı alarmlar (baskı alarmı vb.) | Pro · yakında | 0. bölümdeki alarm dili kuralı geçerli. |
+| Taktik asistan sohbeti: maç başına 3 soru, yanıt yalnız o maçın verisine dayanır | Pro · yakında | "Bu maç hakkında sor. Yanıt yalnız bu maçın verisinden." |
+
+**Söylenmeyecekler:** "Canlı box score", "anlık skor", "AI kazananı bilir", "tahmin", "her ligi kapsar", "Play Store'da". Ölçülmemiş kullanıcı sayısı veya puan yazılmaz. Sahte yorum, sahte kullanıcı görüşü veya "kullanıcılarımız diyor ki" kartı **yoktur**. Gerçek bir kullanıcı alıntısı ancak yazılı izinle, kelimesi kelimesine ve kaynağıyla kullanılabilir.
+
+### 7.2 Ticari marka ve logo kuralı (zorunlu)
+
+**Kural: Reklam kreatiflerinde resmî NBA, lig, federasyon veya kulüp ticari markası ve logosu kullanılmaz.** Bu kural ücretli ve organik bütün kreatifler için geçerlidir.
+
+- **Logo yok:** NBA logosu, lig/kupa logoları, kulüp armaları ve NBA takım logoları kreatife konmaz. Uygulama maç ekranlarında gerçek takım logolarını gösterir (NBA logoları 3.26'dan beri Storage'dan gelir). Bu yüzden **ekran kaydı ve ekran görüntülerinde logolar bulanıklaştırılır** veya logo alanı kırpılır.
+- **Görsel kimlik yok:** Forma, takım renk paleti, resmî font, kupa görseli, oyuncu fotoğrafı ve maç yayın görüntüsü kullanılmaz.
+- **Taklit yok:** Kreatif bir kulübün, ligin veya yayıncının resmî hesabı ya da duyurusu gibi görünmez. "Resmî", "lisanslı", "onaylı", "partner" denmez. Hesap adı, kullanıcı adı ve hashtag'ler marka adı içermez (ör. `@skorplus_nba` olmaz).
+- **Adlar yalnız betimleyici metin olarak:** "NBA", lig ve takım adları yalnız içeriği betimlemek için düz metinle yazılabilir. Örnek: "NBA maçlarının box score'u Türkçe arayüzde". Ad başlıkta marka/slogan gibi büyütülmez ve logo yerine stilize edilmez.
+- **Ücretli reklamda daha sıkı:** Ücretli kreatiflerde takım/kulüp adı geçmez. Lig adı yalnız gövde metninde, betimleyici olarak geçer. Başlıkta "gece basketbolu", "Avrupa gecesi", "derbi akşamı" gibi genel ifadeler kullanılır. ⚠ doğrulanmalı: Meta ve TikTok reklam politikalarının üçüncü taraf ticari markası içeren reklam metnine yaklaşımı.
+- **Temsilî ekran seçeneği:** Logosuz, temiz bir arayüz demosu gerekirse geliştirme build'indeki örnek veri modu kullanılabilir (kurgusal takımlar, ör. `e2e/shots` ekranları). Bu durumda köşeye **"Temsilî ekran · örnek veri"** yazılır. Bu ekranlar gerçek maç sonucu veya gerçek AI çıktısı gibi sunulmaz.
+- **Sabit dipnot** (kreatifte yer varsa kreatifte, her zaman açıklama metninde): "Skor+ bağımsız bir uygulamadır; hiçbir lig, kulüp veya federasyonla bağlantılı değildir."
+
+### 7.3 Üç yeni kısa video (TikTok / Reels / Shorts)
+
+Ortak kurallar:
+- 2.2'deki üretim kuralları geçerli: 9:16, altyazı açık, ticari kullanıma uygun ses, maç görüntüsü yok.
+- 7.2 geçerli: logolar bulanık.
+- Köşeli parantezli alanlar gerçek maçtan ve uygulamanın gerçek çıktısından doldurulur.
+- Pro özellik gösteriliyorsa ekranda küçük ve sürekli bir **"Pro · yakında"** etiketi durur.
+- AI çıktısı test hesabında üretilmiş gerçek çıktıdır. Metin düzeltilmez. Kısaltılırken anlamı değiştirilmez.
+
+**Video N1 — "Gece maçı, sabah kutu skoru" (NBA, 25 sn)**
+Hedef: S3 (NBA / basketbol takipçisi). Ana mesaj: Box score ücretsiz, Türkçe analiz Pro'da yakında.
+
+| Saniye | Sahne | Ekran yazısı | Seslendirme |
+|---|---|---|---|
+| 0-3 | Sabah saati görünen kilit ekranı (ör. 08:10) | "Gece basketbol vardı. Sen uyudun." | "Gece maç vardı, sen uyudun." |
+| 3-7 | Skor+ ana ekranı, "Dün" sekmesi, biten maç satırı (logolar bulanık) | "Skor hazır." | "Skor hazır." |
+| 7-14 | Maç ekranı, "Box Score" sekmesi: iki takım tablosu alt alta; yatay kaydırma ile FG%, 3P%, +/- sütunları; en skorer oyuncu vurgulu | "Tam kutu skoru: FG%, 3P%, ribaund, +/-" | "İki takımın tam kutu skoru, alt alta." |
+| 14-17 | TOPLAM satırına yakınlaştırma | "Takım toplamı tek satırda." | — |
+| 17-23 | "AI Taktik" sekmesi: maç sonu Türkçe analizden 1 cümle vurgulu; köşede "Pro · yakında" | "[Analizden gerçek 1 cümle, ör. kırılma periyodu]" | "Maçın neden öyle bittiğini Türkçe anlatıyor. Bu kısım Pro'da, yakında." |
+| 23-25 | Kapanış kartı + QR | "Box score ücretsiz. APK'yı indir." | "Bağlantı profilde." |
+
+- Açıklama metni: "Biten NBA maçlarının box score'u ücretsiz. Maç sonu Türkçe taktik analiz Pro'da, yakında. Skor+ bağımsız bir uygulamadır. APK: [kısa-bağlantı]?utm_source=tiktok&utm_campaign=n1"
+- Dikkat: Box score yalnız biten maçlarda var. "Canlı" denmez. Oyuncu adları ekranda kalabilir; oyuncu fotoğrafı eklenmez.
+
+**Video N2 — "15 dakikalık soyunma odası" (futbol devre arası, 20 sn)**
+Hedef: S1 (taktik/veri meraklısı). Ana mesaj: Devre arasında ikinci yarı için somut hamleler.
+
+| Saniye | Sahne | Ekran yazısı | Seslendirme |
+|---|---|---|---|
+| 0-3 | Maç ekranı, skor + yeşil "İY" rozeti (logolar bulanık) | "Devre arası. [skor]." | "Devre arası." |
+| 3-6 | Siyah geçiş | "Soyunma odasında ne konuşuluyor?" | "Soyunma odasında ne konuşuluyor?" |
+| 6-12 | "AI Taktik" sekmesi: "SOYUNMA ODASI REÇETESİ" rozeti, başlık ve ilk yarı özeti | "[Raporun gerçek başlığı]" | "[Raporun ilk yarı özeti, sade dille]" |
+| 12-17 | "İkinci yarıda ne olmalı? — Hamleler" kartları aşağı kaydırılır | "[Gerçek hamle 1] / [Gerçek hamle 2]" | "İkinci yarı için iki hamle." |
+| 17-20 | Kapanış kartı + QR, köşede "Pro · yakında" | "Devre arası raporu: Pro'da, yakında. Uygulama ücretsiz: APK'yı indir." | "Bağlantı profilde." |
+
+- Kural: Video ikinci yarıdan sonra yayınlanırsa yalnız "tuttu" vakaları seçilmez. Rapor "tahmin" değil "öneri" olarak sunulur. "Bu hamle yapıldı ve gol geldi" türünde sebep-sonuç iddiası kurulmaz.
+- Ücretli sürümde takım adları ses ve yazıdan çıkarılır; skor kalır (7.2).
+
+**Video N3 — "Maça soru sor" (taktik asistan, 25 sn)**
+Hedef: S1 + S3. Ana mesaj: Yanıt genel internetten değil, yalnız o maçın verisinden gelir.
+
+| Saniye | Sahne | Ekran yazısı | Seslendirme |
+|---|---|---|---|
+| 0-3 | Biten maç ekranı, skor | "Maç bitti. Bir sorum var." | "Maç bitti, aklımda bir soru var." |
+| 3-9 | "Taktik asistana sor" kutusu; öneri çipine dokunma: "Maçın kırılma anı neydi?" | "Maçın kırılma anı neydi?" | — |
+| 9-14 | Gerçek yanıt balonu | "[Gerçek yanıt]" | "[Yanıtın ilk cümlesi]" |
+| 14-19 | İkinci soru (futbolda "Teknik direktör hamleleri işe yaradı mı?", NBA'de uygulamadaki basketbol önerisi) ve "Yorumum: …" ile başlayan gerçek yanıt | "Yorumsa, yorum olduğunu söylüyor." | "Yorumsa, yorum olduğunu söylüyor." |
+| 19-22 | Alt not yakın plan: "Yanıtlar yalnız bu maçın verisine dayanır." ve soru sayacı | "Maç başına 3 soru. Sadece bu maçın verisi." | "Maç başına üç soru, sadece bu maçın verisi." |
+| 22-25 | Kapanış kartı + QR, köşede "Pro · yakında" | "Taktik asistan: Pro'da, yakında. APK'yı indir." | "Bağlantı profilde." |
+
+- Dikkat: `e2e/shots/c1-sohbet.png` içindeki "Önizleme modundasın…" yanıtı videoda **gösterilmez**. Bu bir geliştirme ekranıdır. Kayıt test hesabında, gerçek bir maçta yapılır.
+- Yanıtta hata veya yazım bozukluğu varsa o çekim kullanılmaz. Metin düzeltilip gerçekmiş gibi gösterilmez.
+- "Yorumum:" ile başlayan bir yanıt çekimde yoksa 14-19 sn sahnesi çıkarılır. Video 20 sn'ye iner.
+
+### 7.4 Beş statik gönderi / hikâye metni
+
+Ortak kurallar:
+- Görsel: gerçek ekran görüntüsü (logolar bulanık) veya "Temsilî ekran · örnek veri" etiketli demo ekranı.
+- CTA her zaman tek: **"APK'yı indir"**. Altında `[QR: indirme-sayfası?utm_source=…&utm_campaign=…]` ve `[kısa-bağlantı]`.
+- Hikâye formatında QR yerine bağlantı çıkartması kullanılır.
+- Ölçü: gönderi 4:5, hikâye 9:16.
+- Her açıklamada 7.2'deki bağımsızlık dipnotu yer alır.
+
+**S1 — Box score (ücretsiz, NBA)**
+- Başlık: **"Gece maçının tam kutu skoru, sabah kahvenle."**
+- Gövde: "İki takım alt alta. FG%, 3P%, ribaund, asist, +/-. Biten her NBA maçında, Türkçe arayüzde, ücretsiz."
+- CTA: **APK'yı indir** · [QR] · [kısa-bağlantı]
+- Görsel: Box score sekmesi, TOPLAM satırı görünür.
+
+**S2 — Maç sonu analiz (Pro · yakında)**
+- Başlık: **"Skor değil, sebebi."**
+- Gövde: "Maç bitince Türkçe taktik analiz: maçın nerede kırıldığını gör. Basketbolda basketbol diliyle. Analiz Pro'da, yakında. Canlı skor ve takım takibi bugünden ücretsiz."
+- CTA: **APK'yı indir** · [QR] · [kısa-bağlantı]
+- Görsel: Gerçek maç sonu analiz ekranı, köşede "Pro · yakında".
+
+**S3 — Devre arası raporu (Pro · yakında)**
+- Başlık: **"Devre arası 15 dakika. İkinci yarı için hamleler hazır."**
+- Gövde: "Soyunma Odası Reçetesi: ilk yarının özeti ve ikinci yarı için somut hamleler. Tahmin değil, ilk yarının verisinden okuma. Pro'da, yakında."
+- CTA: **APK'yı indir** · [QR] · [kısa-bağlantı]
+- Görsel: "SOYUNMA ODASI REÇETESİ" rozeti ve "Hamleler" kartı.
+
+**S4 — Takım takibi (ücretsiz)**
+- Başlık: **"Bir takım. Bir bildirim. Yeter."**
+- Gövde: "Takımını seç. Maçı başladığında haber gelsin. Dün, bugün, yarın tek ekranda. Futbol ve NBA, Türkçe ve ücretsiz."
+- CTA: **APK'yı indir** · [QR] · [kısa-bağlantı]
+- Görsel: "Takip et" düğmesi ve gerçek "Maç başladı" bildirimi (kilit ekranı).
+
+**S5 — Taktik asistan (Pro · yakında)**
+- Başlık: **"Maça soru sor. Cevap maçın kendi verisinden."**
+- Gövde: "Maçın kırılma anı neydi? Hamleler işe yaradı mı? Maç başına 3 soru. Yanıt yalnız o maçın verisine dayanır; yorumsa yorum olduğunu söyler. Pro'da, yakında."
+- CTA: **APK'yı indir** · [QR] · [kısa-bağlantı]
+- Görsel: Sohbet kutusu, soru sayacı ve alt not görünür.
+
+> APK güven notu (hikâye son karesi veya ilk yorum): "Play Store'da henüz değil. İndirme sayfasında SHA-256 özeti ve tarama bağlantısı var." Bu not 2.7'deki güven bölümüne bağlanır.
+
+### 7.5 Sıfır bütçe organik plan (2 hafta, günde ~45-60 dk)
+
+Ritim:
+- NBA maçları Türkiye saatiyle gece veya sabaha karşı biter. NBA içeriği **sabah 07:30-09:30** arasında paylaşılır.
+- Futbolda devre arası raporu maç sırasında kaydedilir. Video **maç bitiminden sonra 1-2 saat** içinde paylaşılır.
+- Avrupa gecesi ve hafta sonu Süper Lig en yoğun pencerelerdir.
+
+| Gün | İş | Kanal | UTM kampanyası |
+|---|---|---|---|
+| 1 | İndirme sayfasına kanal başına kısa bağlantılar ve sayaç (7.7), bio bağlantıları, 7.2 dipnotu | Tümü | — |
+| 2-3 | Video N1'i bir gece maçından çek, sabah paylaş | TikTok + Reels + Shorts (aynı video) | `n1` |
+| 3 | Statik S1 (box score) | Instagram gönderi + hikâye, X | `s1` |
+| 4-5 | Hafta içi Avrupa maçında devre arası raporunu kaydet; Video N2 | Kısa video + X (rapor ekranı + 2 cümle) | `n2` |
+| 6 | Statik S4 (takım takibi); izin alınmış Telegram/Discord grupları (2.6 izin mesajı) | Telegram, Discord | `s4` |
+| 7 | Haftalık gözden geçirme: kanal başına tıklama, indirme ve yeni hesap sayısı (7.7) | — | — |
+| 8-9 | Video N3 (asistan sohbeti), NBA veya futbol | Kısa video | `n3` |
+| 10 | Statik S2 + S5, carousel olarak (2.3 formatı) | Instagram | `s2`, `s5` |
+| 11 | Reddit veya Ekşi: bilgilendirici tek içerik, 2.4/2.5 kurallarıyla (ayda en fazla 1) | Reddit veya Ekşi | `reddit` / `eksi` |
+| 12-13 | Hafta sonu maçında Video N2'yi başka bir maçla tekrar çek; S3 hikâyesi | Kısa video, hikâye | `n2b`, `s3` |
+| 14 | Sonuç tablosu: en çok yeni hesap getiren 2 içerik seçilir ve 7.6 için aday olur | — | — |
+
+Organik kurallar:
+- Aynı video üç platforma gider. Açıklama ve UTM platforma göre değişir.
+- Yorumlara geliştirici kendi adıyla cevap verir ("Bu uygulamayı ben geliştiriyorum"). Başka hesaplardan övgü yazılmaz.
+- Rakip uygulamanın adı ve ekranı gösterilmez.
+
+### 7.6 Küçük ücretli test planı (₺1000–3000)
+
+> Önce 5.1'e bak: Play Console kayıt ücreti karşılanmadıysa bütçenin bir kısmını oraya ayırmak daha kalıcı etki verebilir. ⚠ doğrulanmalı: güncel kayıt ücreti ve kur.
+
+**Neden "trafik" hedefi:** Uygulama mağazada değil. "Uygulama yükleme" kampanya hedefi genelde mağaza bağlantısı ister (⚠ doğrulanmalı). Reklam doğrudan `.apk` dosyasına değil, **indirme sayfasına** gider. Kampanya hedefi: bağlantı tıklaması veya açılış sayfası görüntüleme. ⚠ doğrulanmalı: Meta ve TikTok'un harici APK indirme sayfasına giden reklamlar için politikası, minimum günlük bütçe, Türkiye fatura/vergi koşulları.
+
+**Kreatif:** Yalnız 7.5'te organik olarak en iyi giden 2-3 içerik kullanılır. Sıfırdan reklam üretilmez. Ücretli kreatiflerde takım/kulüp adı yoktur ve logolar bulanıktır (7.2).
+
+| Bütçe | Yapı | Süre |
+|---|---|---|
+| **₺1000** | Tek platform: Meta (Instagram Reels + Hikâye). 2 kreatif × ₺350 test, kalan ₺300 kazanana | 7 gün test + 3 gün kazanan |
+| **₺2000** | Meta ₺1400 (3 kreatif) + TikTok ₺600 (organikte en iyi giden 1 video) | 7 gün test + 7 gün kazanan |
+| **₺3000** | Meta ₺1800 (3 kreatif: N1, N2 veya N3, S4) + TikTok ₺900 + ₺300 yedek (kazanana veya NBA sabah penceresine) | 7 gün test + 7 gün kazanan |
+
+**Hedefleme:**
+- Konum: Türkiye. Dil: Türkçe. Yaş: 18-34. İkinci aşamada 35-44 için ayrı reklam seti.
+- Cihaz: **yalnız Android**. APK iOS'ta çalışmaz. Platform destekliyorsa işletim sistemi hedefi kullanılır.
+- İlgi alanları: futbol, basketbol, NBA, spor istatistikleri, fantezi spor.
+- Ayrı reklam seti: basketbol ilgisi + sabah 07:00-10:00 gösterimi (Video N1, S1).
+- **Hariç tutma:** bahis, şans oyunları, iddaa ve kumar ilgi alanları (platform izin veriyorsa). Reklam metni 0. bölümdeki kontrol listesinden geçer.
+- Zamanlama: futbolda maçtan 2-3 saat önce ve maç bitiminden sonraki 3 saat; NBA'de sabah.
+- Yerleşim: Reels, Hikâye ve TikTok akışı. Masaüstü yerleşimleri kapalı.
+
+**Durdurma ve karar kuralları:**
+- 3. gün: Bir kreatifin sayfa ziyareti başı maliyeti diğerlerinin yaklaşık 2 katıysa o kreatif kapatılır.
+- 7. gün: Hiç APK indirmesi gelmediyse test durur ve kalan bütçe saklanır. Bu durumda sorun büyük olasılıkla reklamda değil, indirme sayfasının güven bölümündedir (2.7).
+- Karar metriği **yeni hesap başı maliyet**tir (7.7). Beğeni ve izlenme karar metriği değildir.
+- Sonuçlar gerçek sayılarla tabloya yazılır. Hedef sayı uydurulmaz. İlk test, sonraki testler için referanstır.
+
+### 7.7 APK kurulumu nasıl ölçülür?
+
+Play Store olmadığı için mağaza yönlendirme verisi (install referrer) yoktur. Ölçüm dört katmanda yapılır: **tıklama → sayfa ziyareti → APK indirme → ilk açılış (yeni hesap)**.
+
+1. **UTM'li bağlantılar (ziyaret):** Her kanal ve her kreatif için ayrı bağlantı kullanılır. Örnek: `[indirme-sayfası]/?utm_source=tiktok&utm_medium=video&utm_campaign=n1`. Ücretli reklamda `utm_medium=paid`. Sayfadaki gizlilik dostu ücretsiz analitik (GoatCounter veya Cloudflare Web Analytics; ⚠ ücretsiz katman doğrulanmalı) ziyaretleri kaynağa göre sayar. Sayfa çerez kullanıyorsa KVKK metni güncellenir.
+2. **Kanal başına bağlantı sayacı (indirme tıklaması):** "APK'yı indir" düğmesi doğrudan dosyaya gitmez. Kanal etiketli bir yönlendirme yoluna gider: `[indirme-sayfası]/dl?src=tiktok-n1`. Bu yol tıklamayı sayar ve sonra APK'ya yönlendirir. Sayfa, gelen UTM değerini düğmenin `src` değerine aktarır. Ücretsiz seçenekler: analitik aracının olay sayımı (ör. GoatCounter event) veya ücretsiz katmanlı bir kısa bağlantı servisi. ⚠ doğrulanmalı: servisin ücretsiz limitleri ve gizlilik koşulları.
+3. **Kanal başına APK dosyası (gerçek indirme):** Aynı APK, GitHub Releases'a kanal adıyla birden çok kez yüklenebilir: `skorplus-1.x-tiktok.apk`, `skorplus-1.x-instagram.apk`, `skorplus-1.x-site.apk`. GitHub her dosyanın indirme sayısını ayrı tutar (Releases API, `download_count`). Dosyalar bit bit aynıdır. SHA-256 özeti de aynıdır; sayfada tek özet yazılır. Not: Drive gibi başka barındırmalarda dosya başına sayaç güvenilir olmayabilir.
+4. **İlk açılış (gerçek kurulum):** Uygulama ilk açılışta anonim hesap açar (3.21). Supabase'de günlük yeni anonim hesap sayısı, kurulup **açılan** uygulama sayısının en yakın göstergesidir. Kampanya günleri, kampanya öncesi 7 günle karşılaştırılır. Yeni hesap / APK indirme oranı, "bilinmeyen kaynak" uyarısında kaybedilen kullanıcıyı gösterir. Not: Hesap silme sonrası açılan yeni anonim hesap da sayılır; bu küçük bir sapmadır.
+5. **Aktivasyon ve tutma:** Takım takip eden yeni hesap oranı ve D7 tutma (son açılış zamanı). Ayrıntı 5.3'teki tabloda.
+
+| Katman | Kaynak | Kanal ayrımı |
+|---|---|---|
+| Tıklama | Reklam paneli / platform analitiği | Kreatif bazında |
+| Sayfa ziyareti | GoatCounter / Cloudflare + UTM | Kanal ve kreatif |
+| İndirme tıklaması | `/dl?src=` sayacı | Kanal ve kreatif |
+| APK indirme | GitHub Releases, dosya başına `download_count` | Kanal (dosya adı) |
+| Kurulum + ilk açılış | Supabase, günlük yeni anonim hesap sayısı | Yalnız zaman bazında; kanal ayrımı yok |
+
+> Geliştiriciye not (kod değişikliği yapılmadı, yalnız fikir): Kurulumu kanala bağlamak için ilk açılışta tek soruluk, atlanabilir bir "Bizi nereden duydun?" ekranı düşünülebilir. Bu ekran bugün uygulamada **yoktur**. Reklamda veya raporda varmış gibi anılmaz.
+
+**Paylaşım kuralı:** "X kişi indirdi" gibi bir sayı yalnız ölçülen gerçek değerle ve ölçüm kaynağıyla paylaşılır. İndirme sayısı "kullanıcı sayısı" diye sunulmaz.

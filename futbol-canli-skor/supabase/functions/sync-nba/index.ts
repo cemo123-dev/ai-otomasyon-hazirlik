@@ -6,7 +6,7 @@
 // Kota API-Football ile ortaktır: isteğe bağlı çekimler kota bekçisine (hasNbaQuota) tabidir.
 import { buildNbaTeaser, pickTopPlayers, type NbaMatchRow } from '../_shared/nbaAnalysis.ts';
 import { hasNbaQuota, lastNbaQuota, mapGame, mapPlayers, mapTeamBoxes, nbaGet, toGameId } from '../_shared/nbaApi.ts';
-import { isMissingBoxColumn, toBoxScore } from '../_shared/nbaBox.ts';
+import { boxScoreToStore, isMissingBoxColumn } from '../_shared/nbaBox.ts';
 import { mirrorNbaLogos, withMirroredLogos } from '../_shared/logoMirror.ts';
 import { computeNbaMetrics, type NbaPlayerLine } from '../_shared/nbaMetrics.ts';
 import { runNbaAlerts } from '../_shared/alertStore.ts';
@@ -19,7 +19,9 @@ const PAID = Deno.env.get('API_FOOTBALL_PAID') === '1';
 /** Tek çalıştırmada kutu skoru çekilecek en fazla maç (maç başına 2 istek) */
 const MAX_ENRICH = Number(Deno.env.get('NBA_MAX_ENRICH') ?? 3);
 /** Tek çalıştırmada box score'u geri doldurulacak en fazla maç (maç başına 1 istek) */
-const MAX_BOX_BACKFILL = Number(Deno.env.get('NBA_MAX_BOX_BACKFILL') ?? 5);
+const MAX_BOX_BACKFILL = Number(Deno.env.get('NBA_MAX_BOX_BACKFILL') ?? 3);
+/** Geri doldurma isteğe bağlı: NBA_QUOTA_RESERVE'e ek olarak futbol için bu kadar istek bırakılır */
+const BOX_BACKFILL_RESERVE = Number(Deno.env.get('NBA_BOX_BACKFILL_RESERVE') ?? 20);
 
 const edgeRuntime = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime;
 
@@ -129,6 +131,8 @@ async function enrichFinished() {
   if (error) throw error;
 
   let done = 0;
+  // Bu çalıştırmada oyuncu verisi zaten istenen maçlar geri doldurmada tekrar istenmez
+  const tried = new Set<number>();
   for (const m of data ?? []) {
     // Her maç 2 istek ister; ortak kota rezervinin altına inilecekse dur
     if (!hasNbaQuota(2)) {
@@ -160,33 +164,40 @@ async function enrichFinished() {
         .update({ stats: row.stats, top_players: row.top_players, summary_teaser: buildNbaTeaser(row) })
         .eq('fixture_id', m.fixture_id);
       if (upErr) throw upErr;
-      await storeBoxScore(m.fixture_id, players);
+      // Oyuncu verisi maç bitiminde gecikebilir: boşsa işaretlenmez, sonraki çalıştırmada geri doldurma bir kez dener
+      tried.add(m.fixture_id);
+      await storeBoxScore(m.fixture_id, players, false);
       done++;
     } catch (e) {
       console.warn(`[sync-nba] ${m.fixture_id} istatistik atlandı:`, e instanceof Error ? e.message : e);
     }
   }
-  return done + (await backfillBoxScores(MAX_BOX_BACKFILL));
+  return done + (await backfillBoxScores(MAX_BOX_BACKFILL, tried));
 }
 
-/** Box score ayrı yazılır: 0014 yoksa yalnız uyarı (senkron durmaz). Dönüş: false = kolon yok */
-async function storeBoxScore(fixtureId: number, players: NbaPlayerLine[]): Promise<boolean> {
-  const box = toBoxScore(players);
-  if (!box) return true;
+/**
+ * Box score ayrı yazılır: 0014 yoksa yalnız uyarı (senkron durmaz).
+ * markEmpty: oyuncu verisi boşsa [] yazılır ("denendi" işareti; tekrar istenmez).
+ * Dönüş: 'stored' = dolu yazıldı, 'empty' = boş (işaretlendi ya da atlandı), 'no-column' = 0014 yok
+ */
+async function storeBoxScore(fixtureId: number, players: NbaPlayerLine[], markEmpty: boolean): Promise<'stored' | 'empty' | 'no-column'> {
+  const box = boxScoreToStore(players, markEmpty);
+  if (!box) return 'empty';
   const { error } = await admin.from('matches').update({ box_score: box }).eq('fixture_id', fixtureId);
   if (isMissingBoxColumn(error)) {
     console.warn('[sync-nba] 0014_nba_box.sql kurulmamış; box score atlandı');
-    return false;
+    return 'no-column';
   }
   if (error) console.warn(`[sync-nba] ${fixtureId} box score yazılamadı:`, error.message);
-  return true;
+  return box.length ? 'stored' : 'empty';
 }
 
 /**
  * Önceden işlenmiş (istatistiği olan) ama box score'u olmayan son 3 günün maçları:
- * yalnız oyuncu istatistiği çekilir (maç başına 1 istek, kota bekçisine tabi).
+ * yalnız oyuncu istatistiği çekilir (maç başına 1 istek). Kota bekçisi futbol için geniş pay bırakır
+ * (BOX_BACKFILL_RESERVE); boş yanıt [] ile işaretlenir ve sayaca katılmaz.
  */
-async function backfillBoxScores(limit: number): Promise<number> {
+async function backfillBoxScores(limit: number, skip: Set<number>): Promise<number> {
   if (limit <= 0) return 0;
   const since = new Date(Date.now() - 3 * 86400_000).toISOString();
   const { data, error } = await admin
@@ -198,18 +209,19 @@ async function backfillBoxScores(limit: number): Promise<number> {
     .is('box_score', null)
     .gte('kickoff_at', since)
     .order('kickoff_at', { ascending: false })
-    .limit(limit);
+    .limit(limit + skip.size);
   if (error) {
     if (!isMissingBoxColumn(error)) console.warn('[sync-nba] box score geri doldurma sorgusu:', error.message);
     return 0;
   }
   let n = 0;
-  for (const m of data ?? []) {
-    if (!hasNbaQuota(1)) break;
+  for (const m of (data ?? []).filter((x) => !skip.has(x.fixture_id)).slice(0, limit)) {
+    if (!hasNbaQuota(1 + BOX_BACKFILL_RESERVE)) break;
     try {
       const players = mapPlayers(await nbaGet(`/players/statistics?game=${toGameId(m.fixture_id)}`, KEY), m.home_team);
-      if (!(await storeBoxScore(m.fixture_id, players))) break;
-      n++;
+      const r = await storeBoxScore(m.fixture_id, players, true);
+      if (r === 'no-column') break;
+      if (r === 'stored') n++;
     } catch (e) {
       console.warn(`[sync-nba] ${m.fixture_id} box score geri doldurma atlandı:`, e instanceof Error ? e.message : e);
     }

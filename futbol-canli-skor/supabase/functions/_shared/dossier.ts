@@ -261,11 +261,21 @@ export function verifyAnswer(answer: string, dossier: string, question: string):
  */
 export function sanitizeAnswer(answer: string, dossier: string, question: string): string | null {
   const allowed = new Set([...numbersIn(dossier), ...numbersIn(question)]);
-  // Yalnız noktalama + boşluk + büyük harf sınırından böl ("61. dakikada" bölünmez)
-  const sentences = answer.split(/(?<=[.!?])\s+(?=[A-ZÇĞİÖŞÜ"'])/);
   // NBA yanıtında futbol terimi geçen cümle de atılır
   const nba = isNbaDossier(dossier);
-  const kept = sentences.filter((s) => numbersIn(s).every((x) => allowed.has(x)) && !(nba && hasFootballTerm(s)));
-  const text = kept.join(' ').replace(/\s+/g, ' ').trim();
+  // Önce satırlara böl (madde işaretli yanıt), sonra cümlelere; satır yapısı korunur
+  const lines: string[] = [];
+  for (const line of answer.split(/\r?\n/)) {
+    if (!line.trim()) {
+      lines.push('');
+      continue;
+    }
+    // Yalnız noktalama + boşluk + büyük harf sınırından böl ("61. dakikada" bölünmez)
+    const kept = line
+      .split(/(?<=[.!?])\s+(?=[A-ZÇĞİÖŞÜ"'])/)
+      .filter((s) => numbersIn(s).every((x) => allowed.has(x)) && !(nba && hasFootballTerm(s)));
+    if (kept.length) lines.push(kept.join(' ').replace(/[ \t]+/g, ' ').trim());
+  }
+  const text = lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
   return text.split(/\s+/).length >= 6 ? text : null;
 }

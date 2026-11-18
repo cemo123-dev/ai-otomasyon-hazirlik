@@ -11,6 +11,7 @@ import {
   sanitizeAnswer,
 } from '../_shared/dossier.ts';
 import { generateJson } from '../_shared/gemini.ts';
+import { isNbaBoxPending } from '../_shared/nbaBox.ts';
 import { admin, authorized, json } from '../_shared/supabaseAdmin.ts';
 
 const MODEL = Deno.env.get('ASSISTANT_MODEL') ?? Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash-lite';
@@ -71,7 +72,7 @@ async function getDossier(fixtureId: number): Promise<string | null> {
   // Eski sürüm dosya (çıkarımsız) yeniden derlenir
   if (cached?.dossier && isCurrentDossier(cached.dossier as string)) return cached.dossier as string;
 
-  const base = 'fixture_id, sport_type, league_name, home_team, away_team, home_score, away_score, status_short, period_scores, home_coach, away_coach, stats, events, top_players';
+  const base = 'fixture_id, sport_type, league_name, home_team, away_team, home_score, away_score, status_short, period_scores, home_coach, away_coach, stats, events, top_players, kickoff_at';
   // deno-lint-ignore no-explicit-any
   const sel = (cols: string) => admin.from('matches').select(cols).eq('fixture_id', fixtureId).maybeSingle<any>();
   // box_score (0014) yoksa onsuz derlenir
@@ -89,8 +90,9 @@ async function getDossier(fixtureId: number): Promise<string | null> {
     halftime: ht?.report_payload ?? null,
     alerts: (al ?? []) as { minute: number | null; title: string; body: string }[],
   });
-  // NBA box score henüz gelmediyse önbelleğe alınmaz (geldiğinde dosyaya girsin)
-  const boxPending = m.sport_type === 'nba' && !m.box_score;
+  // NBA box score henüz gelmediyse önbelleğe alınmaz (geldiğinde dosyaya girsin).
+  // [] (denendi, veri yok) veya maç başlangıcından 9 sa geçtiyse box score'suz da saklanır.
+  const boxPending = isNbaBoxPending(m);
   if (FINISHED.includes(m.status_short) && !boxPending) {
     await admin.from('match_dossiers').upsert({ fixture_id: fixtureId, dossier, built_at: new Date().toISOString() });
   }

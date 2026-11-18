@@ -1,6 +1,6 @@
 // NBA box score ve logo dönüşümü — çalıştırma: supabase/functions içinde `deno test`
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { isMissingBoxColumn, normalizeNbaLogo, toBoxScore } from '../_shared/nbaBox.ts';
+import { applyMirroredLogos, BOX_WAIT_MS, boxScoreToStore, isMissingBoxColumn, isNbaBoxPending, normalizeNbaLogo, toBoxScore } from '../_shared/nbaBox.ts';
 import type { NbaPlayerLine } from '../_shared/nbaMetrics.ts';
 
 const p = (name: string, team: 'home' | 'away', starter: boolean, minutes: number, points = 0): NbaPlayerLine => ({
@@ -40,4 +40,39 @@ Deno.test('isMissingBoxColumn', () => {
   assert(isMissingBoxColumn({ message: 'column matches.box_score does not exist' }));
   assert(!isMissingBoxColumn({ code: '23505' }));
   assert(!isMissingBoxColumn(null));
+});
+
+Deno.test('boxScoreToStore: boş oyuncu verisi geri doldurmada [] ile işaretlenir, ilk denemede yazılmaz', () => {
+  assertEquals(boxScoreToStore([], true), []);
+  assertEquals(boxScoreToStore([p('X', 'home', true, 0)], true), []);
+  assertEquals(boxScoreToStore([], false), null);
+  assertEquals(boxScoreToStore([p('H1', 'home', true, 30)], true)!.map((x) => x.name), ['H1']);
+});
+
+Deno.test('isNbaBoxPending: [] beklenmez; null 9 saate kadar beklenir; futbol hiç', () => {
+  const now = Date.parse('2026-11-18T12:00:00Z');
+  const recent = new Date(now - 2 * 3600_000).toISOString();
+  const old = new Date(now - BOX_WAIT_MS - 1000).toISOString();
+  assert(isNbaBoxPending({ sport_type: 'nba', box_score: null, kickoff_at: recent }, now));
+  assert(!isNbaBoxPending({ sport_type: 'nba', box_score: null, kickoff_at: old }, now));
+  assert(!isNbaBoxPending({ sport_type: 'nba', box_score: [], kickoff_at: recent }, now));
+  assert(!isNbaBoxPending({ sport_type: 'nba', box_score: [{ name: 'A' }], kickoff_at: recent }, now));
+  assert(!isNbaBoxPending({ sport_type: 'nba', kickoff_at: old }, now)); // 0014 yok
+  assert(isNbaBoxPending({ sport_type: 'nba', box_score: null, kickoff_at: null }, now));
+  assert(!isNbaBoxPending({ sport_type: 'football', box_score: null, kickoff_at: recent }, now));
+});
+
+Deno.test('applyMirroredLogos: bilinen kümede Storage adresi; bilinmeyende logo alanları tüm satırlardan çıkar', () => {
+  const url = (id: number) => `https://s/nba/${id}.png`;
+  const rows = [
+    { fixture_id: 1, home_team_id: 10, away_team_id: 20, home_logo: 'https://upload.wikimedia.org/a.png', away_logo: 'https://upload.wikimedia.org/b.png' },
+    { fixture_id: 2, home_team_id: 30, away_team_id: 10, home_logo: 'https://upload.wikimedia.org/c.png', away_logo: null },
+  ];
+  const known = applyMirroredLogos(rows, new Set([10]), url);
+  assertEquals(known[0].home_logo, url(10));
+  assertEquals(known[0].away_logo, 'https://upload.wikimedia.org/b.png');
+  assertEquals(known[1].away_logo, url(10));
+  const unknown = applyMirroredLogos(rows, null, url);
+  assert(unknown.every((r) => !Object.keys(r).some((k) => k === 'home_logo' || k === 'away_logo')));
+  assertEquals(unknown[1].fixture_id, 2);
 });

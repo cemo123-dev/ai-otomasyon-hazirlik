@@ -271,6 +271,48 @@ export const NBA_SYSTEM_INSTRUCTION =
 // ─────────────────────────────────────────────── birleştirme (0 token)
 const side = (s: 'E' | 'D' | 'N') => (s === 'E' ? 'home' : s === 'D' ? 'away' : 'neutral');
 
+/** LLM etiketi futbol terimi içerirse kullanılan yedek etiketler */
+const VERDICT_LABEL: Record<NbaEfficiencyVerdict, string> = {
+  inefficient_volume: 'Verimsiz hacim kaybettirdi',
+  efficient_offense: 'Verimli hücum farkı yarattı',
+  balanced: 'Verimlilikte denge',
+  defensive_grind: 'Savunma ağırlıklı maç',
+};
+
+/** Skor cümlesi (noktasız). Skor eksik/eşitse nötr: "0-0 kazandı" yazılmaz */
+export function nbaResultSentence(m: Pick<NbaMatchRow, 'home_team' | 'away_team' | 'home_score' | 'away_score'>): string {
+  const hs = m.home_score;
+  const as = m.away_score;
+  if (hs == null || as == null) return `${m.home_team} ile ${m.away_team} maçı sona erdi`;
+  if (hs === as) return `${m.home_team} ile ${m.away_team} maçı ${hs}-${as} bitti`;
+  const [W, L, ws, ls] = hs > as ? [m.home_team, m.away_team, hs, as] : [m.away_team, m.home_team, as, hs];
+  return `${W}, ${L} karşısında ${ws}-${ls} kazandı`;
+}
+
+/** LLM kırılmalarının hepsi süzgeçte atılırsa: kırılma periyodundan (yoksa en büyük farktan) tek satır */
+export function deterministicRun(m: NbaMatchRow): NbaTacticalPayload['quarter_runs'][number] | null {
+  const mt = m.stats?.metrics;
+  if (!mt?.quarters.length) return null;
+  const q =
+    (mt.decisive && mt.quarters.find((x) => x.quarter === mt.decisive!.quarter)) ??
+    mt.quarters.reduce((a, b) => (Math.abs(b.swing) > Math.abs(a.swing) ? b : a), mt.quarters[0]);
+  const momentum: 'home' | 'away' | 'neutral' = q.swing > 0 ? 'home' : q.swing < 0 ? 'away' : 'neutral';
+  const team = momentum === 'home' ? m.home_team : momentum === 'away' ? m.away_team : null;
+  return {
+    quarter: q.quarter,
+    label: q.label,
+    home_pts: q.home_pts,
+    away_pts: q.away_pts,
+    swing: q.swing,
+    score_after: q.score_after,
+    title: team ? `${q.label}: ${team} +${Math.abs(q.swing)}` : `${q.label}: eşit periyot`,
+    description: mt.decisive?.quarter === q.quarter
+      ? `${mt.decisive.text}.`
+      : `${q.label} ${q.home_pts}-${q.away_pts} oynandı, skor ${q.score_after} oldu.`,
+    momentum,
+  };
+}
+
 export function assembleNbaPayload(m: NbaMatchRow, o: NbaLlmOut): NbaTacticalPayload {
   const s = m.stats!;
   const mt = s.metrics;
@@ -312,9 +354,9 @@ export function assembleNbaPayload(m: NbaMatchRow, o: NbaLlmOut): NbaTacticalPay
     players[0];
 
   // Futbol terimi içeren LLM metni basketbol diliyle deterministik cümleye düşer
-  const hs = m.home_score ?? 0;
-  const as = m.away_score ?? 0;
-  const [W, L, ws, ls] = hs >= as ? [m.home_team, m.away_team, hs, as] : [m.away_team, m.home_team, as, hs];
+  const resultText = nbaResultSentence(m);
+  const cleanRuns = runs.filter((r) => !hasFootballTerm(r.title) && !hasFootballTerm(r.description));
+  const fallbackRun = cleanRuns.length ? null : deterministicRun(m);
   const benchText = (t: 'home' | 'away') =>
     `${t === 'home' ? m.home_team : m.away_team} bench'i ${mt.bench[t].bench_points} sayı üretti.`;
   const lgFallback =
@@ -324,20 +366,20 @@ export function assembleNbaPayload(m: NbaMatchRow, o: NbaLlmOut): NbaTacticalPay
 
   return {
     sport: 'nba',
-    headline_title: basketballOr(o.h, `${W}, ${L} karşısında ${ws}-${ls} kazandı`),
+    headline_title: basketballOr(o.h, resultText),
     executive_tactical_verdict: basketballOr(
       o.v,
-      `${W}, ${L} karşısında ${ws}-${ls} kazandı.${mt.decisive?.text ? ` Kırılma: ${mt.decisive.text}.` : ''}`,
+      `${resultText}.${mt.decisive?.text ? ` Kırılma: ${mt.decisive.text}.` : ''}`,
     ),
     efficiency_audit: {
       verdict_type: o.et,
-      verdict_label: o.el,
+      verdict_label: basketballOr(o.el, VERDICT_LABEL[o.et] ?? 'Hücum verimliliği'),
       home: eff('home'),
       away: eff('away'),
       volume_trap_team: mt.volume_trap?.team ?? null,
       commentary: basketballOr(o.ec, `TS%: ${m.home_team} ${mt.ts.home}, ${m.away_team} ${mt.ts.away}.`),
     },
-    quarter_runs: runs.filter((r) => !hasFootballTerm(r.title) && !hasFootballTerm(r.description)),
+    quarter_runs: fallbackRun ? [fallbackRun] : cleanRuns,
     late_game: { ...mt.late_game, commentary: basketballOr(o.lg, lgFallback) },
     bench_impact: {
       home: { starters_pm_avg: mt.bench.home.starters_pm_avg, bench_pm_avg: mt.bench.home.bench_pm_avg, bench_points: mt.bench.home.bench_points, commentary: basketballOr(o.bh, benchText('home')) },
@@ -360,7 +402,7 @@ export function assembleNbaPayload(m: NbaMatchRow, o: NbaLlmOut): NbaTacticalPay
       rating: star?.points ?? 0,
       headline: basketballOr(
         o.y.l,
-        star ? `${star.name} ${star.points} sayı, ${star.rebounds} ribaund ve ${star.assists} asistle öne çıktı.` : '',
+        star ? `${star.name} ${star.points} sayı, ${star.rebounds} ribaund ve ${star.assists} asistle öne çıktı.` : `${resultText}.`,
       ),
       key_stats: star
         ? [
