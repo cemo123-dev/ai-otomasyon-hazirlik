@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
-import type { Match, ShotQualityVerdict, TacticalPayload, TeamShotAudit } from '@/lib/types';
+import type { AiSurface, Match, ShotQualityVerdict, TacticalPayload, TeamShotAudit } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
+import { AiFooter } from '../ai/ReportAi';
 import { CompareBar } from '../match/StatsBars';
 import { Badge, Card, CardTitle } from '../ui';
 
@@ -160,19 +161,20 @@ export function AnalysisReport({ p, match }: { p: TacticalPayload; match: Match 
       <XgAuditCard p={p} match={match} />
       <MomentumCard p={p} />
       <ManagerAndSpotlightCard p={p} match={match} />
-      <AiNote />
+      <AiNote fixtureId={match.fixture_id} surface="analysis" />
     </View>
   );
 }
 
-/** Maç sonu raporunun son kartının altında, sohbet kartından önce (tasarım §3.9, B-9) */
-export function AiNote() {
-  // Tasarım tur 2 R-3: kart içi metinle aynı hizada (ekran kenarı + kart iç boşluğu)
-  return <Text style={styles.aiNote}>✦ AI tarafından üretildi, maç verisine dayanır.</Text>;
+/**
+ * Maç sonu raporunun son kartının altında, sohbet kartından önce (tasarım §3.9, B-9).
+ * F7: etiketin yanında "Hata bildir" (AiFooter; kart içi metinle aynı hizada, tasarım tur 2 R-3).
+ */
+export function AiNote({ fixtureId, surface }: { fixtureId: number; surface: AiSurface }) {
+  return <AiFooter fixtureId={fixtureId} surface={surface} inset />;
 }
 
 const styles = StyleSheet.create({
-  aiNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17, paddingHorizontal: space(4) },
   headline: { color: colors.text, fontSize: 21, fontWeight: '900', lineHeight: 27 },
   headlineSmall: { color: colors.text, fontSize: 18, fontWeight: '900' },
   body: { color: colors.text, fontSize: 14, lineHeight: 21 },

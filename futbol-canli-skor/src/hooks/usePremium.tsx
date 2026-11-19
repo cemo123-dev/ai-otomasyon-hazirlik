@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { dataSource } from '@/lib/data';
+import { identifyPurchases, PURCHASES_ENABLED } from '@/lib/purchases';
 import type { SubscriptionPlan } from '@/lib/types';
 
 type PremiumCtx = {
@@ -10,9 +11,19 @@ type PremiumCtx = {
   isTestUser: boolean;
   error: string | null;
   refresh: () => Promise<void>;
+  /** Gerçek satın alma (RevenueCat) açık mı: Android + `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` + önizleme değil */
+  purchasesEnabled: boolean;
+  /**
+   * Satın alma / geri yükleme sonrası: sunucudaki Pro durumu webhook ile birkaç saniyede gelir; kısa aralıkla
+   * yeniden okunur. Pro görülürse true.
+   */
+  syncAfterPurchase: () => Promise<boolean>;
 };
 
 const Ctx = createContext<PremiumCtx | null>(null);
+const SYNC_TRIES = 8;
+const SYNC_GAP_MS = 2000;
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export function PremiumProvider({ children }: { children: ReactNode }) {
   const [isPremium, setIsPremium] = useState(false);
@@ -35,6 +46,15 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
   }, []);
 
+  // RevenueCat kimliği = Supabase kullanıcı kimliği (bayrak kapalıysa hiçbir şey yapmaz)
+  useEffect(() => {
+    if (!PURCHASES_ENABLED) return;
+    dataSource
+      .getAccountId()
+      .then(identifyPurchases)
+      .catch(() => {});
+  }, []);
+
   const setPlan = useCallback(async (plan: SubscriptionPlan | null) => {
     setLoading(true);
     setError(null);
@@ -52,11 +72,24 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     const [p, t] = await Promise.all([dataSource.getPremium().catch(() => false), dataSource.isTestUser().catch(() => false)]);
     setIsPremium(p);
     setIsTestUser(t);
+    if (PURCHASES_ENABLED) await identifyPurchases(await dataSource.getAccountId().catch(() => null));
+  }, []);
+
+  const syncAfterPurchase = useCallback(async () => {
+    for (let i = 0; i < SYNC_TRIES; i++) {
+      const p = await dataSource.getPremium().catch(() => false);
+      if (p) {
+        setIsPremium(true);
+        return true;
+      }
+      await wait(SYNC_GAP_MS);
+    }
+    return false;
   }, []);
 
   const value = useMemo(
-    () => ({ isPremium, loading, setPlan, isTestUser, error, refresh }),
-    [isPremium, loading, setPlan, isTestUser, error, refresh],
+    () => ({ isPremium, loading, setPlan, isTestUser, error, refresh, purchasesEnabled: PURCHASES_ENABLED, syncAfterPurchase }),
+    [isPremium, loading, setPlan, isTestUser, error, refresh, syncAfterPurchase],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

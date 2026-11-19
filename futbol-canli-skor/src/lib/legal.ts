@@ -34,6 +34,8 @@ export const PRIVACY: LegalDoc = {
         // F3/F4 (0017) — ⚠ hukuki dayanak (meşru menfaat) hukukçu kontrolünden geçmeli (GELISTIRMELER 3.32)
         '• Kullanım günleri: Uygulamayı hangi günlerde açtığınız (yalnız tarih; saat, ekran veya konum yok). Kaç kişinin uygulamaya geri döndüğünü ölçmek için.\n' +
         '• Davet bilgisi: Size ait rastgele davet kodu; bir davet kodu girdiyseniz sizi davet eden hesabın isimsiz kimliği ve kodu girdiğiniz an. Sizi davet eden kişi yalnız "aktif davetli" sayısında sayıldığınızı görebilir; bu sayı, davetiyle en az 3 kişi gelmeden gösterilmez. Kullanım günleriniz ve hesap kimliğiniz ona gösterilmez.\n' +
+        // F7 (0020) — ⚠ hukukçu kontrolü gerekir (GELISTIRMELER 3.37)
+        '• AI hata bildirimleri: Bir AI içeriği için "Hata bildir" ile gönderdiğiniz neden, isteğe bağlı kısa notunuz (en fazla 200 karakter), ilgili maç ve içerik ile gönderim zamanı. AI içeriğinin kalitesini denetlemek için kullanılır.\n' +
         'Konum, rehber, fotoğraf, reklam kimliği veya cihaz içeriği toplamayız.',
     },
     {
@@ -46,11 +48,13 @@ export const PRIVACY: LegalDoc = {
         '• Supabase: veritabanı ve sunucu altyapısı.\n' +
         '• Google (Gemini API): AI analizleri ve Taktik Asistan yanıtları. Asistana yazdığınız soru, maç verisiyle birlikte yanıt üretmek için Google\'a iletilir; hesap kimliğiniz iletilmez.\n' +
         '• Expo ve Google Firebase Cloud Messaging: push bildirimlerinin cihazınıza ulaştırılması.\n' +
+        '• Google Play ve RevenueCat (yalnız Pro satın alırsanız): ödeme Google Play tarafından alınır; RevenueCat abonelik durumunu rastgele hesap kimliğinizle eşleştirir. Ödeme kartı bilgisi bize ulaşmaz.\n' +
+        '• Google Play Install Referrer: uygulamayı bir davet bağlantısıyla kurduysanız davet kodu yalnız cihazınızda okunur ve siz onaylamadan hiçbir yere gönderilmez.\n' +
         'Bu sağlayıcıların sunucuları yurt dışında bulunabilir.',
     },
     {
       h: 'Saklama süresi',
-      p: 'Hesap verileriniz hesabınız silinene kadar saklanır. Maç takipleri ve alarmlar maçtan 30 gün sonra, başarısız asistan soruları 7 gün sonra otomatik silinir. Kullanım günleri 120 gün sonra otomatik silinir. Davet bilgisi hesabınız silinene kadar saklanır.',
+      p: 'Hesap verileriniz hesabınız silinene kadar saklanır. Maç takipleri ve alarmlar maçtan 30 gün sonra, başarısız asistan soruları 7 gün sonra otomatik silinir. Kullanım günleri 120 gün sonra otomatik silinir. AI hata bildirimleri 90 gün sonra otomatik silinir. Davet bilgisi hesabınız silinene kadar saklanır.',
     },
     {
       h: 'Haklarınız ve hesap silme',
@@ -72,7 +76,8 @@ export const KVKK: LegalDoc = {
     },
     {
       h: 'İşlenen kişisel veriler',
-      p: 'İşlem güvenliği verisi (rastgele hesap kimliği, push bildirim anahtarı), müşteri işlem verisi (abonelik durumu, takip edilen maç/takımlar, bildirim tercihleri, Taktik Asistan soru ve yanıtları), kullanım verisi (uygulamayı açtığınız günler; yalnız tarih, saat, ekran veya konum yok) ve davet bilgisi (size ait rastgele davet kodu; bir davet kodu girdiyseniz sizi davet eden hesabın isimsiz kimliği, kodu girdiğiniz an ve "aktif davetli" işareti). Bir davet kodu girdiyseniz, sizi davet eden kişi yalnız "aktif davetli" sayısında sayıldığınızı görebilir; bu sayı, davetiyle en az 3 kişi gelmeden gösterilmez.',
+      // F7 (0020) AI hata bildirimleri eklendi — ⚠ hukukçu kontrolü gerekir (GELISTIRMELER 3.37)
+      p: 'İşlem güvenliği verisi (rastgele hesap kimliği, push bildirim anahtarı), müşteri işlem verisi (abonelik durumu, takip edilen maç/takımlar, bildirim tercihleri, Taktik Asistan soru ve yanıtları), kullanım verisi (uygulamayı açtığınız günler; yalnız tarih, saat, ekran veya konum yok) ve davet bilgisi (size ait rastgele davet kodu; bir davet kodu girdiyseniz sizi davet eden hesabın isimsiz kimliği, kodu girdiğiniz an ve "aktif davetli" işareti), AI hata bildirimleri ("Hata bildir" ile seçtiğiniz neden, isteğe bağlı kısa notunuz, ilgili maç ve içerik). Bir davet kodu girdiyseniz, sizi davet eden kişi yalnız "aktif davetli" sayısında sayıldığınızı görebilir; bu sayı, davetiyle en az 3 kişi gelmeden gösterilmez.',
     },
     {
       h: 'İşleme amaçları ve hukuki sebepler',
@@ -80,11 +85,11 @@ export const KVKK: LegalDoc = {
     },
     {
       h: 'Aktarım',
-      p: 'Kişisel verileriniz, hizmetin sunulması amacıyla altyapı ve yapay zekâ hizmet sağlayıcılarımıza (Supabase, Google, Expo) aktarılır. Bu sağlayıcıların sunucuları yurt dışında bulunabileceğinden aktarım KVKK m.9 hükümlerine uygun olarak gerçekleştirilir.',
+      p: 'Kişisel verileriniz, hizmetin sunulması amacıyla altyapı ve yapay zekâ hizmet sağlayıcılarımıza (Supabase, Google, Expo; Pro satın alımında RevenueCat) aktarılır. Bu sağlayıcıların sunucuları yurt dışında bulunabileceğinden aktarım KVKK m.9 hükümlerine uygun olarak gerçekleştirilir.',
     },
     {
       h: 'Saklama süresi',
-      p: 'Hesap verileri hesabınız silinene kadar saklanır. Kullanım günleri 120 gün sonra otomatik silinir. Davet bilgisi hesabınız silinene kadar saklanır.',
+      p: 'Hesap verileri hesabınız silinene kadar saklanır. Kullanım günleri 120 gün sonra otomatik silinir. AI hata bildirimleri 90 gün sonra otomatik silinir. Davet bilgisi hesabınız silinene kadar saklanır.',
     },
     {
       h: 'Toplama yöntemi',

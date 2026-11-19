@@ -1,6 +1,8 @@
+import { STORE_MODE } from '../storeMode';
 import type { Match } from '../types';
 
-// Önizleme: "Taktik Asistana Sor" şablon yanıtları (gerçek sistemde Gemini maç dosyasından yanıtlar)
+// Önizleme: "Taktik Asistana Sor" şablon yanıtları (gerçek sistemde Gemini maç dosyasından yanıtlar).
+// ?store=1 (mağaza görseli): "Önizleme modundasın" yerine gerçekçi bir yorum döner.
 
 export function mockAnswer(m: Match, q: string): string {
   const s = q.toLocaleLowerCase('tr');
@@ -27,6 +29,9 @@ export function mockAnswer(m: Match, q: string): string {
   if (s.includes('rövanş') || s.includes('avantaj')) {
     return `Bu maçın verisine göre pozisyon kalitesinde öne çıkan taraf avantajlı görünüyor; ancak tek maçlık veriyle kesin bir tahmin yapılamaz.`;
   }
+  if (STORE_MODE) {
+    return `Yorumum: ${m.home_team} ${score} ${m.away_team} maçında fark pozisyon kalitesinden geldi; daha az ama ceza sahası içinden şut çeken taraf skoru belirledi.`;
+  }
   return `Önizleme modundasın: gerçek sistemde bu soru maçın hazır dosyasına (${m.home_team} ${score} ${m.away_team}) bakılarak yanıtlanır.`;
 }
 
@@ -50,6 +55,9 @@ function mockNbaAnswer(m: Match, s: string, score: string): string {
   }
   if (s.includes('seri') || s.includes('avantaj')) {
     return 'Bu maçın verisine göre şut verimliliği ve ribaund üstünlüğü olan taraf avantajlı görünüyor; ancak tek maçlık veriyle seri hakkında kesin tahmin yapılamaz.';
+  }
+  if (STORE_MODE) {
+    return `Yorumum: ${m.home_team} ${score} ${m.away_team} maçında fark şut verimliliğinden ve hücum ribaundundan geldi; ikinci şans sayıları belirleyici oldu.`;
   }
   return `Önizleme modundasın: gerçek sistemde bu soru maçın hazır dosyasına (${m.home_team} ${score} ${m.away_team}) bakılarak yanıtlanır.`;
 }

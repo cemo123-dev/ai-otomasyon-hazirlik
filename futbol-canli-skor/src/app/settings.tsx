@@ -13,6 +13,7 @@ import { resetInviteCache } from '@/hooks/useInvite';
 import { usePremium } from '@/hooks/usePremium';
 import { dataSource } from '@/lib/data';
 import { friendlyError } from '@/lib/errors';
+import { openManageSubscriptions } from '@/lib/purchases';
 import { DEFAULT_PREFS, type NotificationPrefs, type Sport } from '@/lib/types';
 import { colors, hit, radius, space } from '@/theme';
 
@@ -166,7 +167,7 @@ ${message}`) ?? false);
 
 /** Hesap: kimlik, yasal metinler, hesap silme (Google Play şartı) */
 function AccountCard() {
-  const { refresh } = usePremium();
+  const { refresh, purchasesEnabled } = usePremium();
   const [accountId, setAccountId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -211,6 +212,13 @@ function AccountCard() {
         <Text style={styles.title}>KVKK Aydınlatma Metni</Text>
         <Text style={styles.chev}>›</Text>
       </Pressable>
+      {purchasesEnabled ? (
+        // Pazarlama §4.3: "Abonelikleri yönet" Ayarlar'da (Google Play abonelik sayfası)
+        <Pressable accessibilityRole="link" onPress={() => void openManageSubscriptions()} style={[styles.linkRow, styles.divider]}>
+          <Text style={styles.title}>Abonelikleri yönet</Text>
+          <Text style={styles.chev}>›</Text>
+        </Pressable>
+      ) : null}
       {accountId ? (
         <Text style={[styles.desc, styles.divider, { paddingTop: space(3) }]} selectable>
           Hesap kimliği: {accountId}

@@ -7,6 +7,9 @@
 // Döngü 7 geliştirici (GELISTIRMELER 3.34): dosya adı korunarak 0018 de zincire girdi (klasördeki tüm
 // migration'lar okunur) + bölüm 6: 0018 plan/cron davranışı ve davet düzeltmeleri (bulgu 5–8).
 // Döngü 8: zincir 0001 → 0019 (0019_paid_switch_safety); tekrar 0015–0019; bölüm 6h: 0019 (DELETE, gün sayısı).
+// Döngü 10: zincir 0001 → 0020 (0020_ai_reports, F7 "Hata bildir"); tekrar 0015–0020; bölüm 6i: 0020 (RPC, sınır, yetki).
+// Döngü 11: zincir 0001 → 0021 (0021_billing, RevenueCat webhook); tekrar 0015–0021; bölüm 6j: 0021 (idempotency,
+// sıra dışı olay, yetki, hesap silme).
 import { PGlite } from '@electric-sql/pglite';
 import { readFileSync, readdirSync } from 'node:fs';
 
@@ -80,9 +83,9 @@ async function applyAll(order, label) {
 
 // 1) Tam zincir sırayla
 const db = await applyAll(files, 'zincir');
-// 2) 0015–0019 ikinci kez (idempotent)
-if (!files.some((x) => /^0019_/.test(x))) fails++;
-for (const f of files.filter((x) => /^(001[5-9])_/.test(x))) {
+// 2) 0015–0021 ikinci kez (idempotent)
+if (!files.some((x) => /^0019_/.test(x)) || !files.some((x) => /^0020_/.test(x)) || !files.some((x) => /^0021_/.test(x))) fails++;
+for (const f of files.filter((x) => /^(001[5-9]|002[01])_/.test(x))) {
   const r = await db.exec(prep(readFileSync(new URL(f, DIR), 'utf8'))).then(() => 'ok', (e) => e.message);
   if (r !== 'ok') fails++;
   console.log(`${r === 'ok' ? 'OK  ' : 'FAIL'} ${'tekrar'.padEnd(10)} ${f.padEnd(34)} ${r === 'ok' ? '' : r.slice(0, 200)}`);
@@ -90,7 +93,8 @@ for (const f of files.filter((x) => /^(001[5-9])_/.test(x))) {
 // 3) cron işleri: her ad tek, 0017 temizliği kayıtlı
 const jobs = (await db.query('select jobname, count(*)::int n from cron.job group by jobname order by 1')).rows;
 const dup = jobs.filter((j) => j.n !== 1);
-if (dup.length || !jobs.some((j) => j.jobname === 'skor-growth-cleanup')) fails++;
+if (dup.length || !jobs.some((j) => j.jobname === 'skor-growth-cleanup') || !jobs.some((j) => j.jobname === 'skor-ai-reports-cleanup')
+  || !jobs.some((j) => j.jobname === 'skor-billing-events-cleanup')) fails++;
 console.log(`${dup.length ? 'FAIL' : 'OK  '} cron işleri tekil (${jobs.length}): ${jobs.map((j) => j.jobname).join(', ')}`);
 // 4) Zincir sonunda 0017 fonksiyonları security definer + search_path = '' (yetki yükseltme yüzeyi)
 const defs = (await db.query(`select proname, prosecdef, proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -237,6 +241,101 @@ expect('0019: tetikleyici insert/update/delete', await run(null, null,
   (g) => g[0]?.i === true && g[0]?.d === true && g[0]?.u === true);
 expect('0019: on_api_paid_change authenticated çağıramaz', await run('authenticated', U(1), 'select public.on_api_paid_change()'),
   (g) => typeof g === 'string');
+
+// 6i) 0020 (Döngü 10, F7): report_ai_output — yalnız authenticated, doğrulama, tekrar, günlük 20 sınırı, okuma yok
+await run(null, null, `insert into auth.users (id) values ('${U(20)}'), ('${U(21)}') on conflict do nothing`);
+const REP = (fx, surface, ref, reason, note) =>
+  `select public.report_ai_output(${fx}, '${surface}', ${ref === null ? 'null' : `'${ref}'`}, '${reason}', ${note === null ? 'null' : `'${note}'`}) r`;
+const r1 = async (uid, sql) => {
+  const g = await run('authenticated', uid, sql);
+  return Array.isArray(g) ? g[0]?.r : g;
+};
+const repCount = async (uid) => (await run(null, null, `select count(*)::int n from public.ai_reports where user_id = '${uid}'`))[0]?.n;
+expect('0020: anon çağıramaz', await run('anon', null, REP(1, 'analysis', null, 'wrong_info', null)), denied);
+expect('0020: oturumsuz → unauthenticated', await r1(null, REP(1, 'analysis', null, 'wrong_info', null)), (g) => g === 'unauthenticated');
+expect('0020: geçersiz yüzey → invalid', await r1(U(20), REP(1, 'banner', null, 'wrong_info', null)), (g) => g === 'invalid');
+expect('0020: geçersiz neden → invalid', await r1(U(20), REP(1, 'analysis', null, 'spam', null)), (g) => g === 'invalid');
+expect('0020: ilk bildirim ok', await r1(U(20), REP(1, 'analysis', null, 'wrong_info', '  ' + 'x'.repeat(250) + '  ')), (g) => g === 'ok');
+expect('0020: not 200 karaktere kırpıldı', await run(null, null, `select char_length(note) n from public.ai_reports where user_id = '${U(20)}'`),
+  (g) => Array.isArray(g) && g[0]?.n === 200);
+expect('0020: aynı öğe tekrar → ok', await r1(U(20), REP(1, 'analysis', null, 'other', null)), (g) => g === 'ok');
+expect('0020: tekrar yeni satır açmaz', await repCount(U(20)), (g) => g === 1);
+expect('0020: boş not ok', await r1(U(20), REP(1, 'assistant', '7', 'sport_mixup', '   ')), (g) => g === 'ok');
+expect('0020: boş not null yazıldı', await run(null, null, `select note from public.ai_reports where user_id = '${U(20)}' and item_ref = '7'`),
+  (g) => Array.isArray(g) && g[0]?.note === null);
+for (let i = 0; i < 18; i++) await r1(U(20), REP(100 + i, 'preview', null, 'wrong_info', null));
+expect('0020: 20 bildirim yazıldı', await repCount(U(20)), (g) => g === 20);
+expect('0020: 21. bildirim → rate_limited', await r1(U(20), REP(999, 'halftime', null, 'inappropriate', null)), (g) => g === 'rate_limited');
+expect('0020: sınır kullanıcı başına', await r1(U(21), REP(999, 'red_card', '42', 'inappropriate', null)), (g) => g === 'ok');
+await run(null, null, `update public.ai_reports set created_at = now() - interval '25 hours' where user_id = '${U(20)}'`);
+expect('0020: 24 saat sonra yeniden ok', await r1(U(20), REP(999, 'halftime', null, 'inappropriate', null)), (g) => g === 'ok');
+expect('0020: istemci tabloyu okuyamaz', await run('authenticated', U(20), 'select * from public.ai_reports'), denied);
+expect('0020: istemci doğrudan yazamaz', await run('authenticated', U(20),
+  `insert into public.ai_reports (user_id, fixture_id, surface, reason) values ('${U(20)}', 1, 'analysis', 'other')`), denied);
+expect('0020: admin görünümü authenticated kapalı', await run('authenticated', U(20), 'select * from public.admin_ai_reports'), denied);
+expect('0020: özet görünümü anon kapalı', await run('anon', null, 'select * from public.admin_ai_report_summary'), denied);
+expect('0020: admin görünümü SQL Editor okur', await run(null, null, 'select count(*)::int n from public.admin_ai_reports'),
+  (g) => Array.isArray(g) && g[0]?.n === 22);
+expect('0020: özet son 7 gün yüzey×neden', await run(null, null, `select reports from public.admin_ai_report_summary where surface = 'red_card'`),
+  (g) => Array.isArray(g) && g[0]?.reports === 1);
+expect('0020: check kısıtı (yüzey) doğrudan eklemede', await run(null, null,
+  `insert into public.ai_reports (user_id, fixture_id, surface, reason) values ('${U(20)}', 1, 'x', 'other')`), (g) => typeof g === 'string' && g.includes('check'));
+await run(null, null, `delete from auth.users where id = '${U(21)}'`);
+expect('0020: hesap silinince bildirimler silinir', await repCount(U(21)), (g) => g === 0);
+expect('0020: temizlik cron 90 gün', await job('skor-ai-reports-cleanup'), (g) => g?.schedule === '50 4 * * *' && /90 days/.test(g?.command ?? ''));
+expect('0020: report_ai_output security definer + search_path', await run(null, null,
+  `select prosecdef d, proconfig::text c from pg_proc where proname = 'report_ai_output'`), (g) => g[0]?.d === true && /search_path=/.test(g[0]?.c ?? ''));
+
+// 6j) 0021 (Döngü 11, P2): apply_billing_event — yalnız service_role, idempotent, sıra dışı olay, is_premium_user
+await run(null, null, `insert into auth.users (id) values ('${U(30)}'), ('${U(31)}') on conflict do nothing`);
+const BILL = (id, type, at, actions, ignored = null) =>
+  `select public.apply_billing_event('${id}', '${type}', '${at}'::timestamptz, 'SANDBOX', 'skor_pro_monthly', '${JSON.stringify(actions)}'::jsonb, ${ignored ? `'${ignored}'` : 'null'}) r`;
+const b1 = async (sql) => {
+  const g = await run('service_role', null, sql);
+  return Array.isArray(g) ? g[0]?.r : g;
+};
+const prof = async (uid) => (await run(null, null, `select is_premium p, subscription_expires_at e, billing_event_at b from public.profiles where id = '${uid}'`))[0];
+const premiumAs = async (uid) => (await run('authenticated', uid, 'select public.is_premium_user() v'))[0]?.v;
+const FUT = new Date(Date.now() + 7 * 86400_000).toISOString();
+const T1 = new Date(Date.now() - 3600_000).toISOString();
+const T0 = new Date(Date.now() - 7200_000).toISOString();
+const T2 = new Date(Date.now() - 60_000).toISOString();
+expect('0021: anon çağıramaz', await run('anon', null, BILL('e0', 'TEST', T1, [])), denied);
+expect('0021: authenticated çağıramaz', await run('authenticated', U(30), BILL('e0', 'TEST', T1, [])), denied);
+expect('0021: istemci olay tablosunu okuyamaz', await run('authenticated', U(30), 'select * from public.billing_events'), denied);
+expect('0021: özet görünümü authenticated kapalı', await run('authenticated', U(30), 'select * from public.admin_billing_summary'), denied);
+expect('0021: INITIAL_PURCHASE → ok', await b1(BILL('e1', 'INITIAL_PURCHASE', T1, [{ kind: 'grant', user_id: U(30), expires_at: FUT }])), (g) => g === 'ok');
+expect('0021: profil Pro + bitiş', await prof(U(30)), (g) => g?.p === true && new Date(g.e).toISOString() === FUT);
+expect('0021: is_premium_user true', await premiumAs(U(30)), (g) => g === true);
+expect('0021: aynı olay → duplicate', await b1(BILL('e1', 'INITIAL_PURCHASE', T1, [{ kind: 'revoke', user_id: U(30), expires_at: T1 }])), (g) => g === 'duplicate');
+expect('0021: duplicate profili değiştirmez', await prof(U(30)), (g) => g?.p === true);
+expect('0021: eski (sıra dışı) EXPIRATION profili değiştirmez', await b1(BILL('e0x', 'EXPIRATION', T0, [{ kind: 'revoke', user_id: U(30), expires_at: T0 }])),
+  (g) => g === 'ok');
+expect('0021: sıra dışı olay sonrası hâlâ Pro', await prof(U(30)), (g) => g?.p === true);
+expect('0021: sıra dışı olay kayda applied=0', await run(null, null, `select applied from public.billing_events where event_id = 'e0x'`), (g) => g[0]?.applied === 0);
+expect('0021: yeni EXPIRATION → revoke', await b1(BILL('e2', 'EXPIRATION', T2, [{ kind: 'revoke', user_id: U(30), expires_at: T2 }])), (g) => g === 'ok');
+expect('0021: is_premium_user false', await premiumAs(U(30)), (g) => g === false);
+expect('0021: geçersiz eylem → invalid, kayıt yok', await b1(BILL('e3', 'RENEWAL', T2, [{ kind: 'grant', user_id: 'x', expires_at: FUT }])), (g) => g === 'invalid');
+expect('0021: invalid olay yazılmadı', await run(null, null, `select count(*)::int n from public.billing_events where event_id = 'e3'`), (g) => g[0]?.n === 0);
+expect('0021: bitişsiz eylem → invalid', await b1(BILL('e3b', 'RENEWAL', T2, [{ kind: 'grant', user_id: U(30) }])), (g) => g === 'invalid');
+expect('0021: yok sayılan olay kaydedilir (eylemsiz)', await b1(BILL('e4', 'TEST', T2, [], 'info')), (g) => g === 'ok');
+expect('0021: TEST tekrar → duplicate', await b1(BILL('e4', 'TEST', T2, [], 'info')), (g) => g === 'duplicate');
+expect('0021: TRANSFER iki kullanıcı tek işlem', await b1(BILL('e5', 'TRANSFER', new Date().toISOString(),
+  [{ kind: 'revoke', user_id: U(30), expires_at: T2 }, { kind: 'grant', user_id: U(31), expires_at: FUT }])), (g) => g === 'ok');
+expect('0021: TRANSFER alıcı Pro', await premiumAs(U(31)), (g) => g === true);
+expect('0021: bilinmeyen kullanıcı atlanır', await b1(BILL('e6', 'RENEWAL', new Date().toISOString(),
+  [{ kind: 'grant', user_id: U(99), expires_at: FUT }])), (g) => g === 'ok');
+expect('0021: bilinmeyen kullanıcıya profil açılmadı', await run(null, null, `select count(*)::int n from public.profiles where id = '${U(99)}'`), (g) => g[0]?.n === 0);
+expect('0021: RENEWAL (U31 birincil)', await b1(BILL('e7', 'RENEWAL', new Date(Date.now() + 1000).toISOString(),
+  [{ kind: 'grant', user_id: U(31), expires_at: FUT }])), (g) => g === 'ok');
+await run(null, null, `delete from auth.users where id = '${U(31)}'`);
+expect('0021: hesap silinince olay kalır, user_id boşalır', await run(null, null, `select user_id from public.billing_events where event_id = 'e7'`),
+  (g) => Array.isArray(g) && g.length === 1 && g[0].user_id === null);
+expect('0021: profiles UPDATE istemciye kapalı (0001)', await run('authenticated', U(30), `update public.profiles set is_premium = true where id = '${U(30)}' returning id`),
+  (g) => g === 'ERR permission denied for table profiles' || (Array.isArray(g) && g.length === 0));
+expect('0021: temizlik cron 400 gün', await job('skor-billing-events-cleanup'), (g) => g?.schedule === '55 4 * * *' && /400 days/.test(g?.command ?? ''));
+expect('0021: apply_billing_event security definer + search_path', await run(null, null,
+  `select prosecdef d, proconfig::text c from pg_proc where proname = 'apply_billing_event'`), (g) => g[0]?.d === true && /search_path=/.test(g[0]?.c ?? ''));
 
 console.log(fails ? `\n${fails} BAŞARISIZ` : '\nTümü geçti');
 process.exit(fails ? 1 : 0);

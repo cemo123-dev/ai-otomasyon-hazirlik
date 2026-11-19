@@ -221,7 +221,7 @@ export function NbaAnalysisReport({ p, match }: { p: NbaTacticalPayload; match: 
       <QuarterRunsCard p={p} match={match} />
       <BenchImpactCard p={p} match={match} />
       <PlayerImpactCard p={p} match={match} />
-      <AiNote />
+      <AiNote fixtureId={match.fixture_id} surface="nba_analysis" />
     </View>
   );
 }

@@ -208,6 +208,7 @@ Basılı durum: `opacity 0.7` veya `surfaceAlt` zemin. Pasif: `opacity 0.4` + `a
 - İlk kart (manşet) `Card accent={colors.pro}` + `Badge` "✦ AI …". Sonraki kartlar normal kenarlı; yalnız kicker'ları `pro`. Bugün her kart altın kenarlı (`p1-macönü.png`); altın etkisini kaybediyor.
 - Manşet `title2`, gövde `body` (opacity 0.92 kaldırılır; `text` zaten yeterli).
 - Her AI raporunun sonunda tek satır `caption` `textMuted`: "AI tarafından üretildi, maç verisine dayanır. Hata görürsen bildir." (F7 ile bağlantı sonra eklenir).
+  - Durum (Döngü 10, GELISTIRMELER 3.37): F7 bağlandı. Satır "✦ AI tarafından üretildi, maç verisine dayanır." + metin bağlantısı "⚑ Hata bildir" (`accent` 13/700, dokunma alanı 44; gönderince "✓ Bildirildi", `textMuted`). Asistan yanıtlarının ve kırmızı kart analizinin altında yalnız bağlantı. Sayfa: alttan açılır, `surface`, üst köşeler `radius.xl`; 4 neden (radyo, `minHeight 48`, seçili kenar `accent`), not alanı (200, sayaç + "Kişisel bilgi yazma. Bildirimler 90 gün sonra silinir."), "Vazgeç" ikincil + "Gönder" birincil. Kaynak: `src/components/ai/ReportAi.tsx`.
 - Takım etiketleri ev `home`, deplasman `away` renginde; aynı kartta ikisi de bulunur.
 
 ### 3.10 Sohbet balonları (`src/components/analysis/AssistantChat.tsx`)
@@ -1103,6 +1104,8 @@ Davet kartından sonra küçük kart:
 ## Play Store görselleri
 
 Hazırlayan: UI/UX tasarım ajanı · 18 Kasım 2026. Kaynak: `docs/pazarlama-stratejisi.md` §3.5 (8 karelik senaryo), §3.6 (öne çıkan grafik), §8 (yasaklı ifadeler).
+
+> Durum (Döngü 10 geliştirici, GELISTIRMELER 3.37): **`?store=1` ve `e2e/store_shots.mjs` uygulandı; ilk çekim alındı.** `src/lib/storeMode.ts`: ÖNİZLEME rozeti, "Örnek veri" bandı, web bildirim notu ve "Önizleme modundasın" yanıtı gizli; Türkiye–İskoçya (9010), İtalya–Portekiz (9011) ve UEFA Şampiyonlar Ligi (9012) listeden çıkar. Çıktı: `store/01-ai-rapor.png` … `08-taktik-asistan.png` (1080×1920), `store/feature-graphic.png` (1024×500), `store/alt-metinler.txt`; hepsi 24-bit RGB PNG (Chromium RGBA'sı betikte alfasız yeniden kodlanır). Pro hapı varsayılan "PRO · YAKINDA" (`PRO_PILL=PRO` ile değişir), dürüstlük notu varsayılan açık (`HONESTY_NOTE=0` kapatır); kare 5 ve 7 altyazıları ⚠ öneri olarak işaretli. Pro simülasyonu olmayan karelerde `tester=0` (başlık hapı "✦ Pro · yakında"). Çekim geliştirme sunucusundan (:8084) alındı; Expo "⚡" düğmesi görünmedi. Simge (§5) bu işte değişmedi (kullanıcı kararı bekliyor). §7 kararları açık.
 
 ### 0. Play'in güncel gereksinimleri (kaynaklı)
 

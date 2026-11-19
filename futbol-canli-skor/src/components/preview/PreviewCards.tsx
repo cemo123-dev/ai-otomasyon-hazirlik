@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Match, PlayerForm, PreviewMatchup, PreviewPayload, TeamForm } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
+import { AiFooter } from '../ai/ReportAi';
 import { CompareBar } from '../match/StatsBars';
 import { Badge, Card, CardTitle } from '../ui';
 
@@ -226,7 +227,8 @@ export function PreviewReport({ p, match }: { p: PreviewPayload; match: Match })
       <MatchupsCard p={p} match={match} />
       <AbsencesCard p={p} match={match} />
       <Text style={styles.note}>{BASIS[p.data_basis]}. Kanat bazlı hücum yoğunluğu verisi kullanılmaz.</Text>
-      <Text style={styles.aiNote}>AI tarafından üretildi, maç verisine dayanır. Hata görürsen bildir.</Text>
+      {/* F7: etiket + "Hata bildir" */}
+      <AiFooter fixtureId={match.fixture_id} surface="preview" />
     </View>
   );
 }
@@ -270,7 +272,6 @@ export function PreviewLocked({ match }: { match: Match }) {
 const styles = StyleSheet.create({
   headline: { color: colors.text, fontSize: 21, fontWeight: '900', lineHeight: 27 },
   body: { color: colors.text, fontSize: 14, lineHeight: 21 },
-  aiNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
   bodySmall: { color: colors.textMuted, fontSize: 13, lineHeight: 19 },
   meta: { color: colors.textMuted, fontSize: 12 },
   note: { color: colors.textDim, fontSize: 11, lineHeight: 15 },

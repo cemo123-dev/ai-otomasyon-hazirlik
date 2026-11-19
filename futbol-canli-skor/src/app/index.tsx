@@ -1,9 +1,10 @@
-import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, SectionList, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FollowErrorNotice } from '@/components/FollowErrorNotice';
 import { MatchRow } from '@/components/MatchRow';
+import { ReferrerBanner } from '@/components/ReferrerBanner';
 import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { SkeletonList } from '@/components/SkeletonList';
 import { Badge, InfoStrip, StateMessage } from '@/components/ui';
@@ -12,6 +13,9 @@ import { usePremium } from '@/hooks/usePremium';
 import { useFollows } from '@/hooks/useFollows';
 import { useMatches, type MatchFilter } from '@/hooks/useMatches';
 import { DAY_OFFSETS, dayLabel, dayOffsetsFor, type DayOffset } from '@/lib/days';
+import { shouldShowOnboarding } from '@/lib/onboarding';
+import { maybeAskForReview } from '@/lib/reviewPrompt';
+import { STORE_MODE } from '@/lib/storeMode';
 import { PREVIEW_MODE } from '@/lib/supabase';
 import type { Sport } from '@/lib/types';
 import { colors, hit, radius, space } from '@/theme';
@@ -48,10 +52,29 @@ export default function MatchesScreen() {
     day,
     offsets[offsets.length - 1],
   );
-  const { isPremium, isTestUser } = usePremium();
+  const { isPremium, isTestUser, purchasesEnabled } = usePremium();
+  const canBuy = isTestUser || purchasesEnabled;
   // Pro satışta değil: test kullanıcısı dışında hap "yakında" der (fiyat/satın alma vaadi yok)
-  const proLabel = isPremium ? '✦ PRO' : isTestUser ? "Pro'ya geç" : '✦ Pro · yakında';
+  const proLabel = isPremium ? '✦ PRO' : canBuy ? "Pro'ya geç" : '✦ Pro · yakında';
   const [refreshing, setRefreshing] = useState(false);
+
+  // F5: ilk açılışta takım seçimi bir kez (yerel bayrak; önizlemede yalnız ?onboarding=1)
+  useEffect(() => {
+    let alive = true;
+    shouldShowOnboarding().then((show) => {
+      if (alive && show) router.push('/welcome');
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // P3 uygulama içi değerlendirme: ana ekran odaklanınca kural (reviewPolicy.ts) değerlendirilir; Android dışı / önizleme no-op
+  useFocusEffect(
+    useCallback(() => {
+      void maybeAskForReview();
+    }, []),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -69,9 +92,10 @@ export default function MatchesScreen() {
           <View style={styles.dateRow}>
             {/* Önizleme rozeti yanında kısa gün adı; büyük yazıda kırpılmak yerine 2. satıra iner (Döngü 5, bulgu 5) */}
             <Text style={styles.date} numberOfLines={2}>
-              {new Date().toLocaleDateString('tr-TR', { weekday: PREVIEW_MODE ? 'short' : 'long', day: 'numeric', month: 'long' })}
+              {new Date().toLocaleDateString('tr-TR', { weekday: PREVIEW_MODE && !STORE_MODE ? 'short' : 'long', day: 'numeric', month: 'long' })}
             </Text>
-            {PREVIEW_MODE ? <Badge label="ÖNİZLEME" color={colors.warning} /> : null}
+            {/* ?store=1 (mağaza görseli): önizleme izleri gizlenir (bkz. lib/storeMode.ts) */}
+            {PREVIEW_MODE && !STORE_MODE ? <Badge label="ÖNİZLEME" color={colors.warning} /> : null}
           </View>
         </View>
         <Pressable
@@ -84,7 +108,7 @@ export default function MatchesScreen() {
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={isPremium ? 'Pro üyelik: aktif' : isTestUser ? "Pro'ya geç" : 'Pro, yakında'}
+          accessibilityLabel={isPremium ? 'Pro üyelik: aktif' : canBuy ? "Pro'ya geç" : 'Pro, yakında'}
           hitSlop={4}
           onPress={() => router.push('/paywall')}
           style={[styles.proBtn, isPremium && { backgroundColor: colors.pro }]}
@@ -134,9 +158,12 @@ export default function MatchesScreen() {
         </Text>
       ) : null}
 
-      {PREVIEW_MODE ? <PreviewBanner /> : null}
+      {PREVIEW_MODE && !STORE_MODE ? <PreviewBanner /> : null}
 
       <FollowErrorNotice />
+
+      {/* Döngü 11: Install Referrer davet kodu önerisi (onay Ayarlar'da) */}
+      <ReferrerBanner />
 
       {refreshError && !loading ? (
         // Arka plan yenilemesi başarısız: yüklü liste kalır, üstünde kısa uyarı (sonraki başarılı yüklemede kalkar)

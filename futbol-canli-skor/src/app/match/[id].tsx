@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -37,7 +37,9 @@ import { teamKey, useFollows } from '@/hooks/useFollows';
 import { useHalftime, type HalftimeState } from '@/hooks/useHalftime';
 import { useMatch } from '@/hooks/useMatch';
 import { usePreview, type PreviewState } from '@/hooks/usePreview';
+import { enterLiveScreen } from '@/lib/appSignals';
 import { clockTime } from '@/lib/days';
+import { noteAiReportViewed } from '@/lib/reviewPrompt';
 import { getNbaStats, isFinished, isLive, isNbaPayload, isOff, offLabel, type Match } from '@/lib/types';
 import { colors, hit, radius, space, type } from '@/theme';
 
@@ -93,6 +95,14 @@ export default function MatchDetailScreen() {
   const preview = usePreview(match, tab === 'ai' && previewMode);
   const halftime = useHalftime(match, tab === 'ai' && halftimeMode);
   const alerts = useAlerts(fixtureId);
+
+  // P3 değerlendirme sinyalleri (reviewPolicy.ts): tamamlanmış AI raporu görüldü; canlı maç ekranı açık
+  const aiShown = tab === 'ai' && (state.kind === 'completed' || preview.state.kind === 'completed');
+  useEffect(() => {
+    if (aiShown) void noteAiReportViewed();
+  }, [aiShown]);
+  const liveNow = !!match && isLive(match.status_short);
+  useEffect(() => (liveNow ? enterLiveScreen() : undefined), [liveNow]);
 
   if (loading) return <ActivityIndicator color={colors.live} style={{ flex: 1, backgroundColor: colors.bg }} />;
   if (!match) {

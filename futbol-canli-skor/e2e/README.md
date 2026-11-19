@@ -23,6 +23,7 @@ npm run e2e
 | account_ui.mjs | Test aboneliği, gizlilik/KVKK metinleri, hesap silme |
 | teams_ui.mjs | Takım takibi, ★ Takip filtresi, ayarlarda takım listesi |
 | share_ui.mjs | F3 Paylaş (NBA/futbol/başlamamış metni, canlıda gizli, 360 pt başlık), davet kartı, kod girme, `?dl=0` / `?invite=0` / `?mockFail=invite` |
+| referrer_ui.mjs | Döngü 11: Install Referrer davet önerisi (`?referrer=<kodlu UTM>`: ana ekran bandı, Ayarlar onayı, "Bu kod değil", geçersiz/organik/kendi kodu), Play mağaza bağlantısı (`?dl=play`), önizlemede satın alma kapalı |
 | largefont_ui.mjs | 360 px + yazı ×1,3 benzetimi: tek satırlık metin kırpılmaz, Pro sekme etiketi (`FONT_SCALE` ile değiştirilir) |
 | lineup_ui.mjs | Tarih şeridi (Dün/Bugün/Yarın + filtre; `?paid=1` 9 gün −1…+7 kaydırılır, NBA 3 gün; `?paid=0` 3 gün), veri tazeliği etiketi (ücretli futbol F1 / ~30 dk), Kadro sekmesi (diziliş, yedekler, puanlar, boş durum, NBA'da yok) |
 

@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { HalftimePayload, Match } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
+import { AiFooter } from '../ai/ReportAi';
 import { CompareBar } from '../match/StatsBars';
 import { Badge, Card, CardTitle } from '../ui';
 
@@ -59,7 +60,8 @@ export function HalftimeReport({ p, match }: { p: HalftimePayload; match: Match 
       <Text style={styles.note}>
         Rapor devre arasında ilk yarı verisiyle bir kez üretilir; sayılar maç verisiyle doğrulanır.
       </Text>
-      <Text style={styles.aiNote}>AI tarafından üretildi, maç verisine dayanır. Hata görürsen bildir.</Text>
+      {/* F7: etiket + "Hata bildir" */}
+      <AiFooter fixtureId={match.fixture_id} surface="halftime" center />
     </View>
   );
 }
@@ -82,7 +84,6 @@ export function HalftimeLocked({ match }: { match: Match }) {
 const styles = StyleSheet.create({
   headline: { color: colors.text, fontSize: 21, fontWeight: '900', lineHeight: 27 },
   body: { color: colors.text, fontSize: 14, lineHeight: 21 },
-  aiNote: { color: colors.textMuted, fontSize: 12, lineHeight: 17, textAlign: 'center' },
   cardTitle: { color: colors.text, fontWeight: '900', fontSize: 16 },
   rx: { borderLeftWidth: 3, paddingLeft: space(3), paddingVertical: space(1.5), gap: 2 },
   team: { fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },

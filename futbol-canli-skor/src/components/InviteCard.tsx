@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useInvite, type RedeemOutcome } from '@/hooks/useInvite';
+import { useSuggestedInviteCode } from '@/hooks/useReferrer';
 import { getDownloadUrl } from '@/lib/growth';
+import { clearSuggestedInviteCode } from '@/lib/installReferrer';
 import { buildInviteText, groupInviteCode, hasForeignInviteChar, isValidInviteCode, normalizeInviteInput } from '@/lib/share';
 import { colors, font, radius, space, type } from '@/theme';
 import { Card, CardTitle, InfoStrip } from './ui';
@@ -21,6 +23,7 @@ export function InviteCard() {
   const [result, setResult] = useState<RedeemOutcome | null>(null);
   const [closed, setClosed] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const suggested = useSuggestedInviteCode();
 
   // İndirme adresi yok ya da 0017 kurulmadı (RPC yok): kart hiç çizilmez
   if (!downloadUrl) return null;
@@ -59,6 +62,20 @@ export function InviteCard() {
     setResult(out);
     if (out.closeInput) setClosed(true);
     if (out.result === 'rate_limited') setBlocked(true); // "Kaydet" pasif kalır
+  };
+
+  // Install Referrer önerisi (Döngü 11): yalnız kullanıcı "Kaydet"e basınca gönderilir; kendi kodu önerilmez
+  const suggestion = suggested && suggested !== code ? suggested : null;
+  const saveSuggestion = async () => {
+    if (!suggestion || sending || blocked) return;
+    setSending(true);
+    const out = await redeem(suggestion);
+    setSending(false);
+    setResult(out);
+    if (out.closeInput) setClosed(true);
+    if (out.result === 'rate_limited') setBlocked(true);
+    // Geçici hatada (oturum / sınır) öneri kalır; diğer her sonuçta silinir (elle giriş satırı açılır)
+    if (out.result !== 'unauthenticated' && out.result !== 'rate_limited') void clearSuggestedInviteCode();
   };
 
   return (
@@ -117,7 +134,28 @@ export function InviteCard() {
 
       {ready && (invite!.canRedeem || result) ? (
         <View style={styles.redeem}>
-          {invite!.canRedeem && !closed ? (
+          {invite!.canRedeem && !closed && suggestion ? (
+            <View style={styles.suggest} accessibilityLiveRegion="polite">
+              <Text style={styles.redeemTitle}>
+                Seni davet eden kodu bulduk: <Text style={font.mono}>{suggestion}</Text>.
+              </Text>
+              <View style={styles.inputRow}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Davet kodu ${suggestion.split('').join(' ')} kaydet`}
+                  disabled={sending || blocked}
+                  onPress={saveSuggestion}
+                  style={[styles.secondary, styles.suggestSave, (sending || blocked) && { opacity: 0.4 }]}
+                >
+                  {sending ? <ActivityIndicator color={colors.onFill} size="small" /> : <Text style={styles.suggestSaveText}>Kaydet</Text>}
+                </Pressable>
+                <Pressable accessibilityRole="button" disabled={sending} onPress={() => void clearSuggestedInviteCode()} style={styles.secondary}>
+                  <Text style={styles.secondaryText}>Bu kod değil</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+          {invite!.canRedeem && !closed && !suggestion ? (
             <>
               <Text style={styles.redeemTitle}>Davet kodun var mı?</Text>
               <View style={styles.inputRow}>
@@ -188,6 +226,9 @@ const styles = StyleSheet.create({
   caption: { ...type.caption, color: colors.textMuted },
   redeem: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: space(3), gap: space(2) },
   redeemTitle: { ...type.headline, color: colors.text },
+  suggest: { gap: space(2) },
+  suggestSave: { backgroundColor: colors.live, borderColor: colors.live },
+  suggestSaveText: { color: colors.onFill, fontSize: 15, fontWeight: '800' },
   inputRow: { flexDirection: 'row', gap: space(2), alignItems: 'center' },
   input: {
     flex: 1,

@@ -1,7 +1,9 @@
 import {
+  AI_REPORT_NOTE_MAX,
   ASSISTANT_QUESTION_LIMIT,
   DEFAULT_PREFS,
   isFinished,
+  type AiReport,
   type AnyTacticalPayload,
   type HalftimePayload,
   type Match,
@@ -26,6 +28,7 @@ import {
 } from './mockData';
 import { NBA_SCENARIO_ID, nbaMatches, nbaScenarioBox, nbaScenarioPayload } from './nbaMockData';
 import { normalizeInviteInput } from '../share';
+import { STORE_MODE } from '../storeMode';
 import type { DataSource, InviteState } from './types';
 
 /** F3 önizleme: e2e (share_ui.mjs) bu değerlere dayanır. Geçerli başka kod: XYZ789 */
@@ -47,6 +50,12 @@ const withTeamIds = (m: Match): Match => ({ ...m, home_team_id: teamId(m.home_te
 /** Veri tazeliği taklidi: ilk açılışta "birkaç dakika önce kontrol edildi" */
 const SYNCED_AGO_MS = 7 * 60_000;
 
+/**
+ * Mağaza görseli (?store=1): gerçek milli takım ve gerçek oyuncu adı içeren Türkiye–İskoçya, İtalya–Portekiz
+ * ve "UEFA" başlıklı grup listeye girmez (docs/tasarim-rehberi.md "Play Store görselleri" §1).
+ */
+const STORE_HIDDEN_IDS = new Set([TURKEY_SCOTLAND_ID, 9011, 9012]);
+
 const buildMatches = (): Match[] =>
   [
     ...initialMatches.map((m) => ({
@@ -64,6 +73,7 @@ const buildMatches = (): Match[] =>
     // Tarih şeridi: göreli saatli örnek maçlar her saatte "Bugün"de kalır
     .map((m) => ({ ...m, kickoff_at: clampToToday(m.kickoff_at) }))
     .concat(dayStripMatches())
+    .filter((m) => !STORE_MODE || !STORE_HIDDEN_IDS.has(m.fixture_id))
     .map((m) => ({ ...withTeamIds(m), updated_at: new Date(Date.now() - SYNCED_AGO_MS).toISOString() }));
 
 /** "Q3 04:12" → { period: 3, seconds: 252 } */
@@ -109,6 +119,11 @@ export function createMockSource(): DataSource {
   let invite: InviteState = { ...MOCK_INVITE };
   // e2e: ?invite=0 → 0017 kurulmamış gibi (davet kartı gizli, paylaşım bağlantısında k yok)
   const noInvite = () => typeof globalThis.location !== 'undefined' && /[?&]invite=0(?:&|$)/.test(globalThis.location.search ?? '');
+  // F7 "Hata bildir": gönderilen bildirimler (e2e globalThis.__skorAiReports ile okur). ?aireport=0 → 0020
+  // kurulmamış gibi ('unavailable'), ?aireport=limit → günlük sınır dolmuş ('rate_limited')
+  const aiReports: (AiReport & { at: number })[] = [];
+  (globalThis as { __skorAiReports?: typeof aiReports }).__skorAiReports = aiReports;
+  const aiReportMode = () => /[?&]aireport=(0|limit)(?:&|$)/.exec(globalThis.location?.search ?? '')?.[1] ?? null;
   let timer: ReturnType<typeof setInterval> | null = null;
   const htTicks = new Map<number, number>();
 
@@ -487,6 +502,17 @@ export function createMockSource(): DataSource {
         return 'ok';
       }
       return 'invalid';
+    },
+
+    async reportAiOutput(r) {
+      const mode = aiReportMode();
+      if (mode === '0') return 'unavailable';
+      // Sunucu kuralının taklidi: kullanıcı başına 24 saatte 20 bildirim
+      const dayAgo = Date.now() - 86_400_000;
+      if (mode === 'limit' || aiReports.filter((x) => x.at > dayAgo).length >= 20) return 'rate_limited';
+      const note = r.note?.trim().slice(0, AI_REPORT_NOTE_MAX) || null;
+      aiReports.push({ ...r, note, at: Date.now() });
+      return 'ok';
     },
 
     async getNotificationPrefs() {

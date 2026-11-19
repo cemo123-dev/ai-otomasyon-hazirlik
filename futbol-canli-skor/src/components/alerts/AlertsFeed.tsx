@@ -5,6 +5,7 @@ import { usePremium } from '@/hooks/usePremium';
 import { dataSource } from '@/lib/data';
 import type { Match, MatchAlert, RedCardAnalysis } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
+import { ReportAiButton } from '../ai/ReportAi';
 import { Card, CardTitle } from '../ui';
 
 const KIND_COLOR: Record<MatchAlert['kind'], string> = {
@@ -66,12 +67,12 @@ function AlertRow({ match, a }: { match: Match; a: MatchAlert }) {
       ) : null}
 
       {open && analysis === 'loading' ? <ActivityIndicator color={colors.pro} style={{ marginTop: space(2) }} /> : null}
-      {open && analysis && analysis !== 'loading' ? <RedCardReport p={analysis} match={match} /> : null}
+      {open && analysis && analysis !== 'loading' ? <RedCardReport p={analysis} match={match} alertId={a.id} /> : null}
     </View>
   );
 }
 
-function RedCardReport({ p, match }: { p: RedCardAnalysis; match: Match }) {
+function RedCardReport({ p, match, alertId }: { p: RedCardAnalysis; match: Match; alertId: number }) {
   const name = (s: 'home' | 'away') => (s === 'home' ? match.home_team : match.away_team);
   return (
     <View style={styles.report}>
@@ -85,6 +86,8 @@ function RedCardReport({ p, match }: { p: RedCardAnalysis; match: Match }) {
         </View>
       ))}
       {p.key ? <Text style={styles.key}>🔑 {p.key}</Text> : null}
+      {/* F7: canlı AI analizi için "Hata bildir" (öğe = alarm kimliği) */}
+      <ReportAiButton fixtureId={match.fixture_id} surface="red_card" itemRef={String(alertId)} />
     </View>
   );
 }

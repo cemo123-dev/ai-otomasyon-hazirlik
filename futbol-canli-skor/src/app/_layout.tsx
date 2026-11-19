@@ -7,6 +7,7 @@ import { FollowsProvider } from '@/hooks/useFollows';
 import { PremiumProvider } from '@/hooks/usePremium';
 import { useNotificationOpen } from '@/lib/notifications';
 import { startActivityTracking } from '@/lib/growth';
+import { readInstallReferrerOnce } from '@/lib/installReferrer';
 import { applyUpdateOnLaunch, markUserNavigated } from '@/lib/updates';
 import { colors } from '@/theme';
 
@@ -34,6 +35,11 @@ export default function RootLayout() {
   // F4: aktif gün ölçümü (saatte en fazla 1 RPC; 0017 yoksa / hata olursa akış durmaz)
   useEffect(() => startActivityTracking(), []);
 
+  // Döngü 11: Play Install Referrer bir kez (yalnız Android ilk açılış; önizlemede ?referrer=). Kod yalnız önerilir.
+  useEffect(() => {
+    void readInstallReferrerOnce();
+  }, []);
+
   return (
     <SafeAreaProvider>
       <PremiumProvider>
@@ -53,6 +59,8 @@ export default function RootLayout() {
           <Stack.Screen name="paywall" options={{ presentation: 'modal', title: 'Skor+ Pro' }} />
           <Stack.Screen name="settings" options={{ title: 'Ayarlar' }} />
           <Stack.Screen name="legal/[doc]" options={{ title: '' }} />
+          {/* F5 ilk açılış takım seçimi: kendi başlığı ve "Atla" düğmesi var */}
+          <Stack.Screen name="welcome" options={{ headerShown: false }} />
         </Stack>
         {/* Stack'ten sonra: yönlendirme kök gezgin bağlandıktan sonra çalışsın */}
         {Platform.OS !== 'web' ? <NotificationOpener /> : null}

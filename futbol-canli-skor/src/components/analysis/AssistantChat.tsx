@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { useAssistant } from '@/hooks/useAssistant';
 import { ASSISTANT_QUESTION_LIMIT, type Match } from '@/lib/types';
 import { colors, hit, radius, space } from '@/theme';
+import { ReportAiButton } from '../ai/ReportAi';
 import { Card, CardTitle } from '../ui';
 
 const CHIPS: Record<Match['sport_type'], string[]> = {
@@ -69,6 +70,8 @@ export function AssistantChat({ match }: { match: Match }) {
               <View style={[styles.a, m.status === 'failed' && styles.aFailed]}>
                 <Text style={m.status === 'failed' ? styles.failText : styles.aText}>{m.answer}</Text>
               </View>
+              {/* F7: her AI yanıtının altında "Hata bildir" (hata/doğrulanamadı yanıtında değil) */}
+              {m.status === 'answered' ? <ReportAiButton fixtureId={match.fixture_id} surface="assistant" itemRef={String(m.id)} /> : null}
             </View>
           )}
         </View>

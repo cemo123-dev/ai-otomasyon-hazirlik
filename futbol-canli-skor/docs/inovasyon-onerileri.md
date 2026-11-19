@@ -2,9 +2,9 @@
 
 > Sürüm 2 — 18 Kasım 2026. Hazırlayan: inovasyon ajanı. Ortak belgeler: `docs/pazarlama-stratejisi.md` (Sürüm 2.1), `docs/tasarim-rehberi.md` (1.0).
 > Bu belge yalnız öneri ve geliştirici spesifikasyonu içerir. Kod, migration veya deploy yapılmadı.
-> **Sürüm 2 değişiklikleri:** F3 + F4 mevcut koda göre uygulamaya hazır hâle getirildi (§4.3). Kota düzeltmesi: üretim logları futbol ve NBA'in **ayrı** 100 istek/gün kotası olduğunu gösterdi; yeni F12 "Kota ayrımı + akıllı zamanlayıcı" (§4.4) eklendi. Yeni fikirler F13-F15. Migration numaraları son dosyadan (`0016_quality3.sql`) sonra yapım sırasıyla verildi: **0017** F3+F4, **0023** F12b, **0022** F2, **0024** F1. Yeni SQL fonksiyonları `set search_path = ''` kullanır.
+> **Sürüm 2 değişiklikleri:** F3 + F4 mevcut koda göre uygulamaya hazır hâle getirildi (§4.3). Kota düzeltmesi: üretim logları futbol ve NBA'in **ayrı** 100 istek/gün kotası olduğunu gösterdi; yeni F12 "Kota ayrımı + akıllı zamanlayıcı" (§4.4) eklendi. Yeni fikirler F13-F15. Migration numaraları son dosyadan (`0016_quality3.sql`) sonra yapım sırasıyla verildi: **0017** F3+F4, **0024** F12b, **0023** F2, **0025** F1. Yeni SQL fonksiyonları `set search_path = ''` kullanır.
 > **Sürüm 4 (2026-11-18, yön değişikliği):** Google Play yayını (~2-3 hafta) ve API-Football Pro (7.500/gün; NBA ücretsiz 100/gün). Yeni §0 "Play + Pro API yol haritası" önceki sıralamanın yerine geçer; migration numaraları §0.6 sonundaki tabloya göre değişti; F6 iptal; F12b yalnız NBA. Aşağıdaki Sürüm 2-3 notları tarihsel kayıttır.
-> **Sürüm 3 (Döngü 3):** F12a kodda tamam (3.31). F3+F4 (0017) geliştirmede. F12b (§4.4) mevcut koda göre uygulamaya hazır: son 0023 SQL'i (geri dönüş bloğuyla), `_shared/scheduler.ts` API'si, 20 Deno vakası, entegrasyon noktaları, log kontrol planı ve pazarlama §4.9'a uygun metin değişikliği.
+> **Sürüm 3 (Döngü 3):** F12a kodda tamam (3.31). F3+F4 (0017) geliştirmede. F12b (§4.4) mevcut koda göre uygulamaya hazır: son 0024 SQL'i (geri dönüş bloğuyla), `_shared/scheduler.ts` API'si, 20 Deno vakası, entegrasyon noktaları, log kontrol planı ve pazarlama §4.9'a uygun metin değişikliği.
 > **Kurallar:** Her öneri ücretsiz API-Sports planında (futbol 100 istek/gün ve NBA 100 istek/gün, **ayrı kotalar**) çalışır. Çalışmıyorsa açıkça "ücretli plan gerekir" yazar. Bahis, yayın, lisanssız veri, resmî lig/kulüp markası, uydurma sosyal kanıt yok. Kişisel veri en azda tutulur (KVKK).
 > "⚠ doğrulanmalı" işareti, uygulamadan önce kontrol edilmesi gereken bilgiyi gösterir.
 
@@ -54,7 +54,7 @@ NBA (100/gün, değişmez): canlı ~16 + fikstür 3 + box score ≤ ~40 → bug�
 
 ### 0.4 F12b yeniden kapsamı: **yalnız NBA**
 - **Futbol:** zamanlayıcı yok. Dakikalık cron (`* 9-23 * * *`) + `PAID` yolları yeterli. Maçsız dakikada `live=all` boş döner; günde en çok ~300 boşa istek, bütçenin %4'ü. Basitlik kazanır.
-- **NBA:** §4.4'teki tasarım aynen, yalnız `sport='nba'` için. Uygulanırken 0023 SQL'inden `skor-sync-tick` satırları ve `sync_state`'in `football` satırı çıkarılır; `skor-sync-live` dakikalık işi (0018) korunur. `sync-matches` `tick()` yazılmaz. Öncelik düşer (sıra 7).
+- **NBA:** §4.4'teki tasarım aynen, yalnız `sport='nba'` için. Uygulanırken 0024 SQL'inden `skor-sync-tick` satırları ve `sync_state`'in `football` satırı çıkarılır; `skor-sync-live` dakikalık işi (0018) korunur. `sync-matches` `tick()` yazılmaz. Öncelik düşer (sıra 7).
 
 ### 0.5 Play'e özel işler
 | İş | Native mi | Not |
@@ -75,16 +75,16 @@ NBA (100/gün, değişmez): canlı ~16 + fikstür 3 + box score ≤ ~40 → bug�
 |---|---|---|---|---|---|---|---|---|
 | 1 | **P0 Pro API'yi aç + NBA bayrağını ayır** (dakikalık senkron, alarmlar, HT raporu, −1…+7 fikstür) | 9 | 9 | 8 | **648** | S-M | 0018 | Para ödendiği gün değer verir; NBA bayrak hatası açılıştan önce kapanmalı. |
 | 2 | **P1 Play build'i + kapalı test + mağaza bağlantısı / install referrer** (tüm native paketler bu build'de) | 10 | 8 | 6 | **480** | M | Yok | 14 günlük saat 2. gün başlamalı; takvimin kritik yolu. |
-| 3 | **P2 RevenueCat + Play Billing** (Pro satışı) | 9 | 7 | 5 | 315 | M-L | 0020 | Native kısmı P1 build'inde; sunucu ve paywall kapalı test sırasında biter. |
+| 3 | **P2 RevenueCat + Play Billing** (Pro satışı) | 9 | 7 | 5 | 315 | M-L | 0021 | Native kısmı P1 build'inde; sunucu ve paywall kapalı test sırasında biter. |
 | 4 | F5 İlk açılış takım seçimi | 7 | 7 | 8 | 392 | S | Yok | Mağazadan gelen soğuk kullanıcının ilk izlenimi ve ilk puanı; P1 ile aynı OTA. |
-| 5 | F10 Puan durumu (artık açık) | 7 | 8 | 6 | 336 | M | 0021 | Rakiplerin hepsinde var; mağaza yorumlarında ilk eksik olarak yazılır. |
+| 5 | F10 Puan durumu (artık açık) | 7 | 8 | 6 | 336 | M | 0022 | Rakiplerin hepsinde var; mağaza yorumlarında ilk eksik olarak yazılır. |
 | 6 | P3 Uygulama içi değerlendirme isteği | 6 | 7 | 9 | 378 | S | Yok | Play'de puan = keşif. Native paket P1'de; tetik mantığı OTA. |
-| 7 | F2 AI Vitrini → "Pro'yu gör" hunisi | 8 | 7 | 7 | 392 | S-M | 0022 | Satış açılınca vitrin doğrudan Pro'ya yönlendirir. |
-| 8 | F12b-NBA akıllı zamanlayıcı | 6 | 7 | 6 | 252 | M | 0023 | NBA hâlâ 100/gün; futbol kapsamdan çıktı. |
+| 7 | F2 AI Vitrini → "Pro'yu gör" hunisi | 8 | 7 | 7 | 392 | S-M | 0023 | Satış açılınca vitrin doğrudan Pro'ya yönlendirir. |
+| 8 | F12b-NBA akıllı zamanlayıcı | 6 | 7 | 6 | 252 | M | 0024 | NBA hâlâ 100/gün; futbol kapsamdan çıktı. |
 
-Sıralama ICE'ye değil **bağımlılık ve takvime** göre: 1 ve 2 paralel başlar (1 sunucu, 2 build), 3 aynı build'in native paketine dayanır, 4-6 kapalı test sırasında OTA ile gelir. Sonrası: F1 Sabah NBA özeti (0024), F7 Hata bildir, F15, F14 (Play'de Google ile giriş gelirse gereksizleşebilir), F9, F11 widget (Play ile native güncelleme kolaylaştı: 6→ yeniden değerlendirilir), F8. **F6 iptal.**
+Sıralama ICE'ye değil **bağımlılık ve takvime** göre: 1 ve 2 paralel başlar (1 sunucu, 2 build), 3 aynı build'in native paketine dayanır, 4-6 kapalı test sırasında OTA ile gelir. Sonrası: F1 Sabah NBA özeti (0025), F7 Hata bildir, F15, F14 (Play'de Google ile giriş gelirse gereksizleşebilir), F9, F11 widget (Play ile native güncelleme kolaylaştı: 6→ yeniden değerlendirilir), F8. **F6 iptal.**
 
-**Migration yeniden numaralandırma (Sürüm 4):** 0018 P0 Pro API · 0020 P2 RevenueCat · 0021 F10 Puan durumu · 0022 F2 AI Vitrini (eski 0020) · 0023 F12b-NBA (eski 0018) · 0024 F1 Sabah NBA özeti (eski 0021). Aşağıdaki bölümlerde numaralar buna göre güncellendi.
+**Migration yeniden numaralandırma (Sürüm 4):** 0018 P0 Pro API · 0021 P2 RevenueCat · 0022 F10 Puan durumu · 0023 F2 AI Vitrini (eski 0020) · 0024 F12b-NBA (eski 0018) · 0025 F1 Sabah NBA özeti (eski 0021). Aşağıdaki bölümlerde numaralar buna göre güncellendi.
 
 ---
 
@@ -129,6 +129,8 @@ Sıralama ICE'ye değil **bağımlılık ve takvime** göre: 1 ve 2 paralel baş
 ---
 
 ### 0.8 Spesifikasyon — P1 Play build'i + kapalı test + mağaza bağlantısı / install referrer (uygulamaya hazır)
+
+> Durum (Döngü 11 geliştirici, GELISTIRMELER 3.38, sürüm **1.1.0**): **native kısım kodda tamam; build alınmadı.** `expo-application` (install referrer), `expo-store-review` (P3), `react-native-purchases` (P2, bayrakla kapalı: `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` boşsa paywall değişmez) ve `expo-splash-screen` eklentisi aynı build'de. Spesifikasyondan bilinçli farklar: (1) UTM pazarlama §9.1'e göre `utm_source=app`, `utm_medium=invite|share`, `utm_campaign=invite|match_share`, `utm_content=<kod>` (buradaki `utm_source=skorplus` taslağı yerine); (2) `EXPO_PUBLIC_DOWNLOAD_URL` kaldırılmadı: Play adresiyse ya da yeni `EXPO_PUBLIC_PLAY_URL` tanımlıysa bağlantılar mağaza biçimine geçer (APK/indirme sayfası yolu korunur); (3) `ApkMigrationBanner` bu döngüde yok (OTA ile ayrıca gelir). P2 sunucu: `supabase/functions/revenuecat-webhook` + `0021_billing.sql` (YAZILDI, prod'da uygulanmadı). P3 tetik: ≥ 4 aktif gün + son 3 günde tamamlanmış AI raporu, 90 günde bir, hatadan 30 dk sonra, canlı maç ekranında değil; ana ekran odağında (`src/lib/reviewPolicy.ts`). Migration numaraları değişmedi (0021 zaten P2 için ayrılmıştı).
 
 **Kullanıcı hikâyeleri:** (1) Yeni kullanıcı olarak uygulamayı Play'den güvenle kurmak istiyorum. (2) Davet edilen kullanıcı olarak mağaza bağlantısıyla kurunca arkadaşımın kodunun hazır gelmesini istiyorum (tek dokunuşla onaylarım). (3) Mevcut APK kullanıcısı olarak verimi kaybetmeden Play sürümüne geçmek istiyorum. (4) Geliştirici olarak ikinci bir native build'e gerek kalmadan Billing ve değerlendirme paketlerinin bu build'de olmasını istiyorum.
 
@@ -209,7 +211,7 @@ Efor: **S** ≤ 2 gün, **M** 3-6 gün, **L** > 1 hafta (tek geliştirici). KPI 
 - **KPI:** KPI 6 (D7 tutma), KPI 7 (NBA payı), KPI 5 (bildirim izni değer kazanır).
 - **Efor:** M.
 - **API kotası:** **0 istek/gün.** Yalnız DB'deki `matches` ve `box_score` okunur.
-- **Veri/DB:** Migration gerekir (`0024`): `notification_prefs.nba_digest`, gönderim kaydı tablosu, cron işi. Yeni Edge Function `send-nba-digest`.
+- **Veri/DB:** Migration gerekir (`0025`): `notification_prefs.nba_digest`, gönderim kaydı tablosu, cron işi. Yeni Edge Function `send-nba-digest`.
 - **Risk:** Box score geç dolarsa push yalnız skorla gider (kabul edilebilir). Bildirim yorgunluğu: günde en fazla 1 push, yalnız takip edilen takım oynadıysa, ayardan kapatılır.
 
 ### F2. AI Vitrini + uygulama içi Pro bekleme listesi
@@ -217,7 +219,7 @@ Efor: **S** ≤ 2 gün, **M** 3-6 gün, **L** > 1 hafta (tek geliştirici). KPI 
 - **KPI:** KPI 8 (Pro bekleme listesi), dolaylı KPI 1 ve 9 (vitrin raporu paylaşılır). Pro talebi segment ve özellik bazında ölçülür (futbol mu NBA mi, hangi ekrandan).
 - **Efor:** S-M.
 - **API kotası:** **0 istek/gün.** Gemini maliyeti: haftada en fazla 3 rapor (mevcut boru hattı).
-- **Veri/DB:** Migration gerekir (`0022`): `matches.ai_showcase`, `match_analyses` için ek okuma politikası, `pro_waitlist` tablosu, iki RPC.
+- **Veri/DB:** Migration gerekir (`0023`): `matches.ai_showcase`, `match_analyses` için ek okuma politikası, `pro_waitlist` tablosu, iki RPC.
 - **Risk:** Pro içeriğini ücretsiz göstermek algılanan değeri düşürebilir; haftalık 3 sınırı bunu dengeler. AI hatası herkese görünür olur; mevcut sayı doğrulaması ve terim bekçisi korunur, F7 (hata bildir) sonra eklenir.
 
 ### F3. Paylaş + Davet kodu
@@ -244,6 +246,8 @@ Efor: **S** ≤ 2 gün, **M** 3-6 gün, **L** > 1 hafta (tek geliştirici). KPI 
 - **Veri/DB:** Migration gerekmez (mevcut `toggle_team_follow`, `register_push_token`). Yerel bayrak AsyncStorage'da.
 - **Risk:** Takım listesi o haftaki maçlarla sınırlı. Arama yoksa yeni sezon/ara dönemde liste dar kalabilir.
 
+> Durum (Döngü 10 geliştirici, GELISTIRMELER 3.37): **kodda tamam (OTA, migration yok).** `src/app/welcome.tsx`: spor anahtarı, arama, dün/bugün/yarının maçlarından tekil takımlar (lig önceliği sırası; `listMatches`, ek API isteği yok), en çok 5 seçim → `toggle_team_follow`, "Atla". Bayrak `src/lib/onboarding.ts` (`skor.onboarding.seen`, gösterildiği an yazılır; dünden önce açmış mevcut kurulum görmez). Bildirim izni ilk takipte mevcut akışla istenir (ayrı izin adımı yok). Önizlemede yalnız `?onboarding=1`. e2e: `e2e/onboarding_ui.mjs`.
+
 ### F6. "Yeni APK var" bandı + Güven ekranı — **Sürüm 4: iptal** (Play güncellemeleri mağazadan gelir; APK kullanıcıları için tek seferlik geçiş bandı §0.8)
 - **Sorun/fırsat:** JS değişiklikleri OTA ile gelir ama native değişiklik yeni APK ister. Kullanıcı eski APK'da kalırsa yeni özellikleri (ileride görsel kart, widget) hiç görmez. Ayrıca APK'nın güven sorunu var. (a) `app_config.latest_native_version` istemciye açık bir RPC ile okunur. Kurulu native sürüm eskiyse ana ekranda kapatılabilir bant: "Yeni sürüm hazır. Kurulum anlatımı indirme sayfasında." (b) Ayarlar > "Sürüm ve güvenlik": sürüm, son OTA tarihi, istenen izinler ve nedeni, SHA-256'yı kontrol etme bağlantısı (indirme sayfası).
 - **KPI:** KPI 12 (OTA/sürüm erişimi), KPI 2 (güven → indirme oranı, dolaylı).
@@ -259,6 +263,8 @@ Efor: **S** ≤ 2 gün, **M** 3-6 gün, **L** > 1 hafta (tek geliştirici). KPI 
 - **API kotası:** 0.
 - **Veri/DB:** Migration: `ai_feedback` (user_id, fixture_id, kind, note ≤ 280 karakter, created_at), RLS: yalnız ekleme.
 - **Risk:** Serbest metin kişisel veri içerebilir; not alanı kısa tutulur, 90 gün sonra silinir.
+
+> Durum (Döngü 10 geliştirici, GELISTIRMELER 3.37): **kodda tamam; `0020_ai_reports.sql` yazıldı, prod'da uygulanmadı.** Tablo adı `ai_reports` (user_id, fixture_id, surface, item_ref, reason, note ≤ 200, created_at); yazma yalnız `report_ai_output` RPC'si (günde 20 / kullanıcı, aynı öğe 24 saatte bir kez), istemci okuyamaz; `admin_ai_reports` + `admin_ai_report_summary` görünümleri SQL Editor için; 90 gün cron temizliği. Arayüz: `src/components/ai/ReportAi.tsx` (6 yüzey: maç sonu futbol + NBA, maç önü, devre arası, asistan yanıtı, kırmızı kart analizi). 0020 yoksa sayfa "Bildirim şu an alınamıyor" der. Bu migration 0020'yi aldığı için yukarıdaki öneri numaraları bir kaydırıldı (0021 P2 … 0025 F1). e2e: `e2e/ai_report_ui.mjs`.
 
 ### F8. Takvime ekle
 - **Sorun/fırsat:** Takip edilen takımın gelecek maçını tek dokunuşla telefon takvimine ekleme. Google Takvim "şablon" bağlantısı (`https://calendar.google.com/calendar/render?action=TEMPLATE&...`) `Linking.openURL` ile açılır; native modül yok. Takvim uyarısı uygulamayı hatırlatır.
@@ -295,9 +301,9 @@ Efor: **S** ≤ 2 gün, **M** 3-6 gün, **L** > 1 hafta (tek geliştirici). KPI 
 ### F12. Kota ayrımı + akıllı zamanlayıcı (Döngü 2, koordinatör bulgusu)
 - **Sorun/fırsat:** Üretim logları (2026-11-17) futbol ve NBA'in **ayrı** 100 istek/gün kotası olduğunu gösterdi: aynı 30 dakikada futbol sayacı 63 → 59, NBA sayacı 49 → 30. Kod ise kotayı ortak sayıp futbolda 45 isteği NBA'e, NBA'de 20 isteği futbola ayırıyor; iki taraf da gereksiz kısılıyor. Ayrıca cron, maç olsun olmasın 30 dakikada bir API'yi çağırıyor. Öneri: (a) spor başına ayrı kota bekçisi, çapraz rezervlerin kaldırılması; (b) 5 dakikalık "tick" + DB kapısı: başlamaya 5 dk kalan, canlı ya da yeni biten maç yoksa API çağrılmaz; varsa yoklama aralığı `kalan bütçe / kalan pencere` ile 4-30 dk arasında ölçeklenir; başlama, devre arası ve maç sonu anlarında ek yoklama; bütçe darsa takip edilen maçlar önce. Kaynak: rakip araştırması §11.3-11.4.
 - **KPI:** Gecikme şikâyeti (rakip §2-4) her kullanıcıda azalır → KPI 6 (D7) ve genel güven. Devre arası raporu ve "maç başladı" bildirimi zamanında gelir (KPI 5'in değeri).
-- **Efor:** F12a S (yarım gün, migration yok); F12b M (3-4 gün, `0023`).
+- **Efor:** F12a S (yarım gün, migration yok); F12b M (3-4 gün, `0024`).
 - **API kotası:** **Ek istek yok;** aynı bütçe maç saatlerine kaydırılır. Spor başına günlük üst sınır 100 − rezerv.
-- **Veri/DB:** F12a yok. F12b: `sync_state` tablosu + cron değişikliği (`0023_smart_scheduler.sql`).
+- **Veri/DB:** F12a yok. F12b: `sync_state` tablosu + cron değişikliği (`0024_smart_scheduler.sql`).
 - **Risk:** Senkronun çekirdeğine dokunur; regresyon riski en yüksek öneri. Kota sıfırlanma saati ⚠ ve `/status`'un kotaya sayılıp sayılmadığı ⚠ doğrulanmalı. Pazarlama tazelik iddiasını 1 haftalık log kanıtı olmadan değiştirmez.
 
 ### F13. Paylaşılan maç için web önizleme sayfası (Döngü 2)
@@ -342,11 +348,11 @@ ICE = Etki (I) × Güven (C) × Kolaylık (E), her biri 1-10. Kolaylık; efor, m
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | **F12a Kota ayrımı** (çapraz rezervleri kaldır) — **yapıldı** (GELISTIRMELER 3.31) | 7 | 9 | 9 | **567** | S | 0 ek; kullanılabilir bütçe artar | Yok | Evet (yalnız Edge Function deploy) |
 | 2 | **F3 Paylaş + Davet kodu (F4 dahil)** | 9 | 8 | 7 | **504** | M | 0 | 0017 | Evet |
-| 3 | **F2 AI Vitrini + bekleme listesi** | 9 | 7 | 8 | **504** | S-M | 0 (Gemini ≤ 3 rapor/hafta) | 0022 | Evet |
+| 3 | **F2 AI Vitrini + bekleme listesi** | 9 | 7 | 8 | **504** | S-M | 0 (Gemini ≤ 3 rapor/hafta) | 0023 | Evet |
 | 4 | F4 Ölçüm temeli (aktif gün) | 5 | 9 | 9 | 405 | S | 0 | 0017 (F3 ile) | Evet |
-| 5 | F1 Sabah NBA Özeti push'u | 7 | 8 | 7 | 392 | M | 0 | 0024 | Evet (+ Edge Function deploy) |
+| 5 | F1 Sabah NBA Özeti push'u | 7 | 8 | 7 | 392 | M | 0 | 0025 | Evet (+ Edge Function deploy) |
 | 6 | F5 İlk açılış takım seçimi | 7 | 7 | 8 | 392 | S | 0 | Yok | Evet |
-| 7 | **F12b Akıllı zamanlayıcı** (DB kapısı + bütçe aralığı + olay anları) — §4.4 uygulamaya hazır | 8 | 7 | 6 | **336** | M | 0 ek; bütçe maç saatlerine kayar | 0023 | Evet (+ Edge Function deploy) |
+| 7 | **F12b Akıllı zamanlayıcı** (DB kapısı + bütçe aralığı + olay anları) — §4.4 uygulamaya hazır | 8 | 7 | 6 | **336** | M | 0 ek; bütçe maç saatlerine kayar | 0024 | Evet (+ Edge Function deploy) |
 | 8 | F6 Yeni APK bandı + Güven ekranı | 6 | 7 | 8 | 336 | S | 0 | Küçük | Evet |
 | 9 | F13 Paylaşılan maç web önizlemesi | 7 | 6 | 7 | 294 | S-M | 0 | Yok | Depo dışı + OTA |
 | 10 | F15 Haftalık "Takımının haftası" | 6 | 6 | 7 | 252 | M | 0 | Küçük | Evet (+ deploy) |
@@ -362,12 +368,12 @@ ICE = Etki (I) × Güven (C) × Kolaylık (E), her biri 1-10. Kolaylık; efor, m
 - **F12b, F3'ten sonra gelmeli** (koordinatörün "önce gelsin" görüşünden kısmen ayrılıyorum). Nedenler: (1) F3'ün sabit bir son tarihi var: Hafta 2 yumuşak lansmanından önce paylaşım ve D7 ölçümü hazır olmalı; F4 geç gelirse ilk kohortun verisi kalıcı olarak kaybolur. (2) F12b senkronun çekirdeğine dokunur; 3-4 gün yazım + 24 saat log gözlemi ister. Lansman haftasında senkron regresyonu en pahalı hata olur. (3) F12a, F12b'nin getirisinin bir kısmını zaten sağlar (bütçe iki katına çıkar).
 - Ters görüş de makul: lansmanla gelen yeni kullanıcı ilk izlenimi tazelikten alır. Tek geliştirici F3'ü Hafta 1'in ilk yarısında bitirirse F12b Hafta 1 sonunda başlamalı, Hafta 2 içinde yayına girmeli.
 
-**Son yapım sırası (Döngü 2):** **F12a → 0017 (F3+F4) + F5 → 0023 (F12b) → 0022 (F2) → F7 → 0024 (F1)** → F13 → F15 / F14. F6, ilk native değişiklikten hemen önce.
+**Son yapım sırası (Döngü 2):** **F12a → 0017 (F3+F4) + F5 → 0024 (F12b) → 0023 (F2) → F7 → 0025 (F1)** → F13 → F15 / F14. F6, ilk native değişiklikten hemen önce.
 
 **Notlar:**
 - F4 tek başına çekiş yaratmaz ama F1-F3'ün ölçümü için şart; bu yüzden F3'ün migration'ındadır.
 - F5 migration istemez; F3 ile aynı OTA'da "yan iş" olarak çıkar (pazarlama değerlendirmesi §1).
-- Migration numarası yapım sırasını izler; her migration idempotent ve birbirinden bağımsızdır. 0022 (F2) ve 0024 (F1) birbirinin nesnelerine bağlı değil; 0023 (F12b) yalnız 0001-0016'daki tablolara dayanır.
+- Migration numarası yapım sırasını izler; her migration idempotent ve birbirinden bağımsızdır. 0023 (F2) ve 0025 (F1) birbirinin nesnelerine bağlı değil; 0024 (F12b) yalnız 0001-0016'daki tablolara dayanır.
 
 ---
 
@@ -382,7 +388,7 @@ Ortak ilkeler:
 
 ---
 
-### 4.1 F1 Sabah NBA Özeti push'u ("Gece ne oldu?") — migration 0024, yapım sırasında F2'den sonra
+### 4.1 F1 Sabah NBA Özeti push'u ("Gece ne oldu?") — migration 0025, yapım sırasında F2'den sonra
 
 #### Kullanıcı hikâyeleri
 1. NBA takımı takip eden kullanıcı olarak, takımım gece oynadıysa sabah tek bir bildirimle skoru ve en skoreri görmek istiyorum; uykumu bölmeden.
@@ -403,7 +409,7 @@ Ortak ilkeler:
 - **Ayarlar** (`src/app/settings.tsx`, mevcut bildirim kartı): yeni anahtar `Sabah NBA özeti` — açıklama: "Takip ettiğin NBA takımı gece oynadıysa sabah 09:45 civarı tek bildirim." Varsayılan açık. `set_notification_prefs` yeni parametreyle çağrılır.
 - **(Faz 2, isteğe bağlı) Ana ekran kartı** (`src/app/index.tsx`, NBA sporu seçiliyken, TSİ 06:00-14:00 arası): "Gece ne oldu?" kartı, dünkü biten NBA maçlarından takip edilenleri gösterir. Push izni olmayan kullanıcıya da değer verir. Migration gerektirmez (istemci mevcut veriden üretir).
 
-#### Veri modeli + migration taslağı — `supabase/migrations/0024_nba_digest.sql`
+#### Veri modeli + migration taslağı — `supabase/migrations/0025_nba_digest.sql`
 
 ```sql
 -- Skor+ : Sabah NBA özeti ("Gece ne oldu?") — takip edilen NBA takımı gece oynadıysa günde en fazla 1 push.
@@ -516,8 +522,8 @@ select cron.schedule('nba-digest', '45 6 * * *',
 - **Elle uçtan uca (gerçek proje):** test hesabıyla bir NBA takımı takip et → SQL Editor'den `select public.call_edge_function('send-nba-digest','{}')` → telefonda bildirim → tekrar çalıştır → ikinci bildirim yok → `nba_digest_log` satırı var.
 
 #### Kullanıcının elle yapacakları
-1. `supabase/migrations/0024_nba_digest.sql` dosyasını SQL Editor'de çalıştır.
-2. `run_maintenance()` fonksiyonuna 30 günlük temizlik satırını ekleyen küçük migration'ı çalıştır (veya 0024 içine dahil et).
+1. `supabase/migrations/0025_nba_digest.sql` dosyasını SQL Editor'de çalıştır.
+2. `run_maintenance()` fonksiyonuna 30 günlük temizlik satırını ekleyen küçük migration'ı çalıştır (veya 0025 içine dahil et).
 3. (İsteğe bağlı) `update public.app_config set value='["<API yazımıyla oyuncu adı>"]' where key='nba_featured_players';`
 4. `npm run deploy:functions` (betikte `send-nba-digest` olduğundan emin ol).
 5. `npm run update:apk` (OTA).
@@ -525,7 +531,7 @@ select cron.schedule('nba-digest', '45 6 * * *',
 
 ---
 
-### 4.2 F2 AI Vitrini + uygulama içi Pro bekleme listesi — migration 0022
+### 4.2 F2 AI Vitrini + uygulama içi Pro bekleme listesi — migration 0023
 
 #### Kullanıcı hikâyeleri
 1. Ücretsiz kullanıcı olarak, Skor+'ın "Türkçe AI analiz" dediği şeyin gerçek bir örneğini uygulamada görmek istiyorum; satın almadan.
@@ -544,7 +550,7 @@ select cron.schedule('nba-digest', '45 6 * * *',
 - **Ayarlar**: "Pro bekleme listesi" satırı (durum + çık).
 - Vitrin dışı maçlarda AI sekmesi bugünkü gibi kilitli kalır. Ücretsiz özellik Pro'ya taşınmaz; Pro özelliği sınırlı biçimde ücretsiz gösterilir (rakip §2-3 dersi).
 
-#### Veri modeli + migration taslağı — `supabase/migrations/0022_ai_showcase.sql`
+#### Veri modeli + migration taslağı — `supabase/migrations/0023_ai_showcase.sql`
 
 ```sql
 -- Skor+ : AI vitrini (haftada en fazla 3 maçın AI raporu herkese açık) + uygulama içi Pro bekleme listesi.
@@ -655,7 +661,7 @@ grant execute on function public.leave_pro_waitlist() to authenticated;
   - Mevcut `ht_ui.mjs`, `alerts_ui.mjs` Pro kilidi senaryoları bozulmaz (regresyon).
 
 #### Kullanıcının elle yapacakları
-1. `0022_ai_showcase.sql` dosyasını SQL Editor'de çalıştır.
+1. `0023_ai_showcase.sql` dosyasını SQL Editor'de çalıştır.
 2. `npm run update:apk` (OTA). Edge Function deploy gerekmez.
 3. Her hafta: test hesabıyla büyük maçın AI raporunu üret, raporu oku ve sayıları kontrol et, sonra `select public.set_ai_showcase(<fixture_id>, true);`.
 4. Haftalık KPI tablosuna `pro_waitlist` sorgusunu ekle.
@@ -1252,13 +1258,13 @@ Senaryolar:
 
 ---
 
-### 4.4 F12 Kota ayrımı + akıllı zamanlayıcı — **Sürüm 4: yalnız NBA, migration 0023** (futbol Pro API ile dakikalık cron kullanır, §0.4)
+### 4.4 F12 Kota ayrımı + akıllı zamanlayıcı — **Sürüm 4: yalnız NBA, migration 0024** (futbol Pro API ile dakikalık cron kullanır, §0.4)
 
-> Sürüm 4 kapsam notu: Uygularken `0023` SQL'inden `skor-sync-tick` satırlarını ve `sync_state` `football` satırını çıkarın; `skor-sync-live` dakikalık işi (0018) korunur; `sync-matches` `tick()` yazılmaz. `scheduler.ts` API'si ve testleri aynen kalır (futbol `DEFAULT_CFG` ileride ücretsiz plana dönüş için). F12a yapıldı (3.31). F12b (NBA) migration 0023 — **uygulamaya hazır**.
+> Sürüm 4 kapsam notu: Uygularken `0024` SQL'inden `skor-sync-tick` satırlarını ve `sync_state` `football` satırını çıkarın; `skor-sync-live` dakikalık işi (0018) korunur; `sync-matches` `tick()` yazılmaz. `scheduler.ts` API'si ve testleri aynen kalır (futbol `DEFAULT_CFG` ileride ücretsiz plana dönüş için). F12a yapıldı (3.31). F12b (NBA) migration 0024 — **uygulamaya hazır**.
 
 > Durum (Döngü 3): **F12a kodda tamam** (GELISTIRMELER 3.31: `_shared/quota.ts` `createQuotaGuard`, spor başına bekçi, rezervler 6 / 3 / 5 / 6, UTC gece yarısı sıfırlaması, 10 dk TTL). Bu bölüm **F12b**'yi mevcut koda göre uygulamaya hazır hâle getirir.
 > Okunan kaynaklar: `supabase/functions/sync-matches/index.ts` (`Deno.serve`, `syncSchedule`, `syncLive`), `sync-nba/index.ts` (`Deno.serve`, `syncSchedule`, `syncLive`, `enrichFinished`, `backfillBoxScores`, `mirrorLogosSafe`), `_shared/quota.ts`, `_shared/apiFootball.ts` (`quota`, `hasQuotaForOptional`, `lastQuotaRemaining`, `primeQuota`, `apiGet`), `_shared/nbaApi.ts` (`quota`, `hasNbaQuota`, `lastNbaQuota`, `nbaGet`, `normalizeStatus`), `_shared/types.ts` (`LIVE`, `FINISHED`), `_shared/teamEvents.ts` (`notifyKickoffs`), `tests/quota.test.ts`, migration'lar `0002` (`call_edge_function`), `0004`, `0006`/`0007` (ücretli plan `cron.alter_job` notları), `0009`, `0015`, `0016`, `0017`, `src/app/index.tsx`, `e2e/lineup_ui.mjs`, pazarlama §4.9 ve KPI 13.
-> Son migration dosyası `0017_growth_invites.sql`; bu iş **`0023_smart_scheduler.sql`**.
+> Son migration dosyası `0017_growth_invites.sql`; bu iş **`0024_smart_scheduler.sql`**.
 
 #### Bugünkü durum (değişecek olan)
 | İş (pg_cron, UTC) | Kaynak | Ne yapar | Kota |
@@ -1283,7 +1289,7 @@ Sorunlar: (1) Maçsız saatlerde istek harcanır. (2) Maç saatinde aralık sabi
 | NBA zenginleştirme | Yoklama olmayan tick'te en fazla 30 dk'da bir "yalnız zenginleştirme" | Biten maçın box score'u canlı liste isteği harcamadan gelir. |
 | Ücretli plan | `paid` → her tick yoklar; cron dakikalık yapılır | 0006/0007'deki `alter_job` notları Döngü 8'de kaldırıldı. Futbolun ücretli geçişi yalnız 0018 prosedürüyle (`docs/ucretli-gecis.md`); NBA ücretsiz kaldıkça `nba-*` işlerine dokunulmaz. |
 
-#### Migration — `supabase/migrations/0023_smart_scheduler.sql` (son hâl)
+#### Migration — `supabase/migrations/0024_smart_scheduler.sql` (son hâl)
 
 ```sql
 -- Skor+ : F12b — DB kapılı, bütçeye göre hızlanan canlı senkron ("tick").
@@ -1581,7 +1587,7 @@ Mevcut `quota.test.ts`, `quota_edge.test.ts`, `syncUtils.test.ts`, `status.test.
 async function tick() {
   const now = Date.now();
   const state = await readSyncState('football');
-  if (!state) return { tick: 'no_state' };                       // 0023 kurulmadı: API çağrılmaz
+  if (!state) return { tick: 'no_state' };                       // 0024 kurulmadı: API çağrılmaz
   if (state.remaining !== null && state.remainingAtMs !== null && utcDay(state.remainingAtMs) === utcDay(now)) {
     seedQuota(state.remaining, state.remainingAtMs);
   }
@@ -1654,13 +1660,13 @@ Kurallar: aşama 1 metninde dakika rakamı, "en geç", "anlık", "dakika dakika"
 2. Spor başına günlük istek kendi 100'ünü aşmaz; tick rezervin altına inmez (`budget_exhausted`'ta durur).
 3. Takip edilen maçta başlama +2, devre arası +50 ve maç sonu +115/+125 anlarından sonraki ilk tick yoklar (bütçe ≥ rezerv iken).
 4. İki tick çakışırsa yalnız biri yoklar (`claimed_elsewhere`).
-5. 0023 kurulmadan deploy edilen sürüm `mode=live` ile eskisi gibi çalışır; `mode=tick` gelirse `no_state` döner ve API çağırmaz.
+5. 0024 kurulmadan deploy edilen sürüm `mode=live` ile eskisi gibi çalışır; `mode=tick` gelirse `no_state` döner ve API çağırmaz.
 6. `npm run test:functions` (yeni 20 vaka dahil) ve `npm run typecheck` temiz.
 7. GERİ DÖNÜŞ bloğu çalıştırılınca 0004 ritmi geri gelir; Edge Function değişikliği gerekmez.
 
 #### Kullanıcının elle yapacakları (sıra önemli)
 1. `npm run test:functions` → `npm run deploy:functions` (tick bilen sürüm).
-2. `0023_smart_scheduler.sql` dosyasını SQL Editor'de çalıştır.
+2. `0024_smart_scheduler.sql` dosyasını SQL Editor'de çalıştır.
 3. Log kontrol planı A (2 saat) ve B (24 saat).
 4. B geçerse: `index.tsx` + `lineup_ui.mjs` metin değişikliği → `npm run e2e` → `npm run update:apk`. Pazarlamaya "aşama 1" bilgisi.
 5. 7 gün sonra C sorgusu → pazarlamaya medyan.
@@ -1754,10 +1760,10 @@ F3 ile F2 eşit puanda. Eşitliği bağımlılık bozar: F3 lansmandan önce ger
 **Son yapım sırası (geliştirici için):**
 
 1. **F3 Paylaş + Davet kodu, F4 ölçüm temeli dahil** (`0017`). Hedef: Hafta 1 sonu, en geç Hafta 2 başı. Zaman kalırsa F5 aynı OTA'da.
-2. **F2 AI Vitrini + uygulama içi bekleme listesi** (`0022`). Hedef: Hafta 3'ün hafta sonu maçlarından önce.
-3. **F1 Sabah NBA Özeti push'u** (`0024`; Döngü 2'de `0023`'den yeniden numaralandı). Hedef: Hafta 4. İlk etkisi Hafta 4 KPI ölçümünde görülür.
+2. **F2 AI Vitrini + uygulama içi bekleme listesi** (`0023`). Hedef: Hafta 3'ün hafta sonu maçlarından önce.
+3. **F1 Sabah NBA Özeti push'u** (`0025`; Döngü 2'de `0023`'den yeniden numaralandı). Hedef: Hafta 4. İlk etkisi Hafta 4 KPI ölçümünde görülür.
 
-Migration numarası ile kurulum sırası aynı olmak zorunda değil; her migration idempotent. ⚠ Geliştirici doğrulamalı: `0022`, `0024`'de oluşan hiçbir nesneye bağlı değil.
+Migration numarası ile kurulum sırası aynı olmak zorunda değil; her migration idempotent. ⚠ Geliştirici doğrulamalı: `0023`, `0025`'de oluşan hiçbir nesneye bağlı değil.
 
 ### 2. Top-3 için ifade riskleri (strateji §8 yasaklı listesine göre)
 

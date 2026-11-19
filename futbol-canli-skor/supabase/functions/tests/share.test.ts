@@ -309,7 +309,7 @@ Deno.test('davetiye metni birebir; /m/ yok; APK dili yok (Döngü 7 bulgu 12)', 
   const p = buildInviteText(PLAY, 'ABC234');
   assertEquals(
     p,
-    "Türkçe, reklamsız skor uygulaması Skor+. Google Play'den indir: https://play.google.com/store/apps/details?id=com.skorplus.app&ref=invite&k=ABC234 — Uygulamayı açınca davet kodum: ABC234",
+    "Türkçe, reklamsız skor uygulaması Skor+. Google Play'den indir: https://play.google.com/store/apps/details?id=com.skorplus.app&referrer=utm_source%3Dapp%26utm_medium%3Dinvite%26utm_campaign%3Dinvite%26utm_content%3DABC234 — Uygulamayı açınca davet kodum: ABC234",
   );
   assertEquals(findBannedShareTerms(p), []);
 });

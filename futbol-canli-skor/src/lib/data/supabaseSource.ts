@@ -361,6 +361,24 @@ export function createSupabaseSource(sb: SupabaseClient): DataSource {
       return data as RedeemResult;
     },
 
+    // ── F7 (0020_ai_reports.sql). Kurulmadıysa 'unavailable': sayfa "şu an alınamıyor" der, uygulama bozulmaz.
+    async reportAiOutput(r) {
+      if (!(await ensureSession())) return 'unauthenticated';
+      const { data, error } = await sb.rpc('report_ai_output', {
+        p_fixture_id: r.fixtureId,
+        p_surface: r.surface,
+        p_item_ref: r.itemRef,
+        p_reason: r.reason,
+        p_note: r.note,
+      });
+      if (error) {
+        if (isMissingRpc(error)) return 'unavailable';
+        throw error; // ağ vb.: sayfada friendlyError, yazılan not kaybolmaz
+      }
+      const v = data as string;
+      return v === 'ok' || v === 'rate_limited' || v === 'invalid' || v === 'unauthenticated' ? v : 'invalid';
+    },
+
     async simulateSubscription(plan) {
       await ensureSession();
       const { data, error } = await sb.rpc('simulate_subscription', { p_plan: plan });

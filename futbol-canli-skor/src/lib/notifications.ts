@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import { dataSource } from './data';
+import { STORE_MODE } from './storeMode';
 
 /**
  * Push bildirim kaydı (devre arası raporu için).
@@ -30,7 +31,8 @@ if (Platform.OS !== 'web') {
 }
 
 async function register(): Promise<PushRegistration> {
-  if (Platform.OS === 'web') return { ok: false, reason: 'Web sürümünde bildirim desteklenmiyor.' };
+  // Mağaza görseli çekimi (?store=1, yalnız önizleme): web'e özgü not karede görünmesin
+  if (Platform.OS === 'web') return STORE_MODE ? { ok: true } : { ok: false, reason: 'Web sürümünde bildirim desteklenmiyor.' };
   if (!Device.isDevice) return { ok: false, reason: 'Bildirimler yalnız gerçek cihazda çalışır.' };
 
   if (Platform.OS === 'android') {

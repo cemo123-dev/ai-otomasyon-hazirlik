@@ -1056,6 +1056,121 @@ google-services.json           Firebase (Android FCM) yapılandırması
        (FOOTBALL_QUOTA_RESERVE=500 yok, R2 silme, curl.exe, 09:00–19:30).
      - Kapılar: bkz. docs/test-raporu.md "Döngü 9" Durum.
 
+3.37 Play lansman öğeleri: Hata bildir (F7), ilk açılış takım seçimi (F5), mağaza görselleri
+     - Yapan / zaman (TSİ, date): Geliştirici ajanı (döngü 10) · Thu Nov 19 01:32 TSS 2026 başlangıç,
+       05:48 bitiş (arada hız sınırı beklemesi). Yalnız JS/SQL: yeni native modül yok, OTA ile gelir.
+     - F7 "Hata bildir" (pazarlama Sürüm 3: Play üretken AI içerik politikası, lansman şartı):
+       src/components/ai/ReportAi.tsx — ReportAiButton (metin bağlantısı, 44 dokunma alanı, gönderince
+       "✓ Bildirildi") + alttan açılan sayfa: 4 neden (Yanlış bilgi / Uygunsuz içerik / Futbol-basketbol
+       terimi karışık / Diğer), isteğe bağlı not (200 karakter, sayaç, "Kişisel bilgi yazma"), Vazgeç /
+       Gönder; sonuç metinleri ok / rate_limited / unavailable (0020 yok) / ağ hatası (form korunur).
+       Yüzeyler: AnalysisCards AiNote (futbol + NBA maç sonu), PreviewCards, HalftimeCards (AiFooter),
+       AssistantChat (her 'answered' yanıtın altında, item_ref = mesaj id), AlertsFeed RedCardReport
+       (item_ref = alarm id). DataSource.reportAiOutput (types.ts, supabaseSource: PGRST202 →
+       'unavailable'; mockSource: ?aireport=0 / ?aireport=limit, globalThis.__skorAiReports).
+     - supabase/migrations/0020_ai_reports.sql (YAZILDI, prod'da UYGULANMADI): ai_reports tablosu (RLS,
+       politika yok, anon/authenticated yetkisi kaldırıldı; auth.users on delete cascade; surface /
+       reason check, not ≤ 200, item_ref ≤ 64), report_ai_output RPC (security definer, search_path '',
+       yalnız authenticated; kayan 24 saatte 20 / kullanıcı, aynı öğe 24 saatte tek satır, advisory
+       lock), admin_ai_reports + admin_ai_report_summary görünümleri (security_invoker, istemciye
+       kapalı), skor-ai-reports-cleanup cron (04:50 UTC, 90 gün). Geri dönüş bloğu dosya sonunda.
+     - legal.ts: gizlilik "Topladığımız veriler" + saklama (90 gün) ve KVKK işlenen veriler + saklama
+       metinlerine AI hata bildirimleri eklendi — ⚠ hukukçu kontrolü gerekir.
+     - F5 ilk açılış takım seçimi: src/app/welcome.tsx (yeni rota, _layout'ta headerShown false) +
+       src/lib/onboarding.ts (AsyncStorage 'skor.onboarding.seen', gösterildiği an yazılır; aktif gün
+       anahtarı dünden eskiyse mevcut kurulum sayılır, gösterilmez). index.tsx açılışta kontrol edip
+       /welcome'a gider. Spor anahtarı, arama, listMatches(sport, 1) maçlarından tekil takımlar (lig
+       önceliği + ad sırası; ek API isteği yok), en çok 5 seçim, "Takip et (n/5)" → toggleTeam (zaten
+       takip edilen atlanır), "Atla". Önizlemede yalnız ?onboarding=1; ?store=1'de hiç.
+     - Mağaza görselleri: src/lib/storeMode.ts (STORE_MODE = önizleme + ?store=1, sayfa açılışında bir
+       kez okunur). Gizlenenler: ÖNİZLEME rozeti ve "Örnek veri" bandı (index.tsx), web bildirim notu
+       (notifications.ts), "Önizleme modundasın" yanıtı (assistantMockData.ts), 9010 / 9011 / 9012
+       maçları (mockSource.ts). e2e/store_shots.mjs (npm run e2e zincirinde DEĞİL): tasarım rehberi §6
+       planı; 390×607 @ 900/390, sabit saat 2026-11-18 21:47 TSİ, 1080×1920 bileşim, öne çıkan grafik,
+       RGBA → RGB PNG yeniden kodlama (zlib), boyut / renk türü / yasaklı kelime / önizleme izi
+       doğrulaması. Çıktı store/01-ai-rapor.png … 08-taktik-asistan.png, feature-graphic.png,
+       alt-metinler.txt. assets/ ve simge değiştirilmedi.
+     - Testler: PGlite zincir testi 0001→0020 + tekrar 0015–0020 + bölüm 6i (0020: 24 kontrol);
+       yeni e2e ai_report_ui.mjs ve onboarding_ui.mjs zincire eklendi (18 betik).
+     - Kapılar: tsc 0 hata; eslint src 0 sorun; test:functions 139 geçti / 0 başarısız; deno check
+       7 index.ts temiz; PGlite chain 111/111, 0017 78/78, 0018 47/47, 0019_runbook 43/44 (tek hata
+       ÖNCEDEN VAR: docs/ucretli-gecis.md satır 15 "FOOTBALL_QUOTA_RESERVE=500" metni geçiyor; bu
+       döngüde dokunulmadı); npm run e2e 18/18 çıkış 0; narrow_ui hata yok; store_shots 9 dosya OK.
+     - Elle adım: 0020_ai_reports.sql'i Supabase SQL Editor'de çalıştır (0019'dan bağımsız; sıra
+       serbest). Kontrol: select public.report_ai_output(1, 'analysis', null, 'other', null); (SQL
+       Editor'de oturum yok → 'unauthenticated' döner) ve select * from public.admin_ai_report_summary;
+
+3.38 Play sürümü native modüller: install referrer, uygulama içi değerlendirme, RevenueCat (1.1.0)
+     - Yapan / zaman (TSİ, date): Geliştirici ajanı (döngü 11) · Thu Nov 19 2026, bitiş 06:36 TSS.
+       NATIVE değişiklik: app.json version 1.0.0 → 1.1.0 (runtimeVersion policy appVersion → yeni
+       runtime; 1.0.0 APK'larına bu sürümün OTA'sı gitmez). EAS build / submit ALINMADI.
+     - Paketler (npx expo install): expo-application ~58.1.2, expo-store-review ~58.0.3,
+       react-native-purchases ^11.0.4 (Expo config plugin GEREKMEZ: paket app.plugin.js içermiyor,
+       autolinking; peer react-native >= 0.80), expo-splash-screen ~58.0.14. app.json: plugins'e
+       ["expo-splash-screen", { image: ./assets/splash-icon.png, imageWidth: 200, backgroundColor:
+       #0A0E14 }] (store/icon/README.md; assets/ değişmedi), android.playStoreUrl (StoreReview.storeUrl).
+       blockedPermissions aynen uygulanıyor (introspect: 3 izin tools:node="remove"). BILLING ve
+       BIND_GET_INSTALL_REFERRER_SERVICE izinleri kütüphane AAR manifest'inden Gradle birleştirmesinde
+       gelir (introspect'te görünmez; beklenen).
+     - Install referrer: src/lib/store.ts (SAF: storeUrl(paket, utm), appUtm('share'|'invite', kod),
+       parseReferrer → { source, medium, campaign, code }, isPlayStoreUrl, packageFromPlayUrl). UTM
+       pazarlama §9.1: utm_source=app, utm_medium=invite|share, utm_campaign=invite|match_share,
+       utm_content=<davet kodu>; referrer bir kez kodlanır. Kod utm_content'ten, yoksa k'dan; davet
+       deseniyle süzülür. src/lib/share.ts: withRef / matchLink Play adresinde mağaza bağlantısı üretir
+       (/m/ yok); Play dışı adres (APK / indirme sayfası) eskisi gibi. share.ts → './store.ts' (uzantılı
+       içe aktarma; tsconfig allowImportingTsExtensions — Deno, Node e2e ve Metro aynı yol).
+       src/lib/growth.ts: EXPO_PUBLIC_PLAY_URL (yalnız https://play.google.com/…) tanımlıysa
+       EXPO_PUBLIC_DOWNLOAD_URL'den önce gelir; önizlemede ?dl=play.
+       src/lib/installReferrer.ts: _layout açılışında bir kez; yalnız Android, AsyncStorage
+       skor.referrer.checked; Application.getInstallReferrerAsync() → parseReferrer → kod yalnız cihazda
+       (skor.referrer.code). Önizlemede ?referrer=. Sunucuya hiçbir şey gitmez; otomatik kayıt YOK.
+       InviteCard: "Seni davet eden kodu bulduk: XYZ789." + Kaydet (mevcut redeem) + "Bu kod değil";
+       kendi kodu önerilmez; kayıt sonrası öneri silinir (oturum / sınır hatasında kalır).
+       ReferrerBanner (ana ekran): "Davet kodun hazır. Ayarlar'da onayla." + × (yalnız bandı gizler).
+     - Uygulama içi değerlendirme (P3): src/lib/reviewPolicy.ts (SAF): ≥ 4 ayrı TSİ aktif gün + son 3
+       günde tamamlanmış AI raporu (maç sonu / maç önü) görüntüleme; 90 günde en çok 1 deneme (diyalog
+       Play kotası yüzünden çıkmasa da sayılır); bu oturumda gösterilen hatadan 30 dk sonra; canlı maç
+       ekranında değil; nötr (memnuniyet sorusu / filtre yok, ödül yok, düğmeden çağrılmaz).
+       src/lib/reviewPrompt.ts: yalnız Android + önizleme değil; tetik ana ekran odağı (useFocusEffect).
+       src/lib/appSignals.ts: friendlyError hata zamanını, maç ekranı canlı maçta olduğunu bildirir.
+     - RevenueCat (P2, BAYRAK): src/lib/purchases.ts (+ purchases.web.ts: web paketi native modülü içe
+       aktarmaz). EXPO_PUBLIC_REVENUECAT_ANDROID_KEY boşsa PURCHASES_ENABLED=false: paywall, ana ekran
+       Pro hapı ve test hesabı simülasyonu birebir eskisi gibi. Doluysa: Purchases.configure({ apiKey,
+       appUserID: Supabase kullanıcı kimliği }), hesap silinince logIn(yeni kimlik); StorePaywall
+       (src/components/StorePaywall.tsx): teklifin aylık / yıllık paketleri, fiyat mağazadan
+       (priceString; kodda fiyat yok), deneme metni src/lib/billing.ts planTerms ("7 gün ücretsiz dene,
+       deneme bitince ₺… / ay ücretlendirilir…" + otomatik yenileme + iptal yolu, pazarlama §4.3),
+       "Satın alımları geri yükle", "Abonelikleri yönet" (paywall + Ayarlar > Hesap). Satın alma
+       sonrası Pro durumu sunucudan okunur (usePremium.syncAfterPurchase, 8 × 2 sn).
+       EXPO_PUBLIC_REVENUECAT_ENTITLEMENT (varsayılan pro).
+     - Sunucu: supabase/functions/revenuecat-webhook/index.ts (--no-verify-jwt; Authorization =
+       REVENUECAT_WEBHOOK_AUTH birebir ya da "Bearer …", sabit zamanlı, secret < 16 karakterse kapalı).
+       _shared/revenuecat.ts (SAF eşleme): INITIAL_PURCHASE / RENEWAL / UNCANCELLATION / PRODUCT_CHANGE
+       / SUBSCRIPTION_EXTENDED / … → grant (bitişe kadar); CANCELLATION → dönem sonuna kadar grant
+       (CUSTOMER_SUPPORT iadesi → hemen revoke); BILLING_ISSUE → grace sonuna kadar; EXPIRATION →
+       revoke; TRANSFER → verenden revoke, alana REVENUECAT_REST_KEY varsa REST'ten güncel durum
+       (yoksa sonraki olayla). Kullanıcı = app_user_id / original / aliases içinden UUID ($RCAnonymousID
+       atlanır); başka yetki ve bitişsiz "açan" olay yok sayılır (süresiz Pro doğmaz).
+       supabase/migrations/0021_billing.sql (YAZILDI, prod'da UYGULANMADI): profiles.billing_event_at
+       (sıra dışı olay koruması), billing_events (event_id PK → idempotent; RLS politikasız,
+       anon/authenticated yetkisiz; auth.users on delete set null), apply_billing_event RPC (security
+       definer, search_path '', yalnız service_role; tek işlemde kayıt + güncelleme; 'ok' |
+       'duplicate' | 'invalid'), admin_billing_summary görünümü, skor-billing-events-cleanup cron
+       (04:55 UTC, 400 gün). package.json deploy:functions'a revenuecat-webhook eklendi.
+     - legal.ts: hizmet sağlayıcılara Google Play + RevenueCat ve Install Referrer (yalnız cihazda)
+       satırları, KVKK aktarımına RevenueCat — ⚠ hukukçu kontrolü. .env.example: 3 yeni değişken.
+     - Testler: Deno yeni store.test.ts (15), billing.test.ts (8), reviewPolicy.test.ts (10),
+       revenuecat.test.ts (14); share.test.ts Play davetiye beklentisi referrer biçimine güncellendi.
+       PGlite zincir 0001 → 0021 + tekrar 0015–0021 + bölüm 6j (0021: 28 kontrol). Yeni e2e
+       referrer_ui.mjs (npm run e2e zincirine eklendi, 19 betik).
+     - Kapılar: tsc 0 hata; eslint src 0 sorun; test:functions 186 geçti / 0 başarısız (139 → +47);
+       deno check 8 index.ts temiz (revenuecat-webhook dahil); PGlite chain 142/142 (0001 → 0021), 0017
+       78/78, 0018 47/47, 0019_runbook 44/44; npm run e2e 19/19 çıkış 0; narrow_ui hata yok;
+       npx expo-doctor 20/20; expo config --type introspect: plugins + izinler doğrulandı.
+     - Elle adımlar: bkz. docs/inovasyon-onerileri.md §0.8 Durum ve geliştirici raporu (RevenueCat
+       hesabı / ürünler / yetki, EAS ortam değişkenleri, webhook secret, 0020 + 0021 SQL, deploy,
+       production AAB build).
+
 8. YAPILACAKLAR VE İNCELEME NOTLARI (genel gözden geçirme)
 --------------------------------------------------------------------------
 A) [ÇÖZÜLDÜ — bkz. 3.17] Taktik Asistan çok "kuru" yanıt veriyordu

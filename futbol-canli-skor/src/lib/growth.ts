@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 import { dataSource } from './data';
+import { isPlayStoreUrl, STORE_PACKAGE } from './store';
 import { PREVIEW_MODE } from './supabase';
 
 /**
@@ -9,14 +10,24 @@ import { PREVIEW_MODE } from './supabase';
  * Önizlemede e2e için sabit örnek adres (`.invalid` alan adı hiçbir yere gitmez).
  */
 const ENV_DOWNLOAD_URL = process.env.EXPO_PUBLIC_DOWNLOAD_URL?.trim() ?? '';
+/**
+ * Döngü 11: Play sürümünde mağaza sayfası (`https://play.google.com/store/apps/details?id=com.skorplus.app`).
+ * Tanımlıysa `EXPO_PUBLIC_DOWNLOAD_URL`'den önce gelir; paylaşım/davet bağlantıları `&referrer=` UTM'li
+ * mağaza bağlantısına döner (`share.ts` `withRef`, pazarlama §9.1). `EXPO_PUBLIC_DOWNLOAD_URL` zaten Play adresiyse
+ * aynı sonuç. Yalnız `https://play.google.com/` ile başlayan değer kabul edilir.
+ */
+const ENV_PLAY_URL = process.env.EXPO_PUBLIC_PLAY_URL?.trim() ?? '';
 const PREVIEW_DOWNLOAD_URL = 'https://ornek.invalid/skorplus';
+const PREVIEW_PLAY_URL = `https://play.google.com/store/apps/details?id=${STORE_PACKAGE}`;
 
 export function getDownloadUrl(): string | null {
+  if (ENV_PLAY_URL && isPlayStoreUrl(ENV_PLAY_URL)) return ENV_PLAY_URL;
   if (ENV_DOWNLOAD_URL) return ENV_DOWNLOAD_URL;
   if (!PREVIEW_MODE) return null;
-  // e2e: ?dl=0 → adres tanımlı değilmiş gibi (Paylaş ve davet kartı gizli)
+  // e2e: ?dl=0 → adres tanımlı değilmiş gibi (Paylaş ve davet kartı gizli); ?dl=play → Play mağaza adresi
   const search = typeof globalThis.location !== 'undefined' ? (globalThis.location.search ?? '') : '';
-  return /[?&]dl=0(?:&|$)/.test(search) ? null : PREVIEW_DOWNLOAD_URL;
+  if (/[?&]dl=0(?:&|$)/.test(search)) return null;
+  return /[?&]dl=play(?:&|$)/.test(search) ? PREVIEW_PLAY_URL : PREVIEW_DOWNLOAD_URL;
 }
 
 // Son başarılı kaydın TSİ günü (YYYY-MM-DD). Döngü 6 bulgu 8: saatlik aralık gece yarısını kaçırıyordu

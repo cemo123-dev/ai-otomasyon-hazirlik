@@ -5,7 +5,10 @@
  *
  * Metin kuralları: docs/inovasyon-onerileri.md §4.3 ("Arayüz metinleri (son hâl)") ve
  * docs/tasarim-rehberi.md "Tasarım incelemesi (tur 2)" §D. Yasaklı ifadeler: pazarlama stratejisi §8.
+ * Tek içe aktarma `./store.ts` (o da saf): `.ts` uzantısı açık yazılır ki Deno, Node (e2e) ve Metro aynı yolu
+ * çözsün (tsconfig `allowImportingTsExtensions`).
  */
+import { appUtm, isPlayStoreUrl, packageFromPlayUrl, storeUrl } from './store.ts';
 
 /** Davet kodu alfabesi: 0/O ve 1/I/L karışmasın diye yoklar (0017'deki CHECK ile aynı) */
 export const INVITE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -79,8 +82,15 @@ function withParams(url: string, params: [string, string | number | null | undef
   return `${path ? path(base) : base}${all.length ? `?${all.join('&')}` : ''}${hash}`;
 }
 
-/** İndirme sayfası + kaynak etiketi: `<url>?ref=invite&k=ABC234`. code null ise k eklenmez. */
+/**
+ * İndirme sayfası + kaynak etiketi: `<url>?ref=invite&k=ABC234`. code null ise k eklenmez.
+ * Adres Google Play mağaza sayfasıysa (Döngü 11): pazarlama §9.1 biçimi, `&referrer=utm_source%3Dapp…%26utm_content%3D<kod>`
+ * (`store.ts` `storeUrl`); Install Referrer kurulumdan sonra kodu önerir (`installReferrer.ts`).
+ */
 export function withRef(downloadUrl: string, ref: 'app-share' | 'invite', code: string | null): string {
+  if (isPlayStoreUrl(downloadUrl)) {
+    return storeUrl(packageFromPlayUrl(downloadUrl), appUtm(ref === 'invite' ? 'invite' : 'share', code));
+  }
   return withParams(downloadUrl, [
     ['ref', ref],
     ['k', code],
@@ -90,8 +100,10 @@ export function withRef(downloadUrl: string, ref: 'app-share' | 'invite', code: 
 /**
  * Paylaşılan maç bağlantısı (F13 kararı, OTA gerektirmesin diye ilk günden):
  * `<DOWNLOAD_URL>/m/?id=<fixture_id>&ref=app-share&k=<kod>`. Sondaki `/` olsa da olmasa da tek `/m/`.
+ * Play adresinde `/m/` sayfası yok: mağaza bağlantısı (utm_medium=share, utm_campaign=match_share).
  */
 export function matchLink(downloadUrl: string, fixtureId: number, code: string | null): string {
+  if (isPlayStoreUrl(downloadUrl)) return withRef(downloadUrl, 'app-share', code);
   return withParams(
     downloadUrl,
     [
@@ -188,13 +200,13 @@ export function buildShareText(m: ShareMatch, o: { downloadUrl: string; inviteCo
   return lines.join('\n');
 }
 
-/** İndirme adresi Google Play mağaza sayfası mı (Play build'i; EAS `production` ortamı) */
-export const isPlayStoreUrl = (url: string): boolean => /^https:\/\/play\.google\.com\//i.test(url.trim());
+/** İndirme adresi Google Play mağaza sayfası mı (Play build'i; EAS `production` ortamı) — `store.ts`'ten */
+export { isPlayStoreUrl };
 
 /**
  * Davetiye metni: bağlantı indirme adresidir (`/m/` yok), `?ref=invite&k=<kod>`.
- * Play adresiyse "Google Play'den indir" (pazarlama Sürüm 3 tek CTA); değilse nötr "İndir" (yan yükleme
- * anlatımı yok — Döngü 7 bulgu 12). Mağaza referrer'ı (`&referrer=`) P1'de `storeUrl` ile gelir.
+ * Play adresiyse "Google Play'den indir" (pazarlama Sürüm 3 tek CTA) ve bağlantı `&referrer=…utm_content%3D<kod>`
+ * (Döngü 11, `storeUrl`); değilse nötr "İndir" (yan yükleme anlatımı yok — Döngü 7 bulgu 12).
  */
 export function buildInviteText(downloadUrl: string, code: string): string {
   const cta = isPlayStoreUrl(downloadUrl) ? "Google Play'den indir" : 'İndir';

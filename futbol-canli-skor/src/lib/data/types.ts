@@ -1,4 +1,6 @@
 import type {
+  AiReport,
+  AiReportResult,
   AnalysisRequestResult,
   AnyTacticalPayload,
   AskResult,
@@ -85,6 +87,11 @@ export interface DataSource {
   getInvite(): Promise<InviteState | null>;
   /** F3: davet kodu girme. Ağ / oturum hatasında fırlatır (kart friendlyError gösterir) */
   redeemInvite(code: string): Promise<RedeemResult>;
+  /**
+   * F7: AI çıktısı için "Hata bildir" (report_ai_output RPC, 0020). 0020 kurulmadıysa 'unavailable'
+   * (fırlatmaz); ağ / oturum hatasında fırlatır (sayfa friendlyError gösterir, form korunur).
+   */
+  reportAiOutput(r: AiReport): Promise<AiReportResult>;
   /** YALNIZCA TEST: gerçek ödeme entegrasyonu (RevenueCat / IAP) gelene kadar */
   simulateSubscription(plan: SubscriptionPlan | null): Promise<boolean>;
 }

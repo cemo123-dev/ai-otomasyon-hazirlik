@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StorePaywall } from '@/components/StorePaywall';
 import { usePremium } from '@/hooks/usePremium';
 import type { SubscriptionPlan } from '@/lib/types';
 import { colors, radius, space } from '@/theme';
@@ -18,7 +19,7 @@ const FEATURES = [
 ];
 
 export default function PaywallModal() {
-  const { isPremium, loading, setPlan, isTestUser, error } = usePremium();
+  const { isPremium, loading, setPlan, isTestUser, error, purchasesEnabled } = usePremium();
   const [plan, setSelected] = useState<SubscriptionPlan>('yearly');
 
   const subscribe = async () => {
@@ -26,7 +27,10 @@ export default function PaywallModal() {
     if (router.canGoBack()) router.back();
   };
 
-  // Gerçek ödeme (RevenueCat) gelene kadar abonelik yalnız test hesaplarında açık
+  // Döngü 11: RevenueCat bayrağı açıksa (EXPO_PUBLIC_REVENUECAT_ANDROID_KEY) gerçek mağaza paywall'u
+  if (purchasesEnabled) return <StorePaywall />;
+
+  // Bayrak kapalı: gerçek ödeme yok, abonelik yalnız test hesaplarında (simülasyon) açık
   if (!isTestUser) {
     return (
       <ScrollView style={{ backgroundColor: colors.bg }} contentContainerStyle={styles.content}>

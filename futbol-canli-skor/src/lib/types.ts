@@ -464,6 +464,24 @@ export const DEFAULT_PREFS: NotificationPrefs = { kickoff: true, halftime: true,
 /** Takip edilen takım (bkz. 0010_teams.sql) */
 export type FollowedTeam = { sport_type: Sport; team_id: number; team_name: string; team_logo: string | null };
 
+// ═══════════════════════════════════════════════ F7 AI "HATA BİLDİR" (bkz. 0020_ai_reports.sql)
+
+/** AI çıktısının görüldüğü yüzey (sunucudaki check kısıtıyla aynı liste) */
+export type AiSurface = 'analysis' | 'nba_analysis' | 'preview' | 'halftime' | 'assistant' | 'red_card';
+export type AiReportReason = 'wrong_info' | 'inappropriate' | 'sport_mixup' | 'other';
+/** Not alanı üst sınırı (sunucu da 200 karaktere kırpar) */
+export const AI_REPORT_NOTE_MAX = 200;
+export type AiReport = {
+  fixtureId: number;
+  surface: AiSurface;
+  /** Yüzeydeki öğe: asistan yanıtının / alarmın kimliği; rapor geneli için null */
+  itemRef: string | null;
+  reason: AiReportReason;
+  note: string | null;
+};
+/** ok | rate_limited (günde 20) | unavailable (0020 kurulmadı) | invalid | unauthenticated */
+export type AiReportResult = 'ok' | 'rate_limited' | 'unavailable' | 'invalid' | 'unauthenticated';
+
 // ═══════════════════════════════════════════════ TAKTİK ASİSTANA SOR (bkz. 0008_assistant.sql)
 
 export const ASSISTANT_QUESTION_LIMIT = 3;
