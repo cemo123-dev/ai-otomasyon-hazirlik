@@ -1,0 +1,30 @@
+# Skor+ Play Store görselleri — alt metinler (≤ 140 karakter) ve altyazılar
+# Kaynak: docs/tasarim-rehberi.md "Play Store görselleri" §3. ⚠ = pazarlama onayı bekleyen altyazı (§7 madde 3).
+# Pro hapı: "PRO · YAKINDA". Dürüstlük notu: "Örnek verilerle gösterilmiştir." (§7 madde 2 kararı bekliyor).
+
+01-ai-rapor.png
+  altyazı: Skoru herkes görür, nedenini sen gör  [PRO · YAKINDA]
+  alt metin: Futbol maçı sonrası Türkçe AI taktik raporu: xG ve momentum kırılma kartları.
+02-takip-listesi.png
+  altyazı: Takımın, maçların, tek ekranda
+  alt metin: Bugünün maç listesi, takip edilen takımın maçı filtrelenmiş hâlde.
+03-nba-box-score.png
+  altyazı: Gece maçının tam box score'u
+  alt metin: NBA maçının box score tablosu: dakika, sayı, ribaund, asist, şut yüzdeleri.
+04-nba-ai.png
+  altyazı: NBA'i Türkçe yorumla oku  [PRO · YAKINDA]
+  alt metin: NBA maçı için Türkçe AI analizi: şut verimliliği ve maçın koptuğu periyot.
+05-takim-takibi.png
+  altyazı: Takımını takip et, maç başlayınca haber al (⚠ öneri)
+  alt metin: Maç ekranında takım takibi açık; maç başlayınca bildirim gelecek.
+06-kadro.png
+  altyazı: Kadro, diziliş, oyuncu puanları
+  alt metin: Futbol maçı kadrosu: saha üzerinde diziliş ve maç sonu oyuncu puanları.
+07-bildirim-ayarlari.png
+  altyazı: Bildirimleri sen seç (⚠ öneri)
+  alt metin: Bildirim ayarları: maç başladı bildirimi açık; diğer alarmlar yakında.
+08-taktik-asistan.png
+  altyazı: Maça özel sor: 3 soru, Türkçe cevap  [PRO · YAKINDA]
+  alt metin: Maça özel Taktik Asistan: Türkçe soru ve yapay zekâ yanıtı, kalan soru hakkı.
+feature-graphic.png
+  alt metin: Skor+ uygulama adı ve Türkçe AI maç analizi kartı; futbol ve NBA için.

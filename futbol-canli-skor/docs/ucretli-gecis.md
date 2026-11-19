@@ -12,7 +12,7 @@ Kapsam: yalnız **futbol** ücretli plana geçer (7.500 istek/gün). **NBA ücre
 4. **`nba-sync-live`'a dokunmayın.** Hiçbir `cron.alter_job` komutu çalıştırmayın. Eski migration notları (0002/0006/0007) kaldırıldı. O notlar NBA kotasını bir gecede bitirir ve tetikleyiciyi atlar.
 5. `app_config.api_paid` değerini yalnız `'true'::jsonb` / `'false'::jsonb` ile yazın. `'"true"'` (metin) hata verir ve hiçbir şey değişmez.
 6. `FIXTURE_DAYS_AHEAD` secret'ını tanımlamayın. Gün sayısı `app_config.fixture_days_ahead` satırındadır (0019, varsayılan 7). Edge ve uygulama aynı değeri okur.
-7. Kota rezervi secret'larını geçişte ve geri dönüşte **değiştirmeyin** (tek istisna: R2'deki eski `FOOTBALL_QUOTA_RESERVE=500` varsa silinir). Döngü 9'dan beri rezerv plana göre seçilir: ücretsiz planda `FOOTBALL_QUOTA_RESERVE` (varsayılan 6, en fazla 50), ücretli planda `FOOTBALL_QUOTA_RESERVE_PAID` (varsayılan 500). İkisi de tanımsız kalabilir.
+7. Kota rezervi secret'larını geçişte ve geri dönüşte **değiştirmeyin** (tek istisna: R2 adımında, değeri 500 olan eski `FOOTBALL_QUOTA_RESERVE` secret'ı varsa silinir). Döngü 9'dan beri rezerv plana göre seçilir: ücretsiz planda `FOOTBALL_QUOTA_RESERVE` (varsayılan 6, en fazla 50), ücretli planda `FOOTBALL_QUOTA_RESERVE_PAID` (varsayılan 500). İkisi de tanımsız kalabilir.
 8. API anahtarını hiçbir dosyaya yazmayın, commit'lemeyin, sohbete yapıştırmayın. B5'te yalnız terminal isteminde girilir.
 
 SQL komutları Supabase Dashboard → SQL Editor'de çalıştırılır. Secret'lar Dashboard → Edge Functions → Secrets'tan (ya da `npx supabase secrets set … --project-ref hcihjovckgojhtoemkpc`) ayarlanır.
